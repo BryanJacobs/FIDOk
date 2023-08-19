@@ -1,0 +1,6 @@
+headers = hidapi/hidapi.h
+headerFilter = hidapi/*
+
+compilerOpts.linux = -I/usr/include -I/usr/include/x86_64-linux-gnu
+linkerOpts.osx = -L/opt/local/lib -L/usr/local/opt/libhid/lib -lhidapi
+linkerOpts.linux = -l/usr/lib/libhidapi-hidraw.so

@@ -1,0 +1,77 @@
+package us.q3q.fidok.ctap.commands
+
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.buildSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+
+@Serializable(with = PKCredentialRpEntitySerializer::class)
+data class PublicKeyCredentialRpEntity(
+    val id: String? = null,
+    val name: String? = null,
+    val icon: String? = null,
+)
+
+@Serializable
+data class PublicKeyCredentialRpEntityParameter(override val v: PublicKeyCredentialRpEntity) : ParameterValue()
+
+@OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
+class PKCredentialRpEntitySerializer : KSerializer<PublicKeyCredentialRpEntity> {
+    override val descriptor: SerialDescriptor
+        get() = buildSerialDescriptor("PublicKeyCredentialRpEntity", StructureKind.MAP) {
+            element("className", String.serializer().descriptor)
+            element("id_key", String.serializer().descriptor)
+            element("id", String.serializer().descriptor)
+            element("icon_key", String.serializer().descriptor, isOptional = true)
+            element("icon", String.serializer().descriptor, isOptional = true)
+            element("name_key", String.serializer().descriptor, isOptional = true)
+            element("name", String.serializer().descriptor, isOptional = true)
+        }
+
+    override fun deserialize(decoder: Decoder): PublicKeyCredentialRpEntity {
+        val map = decoder.decodeSerializableValue(
+            MapSerializer(
+                String.serializer(),
+                String.serializer(),
+            ),
+        )
+        val id = map["id"]
+        return PublicKeyCredentialRpEntity(
+            id = id,
+            icon = map["icon"],
+            name = map["name"],
+        )
+    }
+
+    override fun serialize(encoder: Encoder, value: PublicKeyCredentialRpEntity) {
+        if (value.id == null) {
+            throw IllegalArgumentException("Cannot serialize a PublicKeyCredentialRpEntity with a null ID")
+        }
+        var size = 1
+        if (value.name != null) {
+            size++
+        }
+        if (value.icon != null) {
+            size++
+        }
+        val subEncoder = encoder.beginCollection(descriptor, size)
+        subEncoder.encodeStringElement(descriptor, 1, "id")
+        subEncoder.encodeStringElement(descriptor, 2, value.id)
+        if (value.icon != null) {
+            subEncoder.encodeStringElement(descriptor, 5, "icon")
+            subEncoder.encodeStringElement(descriptor, 6, value.icon)
+        }
+        if (value.name != null) {
+            subEncoder.encodeStringElement(descriptor, 3, "name")
+            subEncoder.encodeStringElement(descriptor, 4, value.name)
+        }
+        subEncoder.endStructure(descriptor)
+    }
+}

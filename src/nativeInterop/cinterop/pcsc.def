@@ -1,0 +1,5 @@
+headers = winscard.h
+headerFilter = *
+
+compilerOpts.linux = -I/usr/include/PCSC -I/usr/include/x86_64-linux-gnu/PCSC -pthread
+linkerOpts.osx = -L/opt/local/lib -L/usr/local/opt/PCSC/lib -lpcsclite

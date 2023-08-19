@@ -1,0 +1,6 @@
+repos:
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: 9c4cf43ca2527561813f86ad3fa629da8bc68a99
+  hooks:
+  - id: pretty-format-kotlin
+    args: [--autofix, --ktlint-version 11.5.1]
