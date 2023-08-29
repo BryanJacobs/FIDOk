@@ -49,25 +49,33 @@ provided by native implementations specific to each platform.
 | PIN tokens using PIN without permissions  | Supported                |
 | PIN tokens using PIN with permissions     | Supported                |
 | PIN tokens using onboard UV               | Unsupported              |
-| setMinPINLength Extension                 | Supported for management |
-| credProtect Extension                     | Supported for management |
+| `setMinPINLength` Extension               | Supported for management |
+| `credProtect` Extension                   | Supported for management |
 | Create-time Extensions (hmac-secret, etc) | Unsupported              |
 | LargeBlob management                      | Unsupported              |
 | Bio Enrollment                            | Unsupported              |
 | Authenticator Selection                   | Incomplete               |
-| makeCredential                            | Incomplete               |
-| getAssertion                              | Unsupported              |
+| MakeCredential                            | Incomplete               |
+| GetAssertion                              | Unsupported              |
+| Self Attestation                          | Unsupported              |
+| Basic Attestation                         | Unsupported              |
+| Enterprise Attestation                    | Unsupported              |
+| FIDO Metadata Data Service                | Unsupported              |
+| Android-key Attestation                   | Unsupported              |
+| TPM Attestation                           | Unsupported              |
 
 ## Implementation Features
 
-| Level                   | Status        |
-|-------------------------|---------------|
-| Raw CTAP                | Incomplete    |
-| Well-documented APIs    | Unimplemented |
-| Webauthn Layer          | Unimplemented |
-| Easy Task-Specific APIs | Unimplemented |
-| Command Line            | Unimplemented |
-| User Interface          | Unimplemented |
+| Level                             | Status        |
+|-----------------------------------|---------------|
+| Raw CTAP                          | Incomplete    |
+| Testing                           | Incomplete    |
+| Well-documented APIs              | No            |
+| Well-documented Build/Integration | No            |
+| Webauthn Layer                    | Unimplemented |
+| Easy Task-Specific APIs           | Unimplemented |
+| Command Line                      | Unimplemented |
+| User Interface                    | Unimplemented |
 
 ## Platforms
 
@@ -79,6 +87,7 @@ provided by native implementations specific to each platform.
 | Windows  | Unimplemented |
 | iOS      | Unimplemented |
 | Android  | Unimplemented |
+| Web :)   | Unimplemented |
 
 ## Authenticator Types
 
@@ -88,5 +97,6 @@ provided by native implementations specific to each platform.
 | BT-HID                | Working       |
 | PC/SC (USB or NFC)    | Working       |
 | Bluetooth LE          | Unimplemented |
+| TPM                   | Unimplemented |
 | E-APDUs               | Working       |
 | APDU Chaining         | Working       |
