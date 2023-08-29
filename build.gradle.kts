@@ -55,7 +55,7 @@ kotlin {
         binaries {
             all {
                 linkerOpts(
-                    "-l/home/braujac/sc/fidok/submodules/pcsc/libpcsclite.so.1.0.0",
+                    "-l${project.rootDir}/submodules/pcsc/libpcsclite.so.1.0.0",
                 )
             }
             executable()
