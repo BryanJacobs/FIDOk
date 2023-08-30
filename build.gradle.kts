@@ -59,6 +59,7 @@ kotlin {
                 )
             }
             executable()
+            sharedLib()
         }
     }
 
@@ -77,7 +78,11 @@ kotlin {
                 implementation(kotlin("test"))
             }
         }
-        val jvmMain by getting
+        val jvmMain by getting {
+            dependencies {
+                implementation("com.github.jnr:jnr-ffi:2.2.14")
+            }
+        }
         val jvmTest by getting
         val jsMain by getting
         val jsTest by getting

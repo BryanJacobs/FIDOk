@@ -79,15 +79,16 @@ provided by native implementations specific to each platform.
 
 ## Platforms
 
-| Platform | Status        |
-|----------|---------------|
-| JVM      | Incomplete    |
-| Linux    | Working       |
-| MacOS    | Unimplemented |
-| Windows  | Unimplemented |
-| iOS      | Unimplemented |
-| Android  | Unimplemented |
-| Web :)   | Unimplemented |
+| Platform                   | Status                                     |
+|----------------------------|--------------------------------------------|
+| JVM JAR                    | Working (on platforms with native support) |
+| C/C++ Shared Library       | Working                                    |
+| Linux Executable/SO        | Working                                    |
+| MacOS Executable/framework | Unimplemented                              |
+| Windows Executable/DLL     | Unimplemented                              |
+| iOS Framework              | Unimplemented                              |
+| Android JAR/SO             | Unimplemented                              |
+| Web Page :)                | Unimplemented                              |
 
 ## Authenticator Types
 

@@ -284,6 +284,9 @@ class LinuxCrypto : CryptoProvider {
                     botan_cipher_set_key(bc.value, it, key.key.size.convert())
                 }
             }
+            if (key.iv == null) {
+                throw IllegalArgumentException("IV required for AES-256 operations")
+            }
             withInBuffer(key.iv) {
                 botanSuccessCheck {
                     botan_cipher_start(bc.value, it, key.iv.size.convert())
