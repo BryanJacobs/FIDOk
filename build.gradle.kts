@@ -54,9 +54,11 @@ kotlin {
         }
         binaries {
             all {
-                linkerOpts(
-                    "-l${project.rootDir}/submodules/pcsc/libpcsclite.so.1.0.0",
-                )
+                if (hostOs == "Linux" && !isArm64) {
+                    linkerOpts(
+                        "-l${project.rootDir}/submodules/pcsc/libpcsclite.so.1.0.0",
+                    )
+                }
             }
             executable()
             sharedLib()
@@ -66,7 +68,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.6.0-RC")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.6.0")
                 implementation("co.touchlab:kermit:2.0.0-RC5") {
                     // conflicts with junit5
                     exclude(group = "org.jetbrains.kotlin", module = "kotlin-test-junit")

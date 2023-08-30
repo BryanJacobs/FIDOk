@@ -26,7 +26,7 @@ class ExtensionSetup(private val appliedExtensions: List<Extension>) {
     companion object {
         private val registeredCreationExtensions = hashMapOf<ExtensionName, DeserializationStrategy<ExtensionParameters>>()
         private val registeredAssertionExtensions = hashMapOf<ExtensionName, DeserializationStrategy<ExtensionParameters>>()
-        private var keyAgreementRequiredExtensions = hashMapOf<ExtensionName, Boolean>()
+        private val keyAgreementRequiredExtensions = hashMapOf<ExtensionName, Boolean>()
 
         fun register(
             name: ExtensionName,
