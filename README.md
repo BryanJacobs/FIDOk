@@ -31,38 +31,42 @@ APIs and isn't nearly feature complete.
 
 # Overview
 
-The core code is all Kotlin/Mutliplatform, and can be used from any target. Interfaces
+The core code is all Kotlin/Multiplatform, and can be used from any target. Interfaces
 for cryptography and communicating with authenticators on a byte-by-byte level is
 provided by native implementations specific to each platform.
 
 ## Protocol Features
 
-| Feature                                   | Status                   |
-|-------------------------------------------|--------------------------|
-| CTAP2.0 Prototype Credentials Management  | Supported                |
-| CTAP2.1 Credentials Management            | Supported                |
-| Authenticator Config                      | Supported                |
-| Authenticator Reset                       | Supported                |
-| Client PIN (set, change, info)            | Supported                |
-| PIN Protocol One                          | Supported                |
-| PIN Protocol Two                          | Supported                |
-| PIN tokens using PIN without permissions  | Supported                |
-| PIN tokens using PIN with permissions     | Supported                |
-| PIN tokens using onboard UV               | Unsupported              |
-| `setMinPINLength` Extension               | Supported for management |
-| `credProtect` Extension                   | Supported for management |
-| Create-time Extensions (hmac-secret, etc) | Unsupported              |
-| LargeBlob management                      | Unsupported              |
-| Bio Enrollment                            | Unsupported              |
-| Authenticator Selection                   | Incomplete               |
-| MakeCredential                            | Incomplete               |
-| GetAssertion                              | Unsupported              |
-| Self Attestation                          | Unsupported              |
-| Basic Attestation                         | Unsupported              |
-| Enterprise Attestation                    | Unsupported              |
-| FIDO Metadata Data Service                | Unsupported              |
-| Android-key Attestation                   | Unsupported              |
-| TPM Attestation                           | Unsupported              |
+| Feature                                  | Status      |
+|------------------------------------------|-------------|
+| CTAP2.0 Prototype Credentials Management | Supported   |
+| CTAP2.1 Credentials Management           | Supported   |
+| Authenticator Config                     | Supported   |
+| Authenticator Reset                      | Supported   |
+| Client PIN (set, change, info)           | Supported   |
+| `setMinPINLength` Command                | Supported   |
+| PIN Protocol One                         | Supported   |
+| PIN Protocol Two                         | Supported   |
+| PIN tokens using PIN without permissions | Supported   |
+| PIN tokens using PIN with permissions    | Supported   |
+| PIN tokens using onboard UV              | Unsupported |
+| `minPinLength` Extension                 | Supported   |
+| `credProtect` Extension                  | Supported   |
+| `hmac-secret` Extension                  | Supported   |
+| `credBlob` Extension                     | Unsupported |
+| `largeBlobKey` Extension                 | Unsupported |
+| `uvm` Extension (Webauthn)               | Unsupported |
+| LargeBlob management                     | Unsupported |
+| Bio Enrollment                           | Unsupported |
+| Authenticator Selection                  | Incomplete  |
+| MakeCredential                           | Supported   |
+| GetAssertion                             | Unsupported |
+| Self Attestation                         | Unsupported |
+| Basic Attestation                        | Unsupported |
+| Enterprise Attestation                   | Incomplete  |
+| FIDO Metadata Data Service               | Unsupported |
+| Android-key Attestation                  | Unsupported |
+| TPM Attestation                          | Unsupported |
 
 ## Implementation Features
 

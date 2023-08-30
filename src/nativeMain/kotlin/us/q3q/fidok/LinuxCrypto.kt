@@ -83,14 +83,12 @@ class LinuxCrypto : CryptoProvider {
 
     override fun ecdhKeyAgreementInit(otherPublicKeyPoint: P256Point): KeyAgreementState {
         Logger.i { "Creating ECDH key" }
+
         return withRNG { rng ->
             withBotanAlloc<botan_privkey_tVar, KeyAgreementState>({ botan_privkey_destroy(it.value) }) { privateKey ->
-                Logger.d { "Creating private key" }
-
                 botanSuccessCheck {
                     botan_privkey_create(privateKey.ptr, "ECDH", "secp256r1", rng)
                 }
-                Logger.d { "Private key generated" }
 
                 val points = listOf("public_x", "public_y").map { fieldName ->
                     withBotanAlloc<botan_mp_tVar, ByteArray>({ botan_mp_destroy(it.value) }) inner@{ mp ->
@@ -107,8 +105,6 @@ class LinuxCrypto : CryptoProvider {
                         }
                     }
                 }
-
-                Logger.d { "Public key points extracted" }
 
                 val exportBufferLen = 500
                 val trueExportedKey = memScoped {
@@ -239,6 +235,7 @@ class LinuxCrypto : CryptoProvider {
         val result = f()
         if (result != BOTAN_FFI_SUCCESS) {
             val desc = botan_error_description(result)
+            Logger.e { "Crypto error: ${desc?.toKString()}" }
             throw RuntimeException("Botan crypto failure: ${desc?.toKString()}")
         }
     }
@@ -303,8 +300,6 @@ class LinuxCrypto : CryptoProvider {
                 inputLenBuffer.value = 0u
                 outputLenBuffer.value = 0u
 
-                Logger.v { "Stream ciphers ready for $outputLength bytes of output" }
-
                 val ret = withInBuffer(bytes) { input ->
                     withOutBuffer(outputLength) { output ->
                         botanSuccessCheck {
@@ -353,15 +348,11 @@ class LinuxCrypto : CryptoProvider {
                 botan_mac_init(mac.ptr, "HMAC(SHA-256)", 0u)
             }
 
-            Logger.v { "HMAC init" }
-
             withInBuffer(key.key) {
                 botanSuccessCheck {
                     botan_mac_set_key(mac.value, it, key.key.size.convert())
                 }
             }
-
-            Logger.v { "HMAC key set" }
 
             withInBuffer(bytes) {
                 botanSuccessCheck {

@@ -5,6 +5,9 @@ import us.q3q.fidok.PCSCDevice
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.CTAPPinPermissions
 import us.q3q.fidok.ctap.Library
+import us.q3q.fidok.ctap.commands.CredProtectExtension
+import us.q3q.fidok.ctap.commands.ExtensionSetup
+import us.q3q.fidok.ctap.commands.HMACSecretExtension
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialDescriptor
 import kotlin.random.Random
 
@@ -23,7 +26,22 @@ fun main() {
 
     var cred: ByteArray? = null
     for (i in 1..5) {
-        val res = client.makeCredential(clientDataHash = Random.Default.nextBytes(32), rpId = "something.cool.example")
+        val credProtect = CredProtectExtension(2u)
+        val hmacSecret = HMACSecretExtension(Random.Default.nextBytes(32))
+        val extensions = ExtensionSetup(
+            listOf(
+                credProtect,
+                hmacSecret,
+            ),
+        )
+        val res = client.makeCredential(
+            rpId = "something.cool.example",
+            userDisplayName = "Bob",
+            extensions = extensions,
+        )
+        println("RESULT: $res")
+        println("credRes: ${credProtect.getLevel()}")
+        println("hmacSecret: ${hmacSecret.wasCreated()}")
         cred = res.authData.attestedCredentialData?.credentialId
     }
 

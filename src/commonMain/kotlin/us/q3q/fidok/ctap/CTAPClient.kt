@@ -8,7 +8,6 @@ import us.q3q.fidok.crypto.PinProtocol
 import us.q3q.fidok.crypto.PinProtocolV1
 import us.q3q.fidok.crypto.PinProtocolV2
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
-import us.q3q.fidok.ctap.commands.COSEKey
 import us.q3q.fidok.ctap.commands.CTAPCBORDecoder
 import us.q3q.fidok.ctap.commands.ClientPinCommand
 import us.q3q.fidok.ctap.commands.ClientPinGetKeyAgreementResponse
@@ -16,10 +15,12 @@ import us.q3q.fidok.ctap.commands.ClientPinGetRetriesResponse
 import us.q3q.fidok.ctap.commands.ClientPinGetTokenResponse
 import us.q3q.fidok.ctap.commands.CredentialCreationOption
 import us.q3q.fidok.ctap.commands.CtapCommand
+import us.q3q.fidok.ctap.commands.ExtensionSetup
 import us.q3q.fidok.ctap.commands.GetInfoCommand
 import us.q3q.fidok.ctap.commands.GetInfoResponse
 import us.q3q.fidok.ctap.commands.MakeCredentialCommand
 import us.q3q.fidok.ctap.commands.MakeCredentialResponse
+import us.q3q.fidok.ctap.commands.PublicKeyCredentialDescriptor
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialParameters
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialRpEntity
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
@@ -104,6 +105,9 @@ class CTAPClient(private val device: Device) {
 
     private val PP_2_AES_INFO = "CTAP2 AES key".encodeToByteArray()
     private val PP_2_HMAC_INFO = "CTAP2 HMAC key".encodeToByteArray()
+    private val DEFAULT_CREDENTIAL_ALGORITHMS = listOf(
+        PublicKeyCredentialParameters(alg = COSEAlgorithmIdentifier.ES256),
+    )
 
     private var platformKey: KeyAgreementPlatformKey? = null
     private var pinProtocolInUse: UByte = 0u
@@ -157,24 +161,80 @@ class CTAPClient(private val device: Device) {
         checkResponseStatus(ret)
     }
 
-    fun makeCredential(clientDataHash: ByteArray, rpId: String): MakeCredentialResponse {
+    fun makeCredential(
+        clientDataHash: ByteArray? = null,
+        rpId: String,
+        userId: ByteArray? = null,
+        userDisplayName: String,
+        discoverableCredential: Boolean = false,
+        userVerification: Boolean = false,
+        pubKeyCredParams: List<PublicKeyCredentialParameters> = DEFAULT_CREDENTIAL_ALGORITHMS,
+        excludeList: List<PublicKeyCredentialDescriptor>? = null,
+        pinProtocol: UByte? = null,
+        pinToken: PinToken? = null,
+        enterpiseAttestation: UInt? = null,
+        extensions: ExtensionSetup? = null,
+    ): MakeCredentialResponse {
+        require(clientDataHash == null || clientDataHash.size == 32)
+        require(userId == null || userId.size == 32)
+        require(enterpiseAttestation == null || enterpiseAttestation == 1u || enterpiseAttestation == 2u)
+        require(
+            (pinToken == null && pinProtocol == null) ||
+                pinToken != null,
+        )
+        val info = getInfoIfUnset()
+        if (enterpiseAttestation != null && info.options?.get("ep") != true) {
+            throw IllegalArgumentException("Authenticator enterprise attestation isn't enabled")
+        }
+        extensions?.checkSupport(info)
+
+        val effectiveUserId = userId ?: Random.nextBytes(32)
+        val effectiveClientDataHash = clientDataHash ?: Random.nextBytes(32)
+
+        val options = hashMapOf<CredentialCreationOption, Boolean>()
+        if (discoverableCredential) {
+            options[CredentialCreationOption.RK] = true
+        }
+        if (userVerification) {
+            options[CredentialCreationOption.UV] = true
+        }
+
+        var pinProtocolVersion: UByte? = null
+        val pinUvAuthParam = if (pinToken != null) {
+            val pp = getPinProtocol(pinProtocol)
+            pinProtocolVersion = pp.getVersion()
+            pp.authenticate(pinToken, effectiveClientDataHash)
+        } else {
+            null
+        }
+
+        var ka: KeyAgreementPlatformKey? = null
+        var pp: PinProtocol? = null
+        if (extensions?.isKeyAgreementRequired() == true) {
+            pp = getPinProtocol(pinProtocol)
+            ka = getKeyAgreement(pp.getVersion())
+        }
+
         val request = MakeCredentialCommand(
-            clientDataHash,
+            effectiveClientDataHash,
             PublicKeyCredentialRpEntity(rpId),
             user = PublicKeyCredentialUserEntity(
-                id = Random.nextBytes(32),
-                displayName = "Bob",
+                id = effectiveUserId,
+                displayName = userDisplayName,
             ),
-            pubKeyCredParams = listOf(
-                PublicKeyCredentialParameters(
-                    alg = COSEAlgorithmIdentifier.ES256,
-                ),
-            ),
-            options = mapOf(
-                CredentialCreationOption.RK to true,
-            ),
+            pubKeyCredParams = pubKeyCredParams,
+            options = options,
+            excludeList = excludeList,
+            pinUvAuthProtocol = pinProtocolVersion,
+            pinUvAuthParam = pinUvAuthParam,
+            enterpriseAttestation = enterpiseAttestation,
+            extensions = extensions?.makeCredential(ka, pp),
         )
-        return xmit(request, MakeCredentialResponse.serializer())
+        val ret = xmit(request, MakeCredentialResponse.serializer())
+
+        extensions?.makeCredentialResponse(ret)
+
+        return ret
     }
 
     fun getKeyAgreement(pinProtocol: UByte = 2u): KeyAgreementPlatformKey {
@@ -224,16 +284,6 @@ class CTAPClient(private val device: Device) {
         }
     }
 
-    private fun pkToCOSE(pk: KeyAgreementPlatformKey): COSEKey {
-        return COSEKey(
-            kty = 2,
-            alg = -25,
-            crv = 1,
-            x = pk.publicX,
-            y = pk.publicY,
-        )
-    }
-
     private fun checkAndPadPIN(pinUnicode: String): ByteArray {
         val pinByteList = pinUnicode.encodeToByteArray().toMutableList()
         if (pinByteList.size > 63) {
@@ -255,7 +305,7 @@ class CTAPClient(private val device: Device) {
 
         val command = ClientPinCommand.setPIN(
             pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pkToCOSE(pk),
+            keyAgreement = pk.getCOSE(),
             newPinEnc = newPinEnc,
             pinUvAuthParam = pinHashEnc,
         )
@@ -267,12 +317,22 @@ class CTAPClient(private val device: Device) {
     }
 
     internal fun getPinProtocol(pinProtocol: UByte?): PinProtocol {
+        val supportedProtocols = getInfoIfUnset().pinUvAuthProtocols
         return when (pinProtocol?.toUInt()) {
-            1u -> PinProtocolV1()
-            2u -> PinProtocolV2()
+            1u -> {
+                if (supportedProtocols != null && !supportedProtocols.contains(1u)) {
+                    throw IllegalArgumentException("Authenticator doesn't support PIN protocol one")
+                }
+                PinProtocolV1()
+            }
+            2u -> {
+                if (supportedProtocols?.contains(2u) != true) {
+                    throw IllegalArgumentException("Authenticator doesn't support PIN protocol two")
+                }
+                PinProtocolV2()
+            }
             null -> {
-                val supportedProtocols = getInfoIfUnset().pinUvAuthProtocols
-                if (supportedProtocols != null && supportedProtocols.contains(2u)) {
+                if (supportedProtocols?.contains(2u) == true) {
                     return PinProtocolV2()
                 }
                 PinProtocolV1()
@@ -299,7 +359,7 @@ class CTAPClient(private val device: Device) {
         val command = ClientPinCommand.changePIN(
             pinHashEnc = pinHashEnc,
             pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pkToCOSE(pk),
+            keyAgreement = pk.getCOSE(),
             newPinEnc = newPinEnc,
             pinUvAuthParam = pinUvAuthParam,
         )
@@ -329,7 +389,7 @@ class CTAPClient(private val device: Device) {
 
         val command = ClientPinCommand.getPinToken(
             pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pkToCOSE(pk),
+            keyAgreement = pk.getCOSE(),
             pinHashEnc = pinHashEnc,
         )
 
@@ -355,7 +415,7 @@ class CTAPClient(private val device: Device) {
 
         val command = ClientPinCommand.getPinUvAuthTokenUsingPinWithPermissions(
             pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pkToCOSE(pk),
+            keyAgreement = pk.getCOSE(),
             pinHashEnc = pinHashEnc,
             permissions = permissions,
             rpId = rpId,

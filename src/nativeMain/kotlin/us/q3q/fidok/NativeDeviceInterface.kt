@@ -9,7 +9,6 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
 import us.q3q.fidok.ctap.Device
-import kotlin.experimental.ExperimentalNativeApi
 
 var devices: List<Device>? = null
 
@@ -21,7 +20,7 @@ fun listDevices(): Int {
 }
 
 @Suppress("LocalVariableName")
-@OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class, ExperimentalStdlibApi::class)
+@OptIn(ExperimentalForeignApi::class)
 @CName("fidok_send_bytes")
 fun sendToDevice(
     device_number: Int,

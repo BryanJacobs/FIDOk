@@ -146,9 +146,26 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
 }
 
 class CTAPCBORArrayDecoder(bytes: ByteArray) : CTAPCBORDecoder(bytes) {
+
+    override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
+        return AdvancingDecoder(input.copyOfRange(offset, input.size), this)
+    }
+
     override fun endStructure(descriptor: SerialDescriptor) {
         if (offset != input.size) {
             throw SerializationException("Byte array sub-decoder didn't consume entire array!")
         }
+    }
+
+    internal fun advance(len: Int) {
+        offset += len
+    }
+}
+
+class AdvancingDecoder(bytes: ByteArray, val parent: CTAPCBORArrayDecoder) : CTAPCBORDecoder(bytes) {
+    override fun endStructure(descriptor: SerialDescriptor) {
+        Logger.v { "ES - advancing ${this.offset} bytes" }
+        super.endStructure(descriptor)
+        parent.advance(this.offset)
     }
 }

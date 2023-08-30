@@ -45,7 +45,6 @@ val extensionSerializers = SerializersModule {
         subclass(StringExtensionParameter::class, StringExtensionParameter.serializer())
         subclass(ByteArrayExtensionParameter::class, ByteArrayExtensionParameter.serializer())
         subclass(IntExtensionParameter::class, IntExtensionParameter.serializer())
-        subclass(ByteExtensionParameter::class, ByteExtensionParameter.serializer())
         subclass(MapExtensionParameter::class, MapExtensionParameter.serializer())
     }
 }
@@ -79,9 +78,6 @@ data class ByteArrayExtensionParameter(@ByteString val v: ByteArray) : Extension
 
 @Serializable
 data class IntExtensionParameter(val v: Int) : ExtensionParameters()
-
-@Serializable
-data class ByteExtensionParameter(val v: Byte) : ExtensionParameters()
 
 @Serializable(with = MapExtensionParameterValueSerializer::class)
 data class MapExtensionParameter(val v: Map<String, @Polymorphic ExtensionParameters>) : ExtensionParameters()

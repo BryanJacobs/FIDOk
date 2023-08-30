@@ -21,7 +21,7 @@ class MakeCredentialCommand(
     private val extensions: Map<ExtensionName, ExtensionParameters>? = null,
     private val options: Map<CredentialCreationOption, Boolean>? = null,
     private val pinUvAuthParam: ByteArray? = null,
-    private val pinUvAuthProtocol: UInt? = null,
+    private val pinUvAuthProtocol: UByte? = null,
     private val enterpriseAttestation: UInt? = null,
 ) : CtapCommand() {
     override val cmdByte: Byte = 0x01
@@ -47,7 +47,7 @@ class MakeCredentialCommand(
             this[0x08u] = ByteArrayParameter(pinUvAuthParam)
         }
         if (pinUvAuthProtocol != null) {
-            this[0x09u] = UIntParameter(pinUvAuthProtocol)
+            this[0x09u] = UByteParameter(pinUvAuthProtocol)
         }
         if (enterpriseAttestation != null) {
             this[0x0Au] = UIntParameter(enterpriseAttestation)
@@ -57,7 +57,7 @@ class MakeCredentialCommand(
     init {
         require(clientDataHash.size == 32)
         require(pubKeyCredParams.isNotEmpty())
-        require(pinUvAuthProtocol == null || pinUvAuthProtocol == 1u || pinUvAuthProtocol == 2u)
+        require(pinUvAuthProtocol == null || pinUvAuthProtocol == 1u.toUByte() || pinUvAuthProtocol == 2u.toUByte())
         require(pinUvAuthParam == null || pinUvAuthParam.size == 32 || pinUvAuthParam.size == 48)
         require(enterpriseAttestation == null || enterpriseAttestation == 1u || enterpriseAttestation == 2u)
     }

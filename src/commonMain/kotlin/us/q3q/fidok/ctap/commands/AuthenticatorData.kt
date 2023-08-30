@@ -95,14 +95,15 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
         }
         var extensions: Map<ExtensionName, ExtensionParameters>? = null
         if ((flags and FLAGS.ED.value) != 0.toByte()) {
-            extensions = composite.decodeSerializableElement(
-                descriptor, 4,
-                MapSerializer(
-                    ExtensionName.serializer(),
-                    ExtensionParameters.serializer(),
-                ),
+            val results = composite.decodeSerializableElement(
+                descriptor,
+                4,
+                CreationExtensionResultsSerializer(),
             )
+            extensions = results.v
         }
+
+        // composite.endStructure(descriptor)
 
         return AuthenticatorData(
             rpIdHash = rpIdHash.toByteArray(),
