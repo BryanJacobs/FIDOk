@@ -1,6 +1,6 @@
 plugins {
-    kotlin("multiplatform") version "1.9.0"
-    kotlin("plugin.serialization") version "1.9.0"
+    kotlin("multiplatform") version "1.9.10"
+    kotlin("plugin.serialization") version "1.9.10"
     // Commented out until it stops throwing parse errors
     // id("org.jlleitschuh.gradle.ktlint") version "11.5.1"
 }
