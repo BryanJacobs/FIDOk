@@ -2,13 +2,20 @@ package us.q3q.fidok.ui
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -22,19 +29,6 @@ import us.q3q.fidok.ctap.commands.GetInfoResponse
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialParameters
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialType
 import kotlin.random.Random
-
-@Composable
-fun ContainerCard(f: @Composable () -> Unit) {
-    val scrollState = rememberScrollState()
-    Card(elevation = 6.dp, modifier = Modifier.padding(vertical = 2.dp).horizontalScroll(scrollState)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 2.dp),
-        ) {
-            f()
-        }
-    }
-}
 
 @Composable
 fun InnerCard(text: String) {
@@ -53,120 +47,187 @@ fun LabeledCard(label: String, text: String) {
 
 @Composable
 fun CardsForList(label: String, elements: Array<String>) {
-    ContainerCard {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.height(28.dp),
+    ) {
         Text("$label:")
-        elements.map {
-            InnerCard(it)
+        LazyHorizontalGrid(rows = GridCells.Adaptive(20.dp), modifier = Modifier.fillMaxHeight()) {
+            elements.map {
+                item {
+                    InnerCard(it)
+                }
+            }
         }
     }
 }
 
 @Composable
 fun CardsForMap(label: String, elements: Map<String, Any>) {
-    ContainerCard {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.height(54.dp),
+    ) {
         Text("$label:")
-        elements.map {
-            InnerCard("${it.key}=${it.value}")
+        LazyHorizontalGrid(rows = GridCells.Adaptive(20.dp), modifier = Modifier.fillMaxHeight()) {
+            elements.map {
+                item {
+                    InnerCard("${it.key}=${it.value}")
+                }
+            }
         }
     }
 }
 
 @Composable
 fun InfoDisplay(info: GetInfoResponse) {
-    val state = rememberScrollState()
-    Column(Modifier.fillMaxWidth().verticalScroll(state), horizontalAlignment = Alignment.Start) {
-        CardsForList("Versions", info.versions)
-        info.extensions?.let {
-            CardsForList("Extensions", it)
+    val state = rememberLazyListState()
+    Box(
+        modifier = Modifier.fillMaxSize()
+            .background(color = Color(180, 180, 180))
+            .padding(10.dp),
+    ) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.Start,
+            state = state,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            item {
+                CardsForList("Versions", info.versions)
+            }
+            info.extensions?.let {
+                item {
+                    CardsForList("Extensions", it)
+                }
+            }
+            // aaguid?
+            info.options?.let {
+                item {
+                    CardsForMap("Options", it)
+                }
+            }
+            info.maxMsgSize?.let {
+                item {
+                    LabeledCard("Max Message Size", "$it bytes")
+                }
+            }
+            info.pinUvAuthProtocols?.let { protos ->
+                item {
+                    CardsForList(
+                        "PIN Protocols",
+                        protos.map { it.toString() }.toTypedArray(),
+                    )
+                }
+            }
+            info.maxCredentialIdLength?.let {
+                item {
+                    LabeledCard("Max Credential ID Length", "$it bytes")
+                }
+            }
+            info.transports?.let {
+                item {
+                    CardsForList("Transports", it)
+                }
+            }
+            info.algorithms?.let {
+                item {
+                    CardsForList(
+                        "Supported Algorithms",
+                        it.map { algo -> algo.toString() }.toTypedArray(),
+                    )
+                }
+            }
+            info.maxSerializedLargeBlobArray?.let {
+                item {
+                    LabeledCard(
+                        "Large Blob Store Size",
+                        "$it bytes",
+                    )
+                }
+            }
+            info.forcePINChange?.let {
+                item {
+                    LabeledCard(
+                        "Force PIN Change",
+                        it.toString(),
+                    )
+                }
+            }
+            info.minPINLength?.let {
+                item {
+                    LabeledCard(
+                        "Minimum PIN Length",
+                        "$it characters",
+                    )
+                }
+            }
+            info.firmwareVersion?.let {
+                item {
+                    LabeledCard(
+                        "Firmware Version",
+                        it.toString(),
+                    )
+                }
+            }
+            info.maxCredBlobLength?.let {
+                item {
+                    LabeledCard(
+                        "Blob Storage Per Credential",
+                        "$it bytes",
+                    )
+                }
+            }
+            info.maxRPIDsForSetMinPINLength?.let {
+                item {
+                    LabeledCard(
+                        "Number of RPs That Can Receive Min PIN Length",
+                        it.toString(),
+                    )
+                }
+            }
+            info.preferredPlatformUvAttempts?.let {
+                item {
+                    LabeledCard(
+                        "Preferred User Verification Attempts",
+                        it.toString(),
+                    )
+                }
+            }
+            info.uvModality?.let {
+                item {
+                    LabeledCard(
+                        "User Verification Modalities",
+                        it.toString(),
+                    )
+                }
+            }
+            info.certifications?.let {
+                item {
+                    CardsForMap("Certifications", it)
+                }
+            }
+            info.remainingDiscoverableCredentials?.let {
+                item {
+                    LabeledCard(
+                        "Remaining Discoverable Credentials (approx)",
+                        it.toString(),
+                    )
+                }
+            }
+            info.vendorPrototypeConfigCommands?.let {
+                item {
+                    CardsForList(
+                        "Supported Vendor Prototype Commands",
+                        it.map { x -> x.toString() }.toTypedArray(),
+                    )
+                }
+            }
         }
-        // aaguid?
-        info.options?.let {
-            CardsForMap("Options", it)
-        }
-        info.maxMsgSize?.let {
-            LabeledCard("Max Message Size", "$it bytes")
-        }
-        info.pinUvAuthProtocols?.let { protos ->
-            CardsForList(
-                "PIN Protocols",
-                protos.map { it.toString() }.toTypedArray(),
-            )
-        }
-        info.maxCredentialIdLength?.let {
-            LabeledCard("Max Credential ID Length", "$it bytes")
-        }
-        info.transports?.let {
-            CardsForList("Transports", it)
-        }
-        info.algorithms?.let {
-            CardsForList(
-                "Supported Algorithms",
-                it.map { algo -> algo.toString() }.toTypedArray(),
-            )
-        }
-        info.maxSerializedLargeBlobArray?.let {
-            LabeledCard(
-                "Large Blob Store Size",
-                "$it bytes",
-            )
-        }
-        info.forcePINChange?.let {
-            LabeledCard(
-                "Force PIN Change",
-                it.toString(),
-            )
-        }
-        info.minPINLength?.let {
-            LabeledCard(
-                "Minimum PIN Length",
-                "$it characters",
-            )
-        }
-        info.firmwareVersion?.let {
-            LabeledCard(
-                "Firmware Version",
-                it.toString(),
-            )
-        }
-        info.maxCredBlobLength?.let {
-            LabeledCard(
-                "Blob Storage Per Credential",
-                "$it bytes",
-            )
-        }
-        info.maxRPIDsForSetMinPINLength?.let {
-            LabeledCard(
-                "Number of RPs That Can Receive Min PIN Length",
-                it.toString(),
-            )
-        }
-        info.preferredPlatformUvAttempts?.let {
-            LabeledCard(
-                "Preferred User Verification Attempts",
-                it.toString(),
-            )
-        }
-        info.uvModality?.let {
-            LabeledCard(
-                "User Verification Modalities",
-                it.toString(),
-            )
-        }
-        info.certifications?.let {
-            CardsForMap("Certifications", it)
-        }
-        info.remainingDiscoverableCredentials?.let {
-            LabeledCard(
-                "Remaining Discoverable Credentials (approx)",
-                it.toString(),
-            )
-        }
-        info.vendorPrototypeConfigCommands?.let {
-            CardsForList(
-                "Supported Vendor Prototype Commands",
-                it.map { x -> x.toString() }.toTypedArray(),
-            )
-        }
+        VerticalScrollbar(
+            modifier = Modifier.fillMaxHeight(),
+            adapter = rememberScrollbarAdapter(scrollState = state),
+        )
     }
 }
 
@@ -180,8 +241,9 @@ fun previewInfo() {
                 extensions = arrayOf("minPinLength"),
                 aaguid = Random.nextBytes(32),
                 options = hashMapOf(
-                    "rk" to true,
-                    "uv" to true,
+                    "clientPin" to true,
+                    "setMinPinLength" to true,
+                    "alwaysUv" to true,
                 ),
                 maxMsgSize = 2048u,
                 pinUvAuthProtocols = arrayOf(1u, 2u),
