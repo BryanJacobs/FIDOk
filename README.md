@@ -79,20 +79,20 @@ provided by native implementations specific to each platform.
 | Webauthn Layer                    | Unimplemented |
 | Easy Task-Specific APIs           | Unimplemented |
 | Command Line                      | Unimplemented |
-| User Interface                    | Unimplemented |
+| User Interface                    | Incomplete    |
 
 ## Platforms
 
-| Platform                   | Status                                     |
-|----------------------------|--------------------------------------------|
-| JVM JAR                    | Working (on platforms with native support) |
-| C/C++ Shared Library       | Working                                    |
-| Linux Executable/SO        | Working                                    |
-| MacOS Executable/framework | Unimplemented                              |
-| Windows Executable/DLL     | Unimplemented                              |
-| iOS Framework              | Unimplemented                              |
-| Android JAR/SO             | Unimplemented                              |
-| Web Page :)                | Unimplemented                              |
+| Platform                   | Status                                            |
+|----------------------------|---------------------------------------------------|
+| JVM "fat" JAR              | Working (on platforms with native support)        |
+| C/C++ Shared Library       | Working (.so/.h on platforms with native support) |
+| Linux Executable/SO        | Working (.so, native binary, AppImage, RPM, DEB)  |
+| MacOS Executable/framework | Unimplemented                                     |
+| Windows Executable/DLL     | Unimplemented                                     |
+| iOS Framework              | Unimplemented                                     |
+| Android JAR/SO             | Unimplemented                                     |
+| Web Page :)                | Unimplemented                                     |
 
 ## Authenticator Types
 

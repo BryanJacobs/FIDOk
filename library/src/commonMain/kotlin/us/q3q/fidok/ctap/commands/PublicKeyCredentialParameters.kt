@@ -31,6 +31,14 @@ data class PublicKeyCredentialParameters(
     constructor(type: String, alg: COSEAlgorithmIdentifier) : this(type, alg.value)
 
     constructor(type: PublicKeyCredentialType, alg: Int) : this(type.value, alg)
+
+    override fun toString(): String {
+        if (type != PublicKeyCredentialType.PUBLIC_KEY.value) {
+            return super.toString()
+        }
+        val matchedAlg = COSEAlgorithmIdentifier.entries.find { it.value == alg } ?: return super.toString()
+        return matchedAlg.name
+    }
 }
 
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
