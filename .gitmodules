@@ -1,0 +1,6 @@
+[submodule "library/submodules/botan"]
+	path = library/submodules/botan
+	url = https://github.com/randombit/botan.git
+[submodule "library/submodules/hidapi"]
+	path = library/submodules/hidapi
+	url = https://github.com/libusb/hidapi.git

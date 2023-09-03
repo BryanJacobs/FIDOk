@@ -31,14 +31,14 @@ const val FIDO_USAGE = 0x0001u
 const val TIMEOUT = 5000
 
 @OptIn(ExperimentalForeignApi::class)
-class HIDDevice(private val path: String) : Device {
+class LibHIDDevice(private val path: String) : Device {
     companion object {
         init {
             hid_init()
         }
 
-        fun list(): List<HIDDevice> {
-            val foundDevices = arrayListOf<HIDDevice>()
+        fun list(): List<LibHIDDevice> {
+            val foundDevices = arrayListOf<LibHIDDevice>()
 
             val enumeratedDevicesHandle = hid_enumerate(0x00u, 0x00u)
             try {
@@ -49,7 +49,7 @@ class HIDDevice(private val path: String) : Device {
                     ) {
                         val path = iterationHandle.pointed.path?.toKString() ?: throw RuntimeException("Path to device is null")
                         Logger.i("Found device $path")
-                        foundDevices.add(HIDDevice(path))
+                        foundDevices.add(LibHIDDevice(path))
                     }
                     iterationHandle = iterationHandle.pointed.next
                 }

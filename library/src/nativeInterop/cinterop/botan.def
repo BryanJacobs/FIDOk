@@ -1,6 +1,2 @@
 headers = botan/ffi.h
 headerFilter = botan/*
-
-compilerOpts.linux = -I/usr/include/botan-3
-linkerOpts.osx = -L/opt/local/lib -L/usr/local/opt/libbotan-3/lib -lbotan-3
-linkerOpts.linux = -l/usr/lib/libbotan-3.so

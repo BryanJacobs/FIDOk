@@ -14,10 +14,12 @@ var devices: List<Device>? = null
 
 @CName("fidok_count_devices")
 fun listDevices(): Int {
-    val foundDevices = HIDDevice.list() + PCSCDevice.list()
+    val foundDevices = platformListDevices()
     devices = foundDevices
     return foundDevices.size
 }
+
+expect fun platformListDevices(): List<Device>
 
 @Suppress("LocalVariableName")
 @OptIn(ExperimentalForeignApi::class)

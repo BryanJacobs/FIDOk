@@ -68,7 +68,7 @@ import us.q3q.fidok.crypto.P256Point
 import us.q3q.fidok.crypto.SHA256Result
 
 @OptIn(ExperimentalForeignApi::class)
-class LinuxCrypto : CryptoProvider {
+class BotanCryptoProvider : CryptoProvider {
 
     private inline fun <reified T : CVariable, R> withBotanAlloc(destroy: (v: T) -> Unit, act: (v: T) -> R): R {
         memScoped {

@@ -8,7 +8,7 @@ import us.q3q.fidok.crypto.AES256Key
 import us.q3q.fidok.crypto.KeyAgreementState
 import us.q3q.fidok.crypto.P256Point
 
-private val crypto = LinuxCrypto()
+private val crypto = BotanCryptoProvider()
 
 private val keyAgreementState = hashMapOf<Long, KeyAgreementState>()
 private var keyAgreementStateCounter = 0L

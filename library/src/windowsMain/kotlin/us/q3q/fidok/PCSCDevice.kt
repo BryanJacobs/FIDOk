@@ -1,59 +1,57 @@
 package us.q3q.fidok
 
 import co.touchlab.kermit.Logger
-import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.allocArray
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.get
+import kotlinx.cinterop.invoke
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.set
-import kotlinx.cinterop.toKString
+import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
-import pcsc.BYTEVar
-import pcsc.DWORDVar
-import pcsc.SCARDCONTEXT
-import pcsc.SCARDCONTEXTVar
-import pcsc.SCARDHANDLE
-import pcsc.SCARD_E_NO_SMARTCARD
-import pcsc.SCARD_LEAVE_CARD
-import pcsc.SCARD_PCI_RAW
-import pcsc.SCARD_PCI_T0
-import pcsc.SCARD_PCI_T1
-import pcsc.SCARD_PROTOCOL_ANY
-import pcsc.SCARD_PROTOCOL_RAW
-import pcsc.SCARD_PROTOCOL_T0
-import pcsc.SCARD_PROTOCOL_T1
-import pcsc.SCARD_SCOPE_SYSTEM
-import pcsc.SCARD_SHARE_SHARED
-import pcsc.SCARD_S_SUCCESS
-import pcsc.SCardConnect
-import pcsc.SCardDisconnect
-import pcsc.SCardEstablishContext
-import pcsc.SCardListReaders
-import pcsc.SCardReleaseContext
-import pcsc.SCardTransmit
-import pcsc.pcsc_stringify_error
+import kotlinx.cinterop.wcstr
+import platform.windows.BYTEVar
+import platform.windows.DWORDVar
+import platform.windows.SCARDCONTEXT
+import platform.windows.SCARDCONTEXTVar
+import platform.windows.SCARDHANDLE
+import platform.windows.SCARD_E_NO_SMARTCARD
+import platform.windows.SCARD_LEAVE_CARD
+import platform.windows.SCARD_PCI_RAW
+import platform.windows.SCARD_PCI_T0
+import platform.windows.SCARD_PCI_T1
+import platform.windows.SCARD_PROTOCOL_RAW
+import platform.windows.SCARD_PROTOCOL_T0
+import platform.windows.SCARD_PROTOCOL_T1
+import platform.windows.SCARD_SCOPE_SYSTEM
+import platform.windows.SCARD_SHARE_SHARED
+import platform.windows.SCARD_S_SUCCESS
+import platform.windows.SCardConnect
+import platform.windows.SCardDisconnect
+import platform.windows.SCardEstablishContext
+import platform.windows.SCardListReaders
+import platform.windows.SCardReleaseContext
+import platform.windows.SCardTransmit
+import platform.windows.WCHARVar
 import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.APPLET_SELECT_BYTES
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.sendAndReceive
 
 class PCSCDevice(private val readerName: String) : Device {
-
     var appletSelected = false
 
     @OptIn(ExperimentalStdlibApi::class, ExperimentalForeignApi::class)
     companion object {
 
-        private fun checkOp(msg: String, f: () -> pcsc.LONG): Boolean? {
+        private fun checkOp(msg: String, f: () -> platform.windows.LONG?): Boolean? {
             val ret = f()
-            if (ret != SCARD_S_SUCCESS) {
+            if (ret != null && ret != SCARD_S_SUCCESS) {
                 Logger.e(
-                    "Failed to $msg: ${
-                        pcsc_stringify_error(ret)?.toKString()}",
+                    "Failed to $msg: $ret",
                 )
                 return null
             }
@@ -86,25 +84,27 @@ class PCSCDevice(private val readerName: String) : Device {
             memScoped {
                 val protocol = nativeHeap.alloc<DWORDVar>()
                 val scard = nativeHeap.alloc<SCARDCONTEXTVar>()
-                val connectResult = SCardConnect(
-                    ctx,
-                    readerName,
-                    SCARD_SHARE_SHARED.convert(),
-                    SCARD_PROTOCOL_ANY.convert(),
-                    scard.ptr,
-                    protocol.ptr,
-                )
-                if (connectResult == SCARD_E_NO_SMARTCARD) {
-                    // oops, empty reader
-                    Logger.d("No card in reader $readerName")
-                    return null
-                }
-                if (connectResult != SCARD_S_SUCCESS) {
-                    // this error is more serious...
-                    throw RuntimeException(
-                        "Error connecting to reader $readerName: ${
-                            pcsc_stringify_error(connectResult)?.toKString()}",
+                val readerNameStr = readerName.wcstr
+                readerNameStr.usePinned { pinnedReaderName ->
+                    val connectResult = SCardConnect?.invoke(
+                        ctx,
+                        pinnedReaderName.get().ptr,
+                        SCARD_SHARE_SHARED.convert(),
+                        (SCARD_PROTOCOL_RAW or SCARD_PROTOCOL_T0 or SCARD_PROTOCOL_T1).convert(),
+                        scard.ptr,
+                        protocol.ptr,
                     )
+                    if (connectResult == SCARD_E_NO_SMARTCARD) {
+                        // oops, empty reader
+                        Logger.d("No card in reader $readerName")
+                        return null
+                    }
+                    if (connectResult != SCARD_S_SUCCESS) {
+                        // this error is more serious...
+                        throw RuntimeException(
+                            "Error connecting to reader $readerName: $connectResult",
+                        )
+                    }
                 }
                 Logger.d("Connected to card in reader $readerName with protocol ${protocol.value}")
 
@@ -199,18 +199,18 @@ class PCSCDevice(private val readerName: String) : Device {
                 memScoped {
                     val numReaders = nativeHeap.alloc<DWORDVar>()
                     checkOp("fetch number of readers") {
-                        SCardListReaders(ctx, null, null, numReaders.ptr)
+                        SCardListReaders?.invoke(ctx, null, null, numReaders.ptr)
                     } ?: return@withContext listOf<PCSCDevice>()
 
-                    val readers = nativeHeap.allocArray<ByteVar>(numReaders.value.convert())
+                    val readers = nativeHeap.allocArray<WCHARVar>(numReaders.value.convert())
                     checkOp("List readers") {
-                        SCardListReaders(ctx, null, readers, numReaders.ptr)
+                        SCardListReaders?.invoke(ctx, null, readers, numReaders.ptr)
                     } ?: return@withContext listOf<PCSCDevice>()
 
                     val ret = arrayListOf<PCSCDevice>()
                     var accumulator = ""
                     for (i in 0..<numReaders.value.toInt()) {
-                        if (readers[i] == 0x00.toByte()) {
+                        if (readers[i] == 0x00.toUShort()) {
                             if (accumulator.isNotEmpty()) {
                                 if (checkReader(ctx, accumulator)) {
                                     ret.add(PCSCDevice(accumulator))

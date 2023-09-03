@@ -1,7 +1,7 @@
 import co.touchlab.kermit.Logger
-import us.q3q.fidok.HIDDevice
-import us.q3q.fidok.LinuxCrypto
-import us.q3q.fidok.PCSCDevice
+import us.q3q.fidok.BotanCryptoProvider
+import us.q3q.fidok.LibHIDDevice
+import us.q3q.fidok.LibPCSCLiteDevice
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.CTAPPinPermissions
 import us.q3q.fidok.ctap.Library
@@ -13,13 +13,13 @@ import kotlin.random.Random
 
 @OptIn(ExperimentalStdlibApi::class)
 fun main() {
-    val devices = HIDDevice.list() + PCSCDevice.list()
+    val devices = LibHIDDevice.list() + LibPCSCLiteDevice.list()
     if (devices.isEmpty()) {
         Logger.e("No devices found!")
         return
     }
 
-    Library.init(LinuxCrypto())
+    Library.init(BotanCryptoProvider())
 
     val device = devices[0]
     val client = CTAPClient(device)

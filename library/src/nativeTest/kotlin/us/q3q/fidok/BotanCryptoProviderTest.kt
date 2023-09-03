@@ -8,10 +8,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 @OptIn(ExperimentalStdlibApi::class)
-class LinuxCryptoTest {
+class BotanCryptoProviderTest {
     @Test
     fun sha256Hash() {
-        val c = LinuxCrypto()
+        val c = BotanCryptoProvider()
 
         val input = "1234".encodeToByteArray()
 
@@ -22,7 +22,7 @@ class LinuxCryptoTest {
 
     @Test
     fun random() {
-        val c = LinuxCrypto()
+        val c = BotanCryptoProvider()
 
         val a = c.secureRandom(32)
         val b = c.secureRandom(32)
@@ -34,7 +34,7 @@ class LinuxCryptoTest {
 
     @Test
     fun ecdhKey() {
-        val c = LinuxCrypto()
+        val c = BotanCryptoProvider()
 
         val x = "69FF6B7CB423AC4CEC7133501EF7A2739FBD49893F91AA9F91533FF3CBE5EE9E".hexToByteArray()
         val y = "4BD9E6BD87DEA506A9F7350D2BE386896907471D07F36A15B2942E6D594EAD21".hexToByteArray()
@@ -51,7 +51,7 @@ class LinuxCryptoTest {
 
     @Test
     fun aesRoundTrip() {
-        val c = LinuxCrypto()
+        val c = BotanCryptoProvider()
 
         val data = Random.nextBytes(64)
         val key = AES256Key(Random.nextBytes(32), Random.nextBytes(16))
@@ -64,7 +64,7 @@ class LinuxCryptoTest {
 
     @Test
     fun aesIVsMatter() {
-        val c = LinuxCrypto()
+        val c = BotanCryptoProvider()
 
         val data = Random.nextBytes(64)
         val key = Random.nextBytes(32)
