@@ -2,6 +2,7 @@ rootProject.name = "fidok"
 
 include(":library")
 include(":ui")
+include(":android")
 
 pluginManagement {
     repositories {

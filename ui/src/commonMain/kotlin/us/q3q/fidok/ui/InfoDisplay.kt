@@ -2,7 +2,6 @@ package us.q3q.fidok.ui
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -224,10 +222,10 @@ fun InfoDisplay(info: GetInfoResponse) {
                 }
             }
         }
-        VerticalScrollbar(
+        /*VerticalScrollbar(
             modifier = Modifier.fillMaxHeight(),
             adapter = rememberScrollbarAdapter(scrollState = state),
-        )
+        )*/
     }
 }
 

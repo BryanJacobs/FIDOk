@@ -33,14 +33,16 @@ fun hidAPITasks(platform: String) {
     task<Exec>("configureHID$platform") {
         workingDir(hidBuild)
         commandLine(listOf("cmake", hidDir.asFile.absolutePath, "-DBUILD_SHARED_LIBS=FALSE") + cmakeExtraArgs)
-        inputs.files(hidDir, hidBuild)
+        inputs.property("platform", platform)
+        inputs.files(fileTree(hidDir))
         outputs.files(hidBuild.file("Makefile"))
     }
     task<Exec>("buildHID$platform") {
         workingDir(hidBuild)
         commandLine("cmake", "--build", ".")
         dependsOn("configureHID$platform")
-        inputs.files(hidBuild.file("Makefile"), hidBuild.file("CMakeCache.txt"))
+        inputs.property("platform", platform)
+        inputs.files(fileTree(hidBuild))
         outputs.files(output)
     }
 }
@@ -60,16 +62,19 @@ fun botanTasks(platform: String, extraArgs: List<String> = listOf()) {
         workingDir(botanDir)
         val args = commonBotan(lcPlatform)
         commandLine(args + extraArgs)
+        inputs.property("platform", platform)
+        inputs.files(botanDir.file("configure.py"))
         outputs.files(botanDir.dir(dirName).file("Makefile"))
     }
     task<Exec>("buildBotan$platform") {
         dependsOn("configureBotan$platform")
         workingDir(botanDir)
         commandLine("make", "-j4", "-f", "$dirName/Makefile")
-        inputs.files(botanDir.dir(dirName).file("Makefile"))
+        inputs.property("platform", platform)
+        inputs.files(fileTree(botanDir.dir(dirName)))
         if (platform == "Windows") {
             // Don't ask why Botan puts the DLL def file up here instead of in the build directory
-            outputs.files(botanDir.file("libbotan-3.dll.a"))
+            outputs.files(botanDir.file("libbotan-3.$dlSuffix.a"))
         } else {
             outputs.files(botanDir.dir(dirName).file("libbotan-3.$dlSuffix"))
         }
@@ -88,7 +93,7 @@ botanTasks(
 
 botanTasks("Linux")
 
-fun nativeBuild(target: KotlinNativeTarget, platform: String) {
+fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x86_64") {
     val hidBuild = tasks.getByName("buildHID$platform")
     val botanBuild = tasks.getByName("buildBotan$platform")
     val lcPlatform = platform.lowercase()
@@ -213,7 +218,8 @@ fun commonBotan(suffix: String): List<String> {
         "--extra-cxxflags=-D_GLIBCXX_USE_CXX11_ABI=0",*/
         "--minimized-build",
         "--enable-modules=ffi,aes,aes_ni,auto_rng,cbc,dh,ecc_key,ecdh," +
-            "ecdsa,hash,hkdf,hmac,kdf,kdf1,kdf2,keypair,pubkey,raw_hash,rng,sha2_64,simd,simd_avx2,simd_avx512,system_rng",
+            "ecdsa,hash,hkdf,hmac,kdf,kdf1,kdf2,keypair,pubkey,raw_hash," +
+            "rng,sha2_64,simd,simd_avx2,simd_avx512,system_rng",
     )
 }
 
