@@ -57,26 +57,27 @@ fun botanTasks(platform: String, extraArgs: List<String> = listOf()) {
         "linux" -> "so"
         else -> "dylib"
     }
-    val dirName = lcPlatform
+    val buildDir = project.layout.buildDirectory.dir("botan-$lcPlatform").get()
+    buildDir.asFile.mkdirs()
     task<Exec>("configureBotan$platform") {
         workingDir(botanDir)
-        val args = commonBotan(lcPlatform)
+        val args = commonBotan(buildDir.asFile.absolutePath)
         commandLine(args + extraArgs)
         inputs.property("platform", platform)
         inputs.files(botanDir.file("configure.py"))
-        outputs.files(botanDir.dir(dirName).file("Makefile"))
+        outputs.files(buildDir.file("Makefile"))
     }
     task<Exec>("buildBotan$platform") {
         dependsOn("configureBotan$platform")
         workingDir(botanDir)
-        commandLine("make", "-j4", "-f", "$dirName/Makefile")
+        commandLine("make", "-j4", "-f", "${buildDir.asFile.absolutePath}/Makefile")
         inputs.property("platform", platform)
-        inputs.files(fileTree(botanDir.dir(dirName)))
+        inputs.files(buildDir.file("Makefile"))
         if (platform == "Windows") {
             // Don't ask why Botan puts the DLL def file up here instead of in the build directory
             outputs.files(botanDir.file("libbotan-3.$dlSuffix.a"))
         } else {
-            outputs.files(botanDir.dir(dirName).file("libbotan-3.$dlSuffix"))
+            outputs.files(buildDir.file("libbotan-3.$dlSuffix"))
         }
     }
 }
@@ -87,7 +88,7 @@ botanTasks(
         "--os=mingw",
         "--cc-bin=x86_64-w64-mingw32-g++",
         "--ar-command=x86_64-w64-mingw32-ar",
-        "--ldflags=-Wl,--output-def,windows/libbotan-3.def",
+        // "--ldflags=-Wl,--output-def,windows/libbotan-3.def",
     ),
 )
 
@@ -122,7 +123,10 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
                     }
                 }
                 val botan by creating {
-                    includeDirs(botanDir.dir(lcPlatform).dir("build").dir("include"))
+                    includeDirs(
+                        project.layout.buildDirectory.dir("botan-$lcPlatform").get()
+                            .dir("build").dir("include"),
+                    )
                 }
             }
         }
@@ -205,14 +209,14 @@ kotlin {
     nativeBuild(mingwX64("windows"), "Windows")
 }
 
-fun commonBotan(suffix: String): List<String> {
+fun commonBotan(buildDirPath: String): List<String> {
     return listOf(
         "./configure.py",
         "--without-documentation",
         "--optimize-for-size",
         "--without-compilation-database",
         "--build-targets=shared,static",
-        "--with-build-dir=$suffix",
+        "--with-build-dir=$buildDirPath",
         /*"--extra-cxxflags=-fPIC",
         "--extra-cxxflags=-static-libstdc++",
         "--extra-cxxflags=-D_GLIBCXX_USE_CXX11_ABI=0",*/
