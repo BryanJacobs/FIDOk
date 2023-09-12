@@ -32,7 +32,7 @@ APIs and isn't nearly feature complete.
 # Overview
 
 The core code is all Kotlin/Multiplatform, and can be used from any target. Interfaces
-for cryptography and communicating with authenticators on a byte-by-byte level is
+for cryptography and communicating with authenticators on a byte-by-byte level are
 provided by native implementations specific to each platform.
 
 ## Protocol Features
@@ -67,6 +67,7 @@ provided by native implementations specific to each platform.
 | FIDO Metadata Data Service               | Unsupported |
 | Android-key Attestation                  | Unsupported |
 | TPM Attestation                          | Unsupported |
+| CTAP1/U2F                                | Unsupported |
 
 ## Implementation Features
 
