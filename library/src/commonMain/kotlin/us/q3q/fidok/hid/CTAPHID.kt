@@ -38,8 +38,8 @@ const val BROADCAST_CHANNEL = 0xFFFFFFFFu
 @OptIn(ExperimentalUnsignedTypes::class)
 class CTAPHID {
     companion object {
-        fun initPacket(channel: UInt, cmd: CTAPHIDCommand, totalLength: Int, data: UByteArray): UByteArray {
-            if (data.size > PACKET_SIZE - 7) {
+        fun initPacket(channel: UInt, cmd: CTAPHIDCommand, totalLength: Int, data: UByteArray, packetSize: Int): UByteArray {
+            if (data.size > packetSize - 7) {
                 throw RuntimeException("Overlarge packet sent to HID device: ${data.size} bytes")
             }
             if (totalLength > UShort.MAX_VALUE.toInt()) {
@@ -56,14 +56,14 @@ class CTAPHID {
                 (totalLength and 0x00FF).toUByte(),
             )
             ret.addAll(data.toList())
-            while (ret.size < PACKET_SIZE + 1) {
+            while (ret.size < packetSize + 1) {
                 ret.add(0x00u)
             }
             return ret.toUByteArray()
         }
 
-        fun continuationPacket(channel: UInt, seq: UByte, data: UByteArray): UByteArray {
-            if (data.size > PACKET_SIZE - 5) {
+        fun continuationPacket(channel: UInt, seq: UByte, data: UByteArray, packetSize: Int): UByteArray {
+            if (data.size > packetSize - 5) {
                 throw RuntimeException("Overlarge continuation packet sent to HID device: ${data.size} bytes")
             }
             val ret = arrayListOf(
@@ -75,23 +75,23 @@ class CTAPHID {
                 seq,
             )
             ret.addAll(data.toList())
-            while (ret.size < PACKET_SIZE + 1) {
+            while (ret.size < packetSize + 1) {
                 ret.add(0x00u)
             }
             return ret.toUByteArray()
         }
 
-        fun packetizeMessage(command: CTAPHIDCommand, channel: UInt, bytes: UByteArray): List<UByteArray> {
-            val bytesForFirstPacket = bytes.copyOfRange(0, min(bytes.size, PACKET_SIZE - 7))
-            val pkt = initPacket(channel, command, bytes.size, bytesForFirstPacket)
+        fun packetizeMessage(command: CTAPHIDCommand, channel: UInt, bytes: UByteArray, packetSize: Int): List<UByteArray> {
+            val bytesForFirstPacket = bytes.copyOfRange(0, min(bytes.size, packetSize - 7))
+            val pkt = initPacket(channel, command, bytes.size, bytesForFirstPacket, packetSize)
             val packets = arrayListOf(pkt)
 
             var seq: UByte = 0u
             var sent = bytesForFirstPacket.size
             while (sent < bytes.size) {
-                val bytesForNextPacket = bytes.copyOfRange(sent, min(bytes.size, sent + PACKET_SIZE - 5))
+                val bytesForNextPacket = bytes.copyOfRange(sent, min(bytes.size, sent + packetSize - 5))
                 Logger.v("Continuation packet: ${bytesForNextPacket.size} bytes")
-                val nextPacket = continuationPacket(channel, ++seq, bytesForNextPacket)
+                val nextPacket = continuationPacket(channel, ++seq, bytesForNextPacket, packetSize)
                 packets.add(nextPacket)
                 sent += bytesForNextPacket.size
             }
@@ -164,10 +164,10 @@ class CTAPHID {
             return accumulated.toUByteArray()
         }
 
-        fun openChannel(sender: (bytes: UByteArray) -> Unit, receiver: () -> UByteArray): UInt {
+        fun openChannel(packetSize: Int, sender: (bytes: UByteArray) -> Unit, receiver: () -> UByteArray): UInt {
             Logger.d("Opening new channel with HID device")
             val nonce = Random.nextUBytes(8)
-            sender(initPacket(BROADCAST_CHANNEL, CTAPHIDCommand.INIT, 8, nonce))
+            sender(initPacket(BROADCAST_CHANNEL, CTAPHIDCommand.INIT, 8, nonce, packetSize))
             val response = readFromChannel(BROADCAST_CHANNEL, CTAPHIDCommand.INIT, receiver)
             if (response.size < 12) {
                 throw RuntimeException("HID device returned short channel-open packet, ${response.size} bytes long")
@@ -186,8 +186,8 @@ class CTAPHID {
             return ret
         }
 
-        fun sendToChannel(command: CTAPHIDCommand, channel: UInt, bytes: UByteArray, sender: (bytes: UByteArray) -> Unit) {
-            val packets = packetizeMessage(command, channel, bytes)
+        fun sendToChannel(command: CTAPHIDCommand, channel: UInt, bytes: UByteArray, packetSize: Int, sender: (bytes: UByteArray) -> Unit) {
+            val packets = packetizeMessage(command, channel, bytes, packetSize)
             for (pkt in packets) {
                 sender(pkt)
             }
@@ -198,9 +198,10 @@ class CTAPHID {
             receiver: () -> UByteArray,
             command: CTAPHIDCommand,
             bytes: UByteArray,
+            packetSize: Int = PACKET_SIZE,
         ): UByteArray {
-            val channel = openChannel(sender, receiver)
-            sendToChannel(command, channel, bytes, sender)
+            val channel = openChannel(packetSize, sender, receiver)
+            sendToChannel(command, channel, bytes, packetSize, sender)
             return readFromChannel(channel, command, receiver)
         }
     }

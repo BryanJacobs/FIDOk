@@ -36,7 +36,7 @@ class MakeCredentialCommand(
         if (extensions != null) {
             this[0x06u] = ExtensionParameterValue(extensions)
         }
-        if (options != null) {
+        if (options?.isNotEmpty() == true) {
             val m = hashMapOf<String, Boolean>()
             options.keys.forEach {
                 m[it.value] = options[it]!!

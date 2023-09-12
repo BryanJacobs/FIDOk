@@ -9,31 +9,31 @@ import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.BluetoothPeripheralCallback
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
+import us.q3q.fidok.ble.CTAPBLE
+import us.q3q.fidok.ble.CTAPBLECommand
 import us.q3q.fidok.ctap.Device
 import java.lang.IllegalStateException
 import java.util.UUID
 import kotlin.experimental.and
 
-@OptIn(ExperimentalStdlibApi::class)
+@OptIn(ExperimentalStdlibApi::class, ExperimentalUnsignedTypes::class)
 class BlessedBluezDevice(
     private val central: BluetoothCentralManager,
     private val peripheral: BluetoothPeripheral,
 ) : Device {
     var connected: Boolean = false
 
-    val readResult = Channel<ByteArray>()
+    val readResult = Channel<ByteArray>(Channel.BUFFERED)
     val connectResult = Channel<Boolean>()
+    val bondResult = Channel<Boolean>()
     var cpLen: Int = 0
     var revBF: ByteArray? = null
 
     val callback: BluetoothPeripheralCallback =
         object : BluetoothPeripheralCallback() {
-
-            var assembledResponse = listOf<Byte>()
-            var responseDeclaredLen: Int = -1
-
             override fun onBondingSucceeded(peripheral: BluetoothPeripheral) {
                 Logger.d { "${peripheral.name} bond established" }
+                bondResult.trySend(true)
             }
 
             override fun onBondLost(peripheral: BluetoothPeripheral) {
@@ -58,22 +58,7 @@ class BlessedBluezDevice(
             ) {
                 Logger.v { "${peripheral.name} read result for ${characteristic.uuid}: ${value?.toHexString()}" }
                 if (value != null) {
-                    if (characteristic.uuid.toString() != FIDO_STATUS_ATTRIBUTE) {
-                        readResult.trySend(value)
-                        return
-                    }
-
-                    if (responseDeclaredLen < 0) {
-                        responseDeclaredLen = value[1] * 256 + value[2]
-                        assembledResponse = value.toList().subList(3, value.size)
-                    } else {
-                        assembledResponse += value.toList().subList(1, value.size)
-                    }
-
-                    if (assembledResponse.size == responseDeclaredLen) {
-                        readResult.trySend(assembledResponse.toByteArray())
-                        assembledResponse = arrayListOf()
-                    }
+                    readResult.trySend(value)
                 }
             }
         }
@@ -85,6 +70,11 @@ class BlessedBluezDevice(
             val service = peripheral.services.find {
                 it.uuid.toString() == FIDO_BLE_SERVICE_UUID
             } ?: throw IllegalStateException("BLE device '${peripheral.name}' has no FIDO service")
+
+            /*if (!peripheral.createBond(callback)) {
+                throw IllegalStateException("Could not bond with BLE device ${peripheral.name}")
+            }
+            bondResult.receive()*/
 
             val cpLenChara = service.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE))
                 ?: throw IllegalStateException("BLE device '${peripheral.name}' has no control point length characteristic")
@@ -125,27 +115,30 @@ class BlessedBluezDevice(
     }
 
     override fun sendBytes(bytes: ByteArray): ByteArray {
-        return runBlocking {
+        runBlocking {
             connect()
+        }
 
-            val encodedMessage = (listOf(0x83.toByte(), 0x00.toByte(), 0x01.toByte()) + bytes.toList()).toByteArray()
+        val controlPointChara = peripheral.getCharacteristic(
+            UUID.fromString(FIDO_BLE_SERVICE_UUID),
+            UUID.fromString(FIDO_CONTROL_POINT_ATTRIBUTE),
+        )
+            ?: throw IllegalStateException("Could not get FIDO control point for ${peripheral.name}")
 
-            val controlPointChara = peripheral.getCharacteristic(
-                UUID.fromString(FIDO_BLE_SERVICE_UUID),
-                UUID.fromString(FIDO_CONTROL_POINT_ATTRIBUTE),
-            )
-                ?: throw IllegalStateException("Could not get FIDO control point for ${peripheral.name}")
+        peripheral.setNotify(
+            UUID.fromString(FIDO_BLE_SERVICE_UUID),
+            UUID.fromString(FIDO_STATUS_ATTRIBUTE),
+            true,
+        )
 
-            peripheral.setNotify(
-                UUID.fromString(FIDO_BLE_SERVICE_UUID),
-                UUID.fromString(FIDO_STATUS_ATTRIBUTE),
-                true,
-            )
-
-            if (!peripheral.writeCharacteristic(controlPointChara, encodedMessage, BluetoothGattCharacteristic.WriteType.WITH_RESPONSE)) {
+        return CTAPBLE.sendAndReceive({
+            if (!peripheral.writeCharacteristic(controlPointChara, it.toByteArray(), BluetoothGattCharacteristic.WriteType.WITH_RESPONSE)) {
                 throw IllegalStateException("Could not write message to peripheral ${peripheral.name}")
             }
-            return@runBlocking readResult.receive()
-        }
+        }, {
+            runBlocking {
+                readResult.receive().toUByteArray()
+            }
+        }, CTAPBLECommand.MSG, bytes.toUByteArray(), cpLen).toByteArray()
     }
 }

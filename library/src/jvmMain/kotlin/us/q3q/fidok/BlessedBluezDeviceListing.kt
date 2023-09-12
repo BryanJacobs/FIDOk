@@ -43,7 +43,7 @@ class BlessedBluezDeviceListing {
 
                 val newCentralManager = BluetoothCentralManager(bluetoothCentralManagerCallback)
                 newCentralManager.stopScan()
-                Logger.d { "Starting scan..." }
+                Logger.d { "Starting BLE device scan..." }
                 central = newCentralManager
                 newCentralManager.scanForPeripheralsWithServices(arrayOf(UUID.fromString(FIDO_BLE_SERVICE_UUID)))
             }
@@ -68,7 +68,12 @@ fun main() {
     }
 
     val device = devices[0]
-    val info = CTAPClient(device).getInfo()
+    val client = CTAPClient(device)
+    val info = client.getInfo()
 
     println(info)
+
+    val res = client.makeCredential(rpId = "hello.test", userDisplayName = "Bob")
+
+    println(res)
 }
