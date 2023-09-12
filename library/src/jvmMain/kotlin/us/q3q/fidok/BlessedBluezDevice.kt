@@ -131,7 +131,7 @@ class BlessedBluezDevice(
             true,
         )
 
-        return CTAPBLE.sendAndReceive({
+        val ret = CTAPBLE.sendAndReceive({
             if (!peripheral.writeCharacteristic(controlPointChara, it.toByteArray(), BluetoothGattCharacteristic.WriteType.WITH_RESPONSE)) {
                 throw IllegalStateException("Could not write message to peripheral ${peripheral.name}")
             }
@@ -140,5 +140,9 @@ class BlessedBluezDevice(
                 readResult.receive().toUByteArray()
             }
         }, CTAPBLECommand.MSG, bytes.toUByteArray(), cpLen).toByteArray()
+
+        peripheral.setNotify(UUID.fromString(FIDO_BLE_SERVICE_UUID), UUID.fromString(FIDO_STATUS_ATTRIBUTE), false)
+
+        return ret
     }
 }
