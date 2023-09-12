@@ -5,29 +5,25 @@ plugins {
     kotlin("plugin.serialization")
 }
 
+repositories {
+    maven {
+        url = uri("https://jitpack.io")
+    }
+}
+
 val submodulesDir = project.layout.projectDirectory.dir("submodules")
 val botanDir = submodulesDir.dir("botan")
 val hidDir = submodulesDir.dir("hidapi")
 
-fun hidAPITasks(platform: String) {
+fun hidAPITasks(platform: String, cmakeExtraArgs: List<String> = listOf()) {
     val lcPlatform = platform.lowercase()
     val hidBuild = project.layout.buildDirectory.dir("hidapi-$lcPlatform").get()
     hidBuild.asFile.mkdirs()
 
-    val cmakeExtraArgs = if (platform == "Windows") {
-        listOf(
-            "-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc",
-            "-DCMAKE_SYSTEM_NAME=Windows",
-            "-DCMAKE_CROSSCOMPILING=TRUE",
-        )
-    } else {
-        listOf()
-    }
-
     val output = when (platform) {
         "Linux" -> hidBuild.dir("src").dir(lcPlatform).file("libhidapi-hidraw.a")
         "Windows" -> hidBuild.dir("src").dir(lcPlatform).file("libhidapi.a")
-        else -> throw NotImplementedError("Platform $platform not handling in HIDAPI build")
+        else -> throw NotImplementedError("Platform $platform not handled in HIDAPI build")
     }
 
     task<Exec>("configureHID$platform") {
@@ -48,16 +44,17 @@ fun hidAPITasks(platform: String) {
 }
 
 hidAPITasks("Linux")
-hidAPITasks("Windows")
+hidAPITasks(
+    "Windows",
+    listOf(
+        "-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc",
+        "-DCMAKE_SYSTEM_NAME=Windows",
+        "-DCMAKE_CROSSCOMPILING=TRUE",
+    ),
+)
 
-fun botanTasks(platform: String, extraArgs: List<String> = listOf()) {
-    val lcPlatform = platform.lowercase()
-    val dlSuffix = when (lcPlatform) {
-        "windows" -> "dll"
-        "linux" -> "so"
-        else -> "dylib"
-    }
-    val buildDir = project.layout.buildDirectory.dir("botan-$lcPlatform").get()
+fun botanTasks(platform: String, extraArgs: List<String> = listOf(), dlSuffix: String = "so") {
+    val buildDir = project.layout.buildDirectory.dir("botan-${platform.lowercase()}").get()
     buildDir.asFile.mkdirs()
     task<Exec>("configureBotan$platform") {
         workingDir(botanDir)
@@ -90,6 +87,7 @@ botanTasks(
         "--ar-command=x86_64-w64-mingw32-ar",
         // "--ldflags=-Wl,--output-def,windows/libbotan-3.def",
     ),
+    "dll",
 )
 
 botanTasks("Linux")
@@ -133,6 +131,9 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
         binaries {
             all {
                 linkerOpts(linkerOpts)
+                if (platform != "Windows") {
+                    binaryOption("sourceInfoType", "libbacktrace")
+                }
             }
             executable()
             sharedLib("fidok")
@@ -170,6 +171,7 @@ kotlin {
                     // conflicts with junit5
                     exclude(group = "org.jetbrains.kotlin", module = "kotlin-test-junit")
                 }
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
             }
         }
         val commonTest by getting {
@@ -180,6 +182,7 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation("com.github.jnr:jnr-ffi:2.2.14")
+                implementation("com.github.weliem.blessed-bluez:blessed:0.61")
             }
         }
         val jvmTest by getting

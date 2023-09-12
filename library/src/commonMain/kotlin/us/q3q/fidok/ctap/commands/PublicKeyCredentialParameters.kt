@@ -14,6 +14,7 @@ import kotlinx.serialization.encoding.Encoder
 
 enum class COSEAlgorithmIdentifier(val value: Int) {
     ES256(-7),
+    EdDSA(-8),
 }
 
 enum class PublicKeyCredentialType(val value: String) {
@@ -36,7 +37,7 @@ data class PublicKeyCredentialParameters(
         if (type != PublicKeyCredentialType.PUBLIC_KEY.value) {
             return super.toString()
         }
-        val matchedAlg = COSEAlgorithmIdentifier.entries.find { it.value == alg } ?: return super.toString()
+        val matchedAlg = COSEAlgorithmIdentifier.entries.find { it.value == alg } ?: return "unknown:$alg"
         return matchedAlg.name
     }
 }

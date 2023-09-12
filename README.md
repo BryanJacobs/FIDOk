@@ -83,25 +83,25 @@ provided by native implementations specific to each platform.
 
 ## Platforms
 
-| Platform                   | Status                                            |
-|----------------------------|---------------------------------------------------|
-| JVM "fat" JAR              | Working (on platforms with native support)        |
-| C/C++ Shared Library       | Working (.so/.h on platforms with native support) |
-| Linux Executable/SO        | Working (.so, native binary, AppImage, RPM, DEB)  |
-| MacOS Executable/framework | Unimplemented                                     |
-| Windows Executable/DLL     | Unimplemented                                     |
-| iOS Framework              | Unimplemented                                     |
-| Android JAR/SO             | Unimplemented                                     |
-| Web Page :)                | Unimplemented                                     |
+| Platform                   | Status                                               |
+|----------------------------|------------------------------------------------------|
+| JVM "fat" JAR              | Working (on platforms with native support)           |
+| C/C++ Shared Library       | Working (.so/.h on platforms with native support)    |
+| Linux Executable/SO        | Working (.so, elf native binary, AppImage, RPM, DEB) |
+| MacOS Executable/framework | Unimplemented                                        |
+| Windows Executable/DLL     | Working (.dll, .exe native binary)                   |
+| iOS Framework              | Unimplemented                                        |
+| Android JAR/SO             | Incomplete                                           |
+| Web Page :)                | Unimplemented                                        |
 
-## Authenticator Types
+## Authenticator Types / Protocols
 
-| Attachment / Protocol | Status        |
-|-----------------------|---------------|
-| USB-HID               | Working       |
-| BT-HID                | Working       |
-| PC/SC (USB or NFC)    | Working       |
-| Bluetooth LE          | Unimplemented |
-| TPM                   | Unimplemented |
-| E-APDUs               | Working       |
-| APDU Chaining         | Working       |
+| Attachment / Protocol | Status        | Linux | Mac | Windows | JVM | Android | iOS |
+|-----------------------|---------------|-------|-----|---------|-----|---------|-----|
+| USB-HID               | Working       | Y     |     | N       | Y   |         |     |
+| BT-HID                | Working       | Y     |     | N       | Y   |         |     |
+| PC/SC (USB or NFC)    | Working       | Y     |     | Y       | Y   |         |     |
+| Bluetooth LE          | Working       | N     |     | N       | Y   |         |     |
+| TPM                   | Unimplemented |       |     |         |     |         |     |
+| E-APDUs               | Working       | Y     | Y   | Y       | Y   | Y       | Y   |
+| APDU Chaining         | Working       | Y     | Y   | Y       | Y   | Y       | Y   |
