@@ -29,6 +29,7 @@ import us.q3q.fidok.ctap.commands.PublicKeyCredentialParameters
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialRpEntity
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
 import us.q3q.fidok.ctap.commands.ResetCommand
+import kotlin.math.min
 import kotlin.random.Random
 
 enum class CTAPResponse(val value: UByte) {
@@ -286,29 +287,40 @@ class CTAPClient(private val device: Device) {
             )
         }
 
-        val request = GetAssertionCommand(
-            clientDataHash = clientDataHash,
-            rpId = rpId,
-            allowList = allowList,
-            extensions = extensions?.getAssertion(keyAgreement = ka, pinProtocol = pp),
-            options = options,
-            pinUvAuthParam = pinUvAuthParam,
-            pinUvAuthProtocol = pinProtocolVersion,
-        )
+        val ret = arrayListOf<GetAssertionResponse>()
 
-        val firstResponse = xmit(request, GetAssertionResponse.serializer())
+        val numAllowListEntriesPerBatch = info.maxCredentialCountInList?.toInt() ?: 10000
+        var allowListSent = 0
+        while (allowListSent < (allowList?.size ?: 1)) {
+            val thisRequestAllowList =
+                allowList?.subList(allowListSent, min(allowListSent + numAllowListEntriesPerBatch, allowList.size))
 
-        extensions?.getAssertionResponse(firstResponse)
+            val request = GetAssertionCommand(
+                clientDataHash = clientDataHash,
+                rpId = rpId,
+                allowList = thisRequestAllowList,
+                extensions = extensions?.getAssertion(keyAgreement = ka, pinProtocol = pp),
+                options = options,
+                pinUvAuthParam = pinUvAuthParam,
+                pinUvAuthProtocol = pinProtocolVersion,
+            )
 
-        val ret = arrayListOf(firstResponse)
+            val firstResponse = xmit(request, GetAssertionResponse.serializer())
 
-        val numberOfCredentials = firstResponse.numberOfCredentials ?: 1
-        if (numberOfCredentials > 1) {
-            for (i in 2..numberOfCredentials) {
-                val followUpRequest = GetNextAssertionCommand()
-                val laterResponse = xmit(followUpRequest, GetAssertionResponse.serializer())
-                ret.add(laterResponse)
+            extensions?.getAssertionResponse(firstResponse)
+
+            ret.add(firstResponse)
+
+            val numberOfCredentials = firstResponse.numberOfCredentials ?: 1
+            if (numberOfCredentials > 1) {
+                for (i in 2..numberOfCredentials) {
+                    val followUpRequest = GetNextAssertionCommand()
+                    val laterResponse = xmit(followUpRequest, GetAssertionResponse.serializer())
+                    ret.add(laterResponse)
+                }
             }
+
+            allowListSent += thisRequestAllowList?.size ?: 1
         }
 
         return ret
