@@ -18,9 +18,9 @@ class GetAssertionCommand(
     private val extensions: Map<ExtensionName, ExtensionParameters>? = null,
     private val options: Map<GetAssertionOption, Boolean>? = null,
     private val pinUvAuthParam: ByteArray? = null,
-    private val pinUvAuthProtocol: UInt? = null,
+    private val pinUvAuthProtocol: UByte? = null,
 ) : CtapCommand() {
-    override val cmdByte: Byte = 0x01
+    override val cmdByte: Byte = 0x02
     override val params = HashMap<UByte, ParameterValue>().apply {
         this[0x01u] = StringParameter(rpId)
         this[0x02u] = ByteArrayParameter(clientDataHash)
@@ -41,13 +41,13 @@ class GetAssertionCommand(
             this[0x06u] = ByteArrayParameter(pinUvAuthParam)
         }
         if (pinUvAuthProtocol != null) {
-            this[0x07u] = UIntParameter(pinUvAuthProtocol)
+            this[0x07u] = UByteParameter(pinUvAuthProtocol)
         }
     }
 
     init {
         require(clientDataHash.size == 32)
-        require(pinUvAuthProtocol == null || pinUvAuthProtocol == 1u || pinUvAuthProtocol == 2u)
+        require(pinUvAuthProtocol == null || pinUvAuthProtocol == 1u.toUByte() || pinUvAuthProtocol == 2u.toUByte())
         require(pinUvAuthParam == null || pinUvAuthParam.size == 32 || pinUvAuthParam.size == 48)
     }
 }

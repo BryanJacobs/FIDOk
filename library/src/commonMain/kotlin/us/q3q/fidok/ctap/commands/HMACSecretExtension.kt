@@ -29,7 +29,6 @@ class HMACSecretExtension(
         )
     }
 
-    private var gottenBytes: UByte? = null
     private var keyAgreement: KeyAgreementPlatformKey? = null
     private var pinProtocol: PinProtocol? = null
     private var created: Boolean = false

@@ -13,11 +13,9 @@ interface Extension {
 
     fun getAssertionResponse(response: GetAssertionResponse) {}
 
-    fun checkSupport(info: GetInfoResponse) {
+    fun checkSupport(info: GetInfoResponse): Boolean {
         val name = getName()
-        if (info.extensions?.contains(name) != true) {
-            throw IllegalArgumentException("$name extension not supported")
-        }
+        return info.extensions?.contains(name) == true
     }
 }
 
@@ -101,9 +99,12 @@ class ExtensionSetup(private val appliedExtensions: List<Extension>) {
         }
     }
 
-    fun checkSupport(info: GetInfoResponse) {
+    fun checkSupport(info: GetInfoResponse): Boolean {
         for (extension in appliedExtensions) {
-            extension.checkSupport(info)
+            if (!extension.checkSupport(info)) {
+                return false
+            }
         }
+        return true
     }
 }

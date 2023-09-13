@@ -53,14 +53,14 @@ provided by native implementations specific to each platform.
 | `minPinLength` Extension                 | Supported   |
 | `credProtect` Extension                  | Supported   |
 | `hmac-secret` Extension                  | Supported   |
-| `credBlob` Extension                     | Unsupported |
-| `largeBlobKey` Extension                 | Unsupported |
-| `uvm` Extension (Webauthn)               | Unsupported |
+| `credBlob` Extension                     | Supported   |
+| `largeBlobKey` Extension                 | Supported   |
+| `uvm` Extension (Webauthn)               | Supported   |
 | LargeBlob management                     | Unsupported |
 | Bio Enrollment                           | Unsupported |
 | Authenticator Selection                  | Incomplete  |
 | MakeCredential                           | Supported   |
-| GetAssertion                             | Unsupported |
+| GetAssertion                             | Supported   |
 | Self Attestation                         | Unsupported |
 | Basic Attestation                        | Unsupported |
 | Enterprise Attestation                   | Incomplete  |
@@ -86,8 +86,8 @@ provided by native implementations specific to each platform.
 
 | Platform                   | Status                                               |
 |----------------------------|------------------------------------------------------|
-| JVM "fat" JAR              | Working (on platforms with native support)           |
-| C/C++ Shared Library       | Working (.so/.h on platforms with native support)    |
+| JVM "fat" JAR              | Working                                              |
+| C/C++ Shared Library       | Working                                              |
 | Linux Executable/SO        | Working (.so, elf native binary, AppImage, RPM, DEB) |
 | MacOS Executable/framework | Unimplemented                                        |
 | Windows Executable/DLL     | Working (.dll, .exe native binary)                   |
@@ -97,12 +97,12 @@ provided by native implementations specific to each platform.
 
 ## Authenticator Types / Protocols
 
-| Attachment / Protocol | Status        | Linux | Mac | Windows | JVM | Android | iOS |
-|-----------------------|---------------|-------|-----|---------|-----|---------|-----|
-| USB-HID               | Working       | Y     |     | N       | Y   |         |     |
-| BT-HID                | Working       | Y     |     | N       | Y   |         |     |
-| PC/SC (USB or NFC)    | Working       | Y     |     | Y       | Y   |         |     |
-| Bluetooth LE          | Working       | N     |     | N       | Y   |         |     |
-| TPM                   | Unimplemented |       |     |         |     |         |     |
-| E-APDUs               | Working       | Y     | Y   | Y       | Y   | Y       | Y   |
-| APDU Chaining         | Working       | Y     | Y   | Y       | Y   | Y       | Y   |
+| Attachment / Protocol | Status        | Linux | Mac | Windows | JVM       | Android | iOS |
+|-----------------------|---------------|-------|-----|---------|-----------|---------|-----|
+| USB-HID               | Working       | Y     |     | N       | As Native |         |     |
+| BT-HID                | Working       | Y     |     | N       | As Native |         |     |
+| PC/SC (USB or NFC)    | Working       | Y     |     | Y       | As Native |         |     |
+| Bluetooth LE          | Working       | N     |     | N       | Y         |         |     |
+| TPM                   | Unimplemented |       |     |         |           |         |     |
+| E-APDUs               | Working       | Y     | Y   | Y       | Y         | Y       | Y   |
+| APDU Chaining         | Working       | Y     | Y   | Y       | Y         | Y       | Y   |

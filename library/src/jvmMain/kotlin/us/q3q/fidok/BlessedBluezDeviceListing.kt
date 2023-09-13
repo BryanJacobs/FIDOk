@@ -49,6 +49,12 @@ class BlessedBluezDeviceListing {
             }
         }
 
+        fun stop() {
+            central?.stopScan()
+            devices.clear()
+            central = null
+        }
+
         fun list(): List<BlessedBluezDevice> {
             return devices.values.toList()
         }

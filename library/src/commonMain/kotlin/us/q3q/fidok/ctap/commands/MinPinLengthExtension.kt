@@ -3,7 +3,7 @@ package us.q3q.fidok.ctap.commands
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
 import us.q3q.fidok.crypto.PinProtocol
 
-class MinPinLengthExtension(private val requestedLevel: UByte) : Extension {
+class MinPinLengthExtension : Extension {
 
     private val NAME = "minPinLength"
 

@@ -16,8 +16,12 @@ import us.q3q.fidok.ctap.commands.ClientPinGetTokenResponse
 import us.q3q.fidok.ctap.commands.CredentialCreationOption
 import us.q3q.fidok.ctap.commands.CtapCommand
 import us.q3q.fidok.ctap.commands.ExtensionSetup
+import us.q3q.fidok.ctap.commands.GetAssertionCommand
+import us.q3q.fidok.ctap.commands.GetAssertionOption
+import us.q3q.fidok.ctap.commands.GetAssertionResponse
 import us.q3q.fidok.ctap.commands.GetInfoCommand
 import us.q3q.fidok.ctap.commands.GetInfoResponse
+import us.q3q.fidok.ctap.commands.GetNextAssertionCommand
 import us.q3q.fidok.ctap.commands.MakeCredentialCommand
 import us.q3q.fidok.ctap.commands.MakeCredentialResponse
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialDescriptor
@@ -186,7 +190,9 @@ class CTAPClient(private val device: Device) {
         if (enterpiseAttestation != null && info.options?.get("ep") != true) {
             throw IllegalArgumentException("Authenticator enterprise attestation isn't enabled")
         }
-        extensions?.checkSupport(info)
+        if (extensions?.checkSupport(info) == false) {
+            throw IllegalArgumentException("Authenticator does not support requested extension(s)")
+        }
 
         val effectiveUserId = userId ?: Random.nextBytes(32)
         val effectiveClientDataHash = clientDataHash ?: Random.nextBytes(32)
@@ -233,6 +239,77 @@ class CTAPClient(private val device: Device) {
         val ret = xmit(request, MakeCredentialResponse.serializer())
 
         extensions?.makeCredentialResponse(ret)
+
+        return ret
+    }
+
+    fun getAssertions(
+        clientDataHash: ByteArray,
+        rpId: String,
+        allowList: List<PublicKeyCredentialDescriptor>? = null,
+        extensions: ExtensionSetup? = null,
+        userPresence: Boolean? = null,
+        pinProtocol: UByte? = null,
+        pinToken: PinToken? = null,
+    ): List<GetAssertionResponse> {
+        require(clientDataHash.size == 32)
+        require(
+            (pinToken == null && pinProtocol == null) ||
+                pinToken != null,
+        )
+
+        val info = getInfoIfUnset()
+        if (extensions?.checkSupport(info) == false) {
+            throw IllegalArgumentException("Authenticator does not support requested extension(s)")
+        }
+
+        var pinProtocolVersion: UByte? = null
+        val pinUvAuthParam = if (pinToken != null) {
+            val pp = getPinProtocol(pinProtocol)
+            pinProtocolVersion = pp.getVersion()
+            pp.authenticate(pinToken, clientDataHash)
+        } else {
+            null
+        }
+
+        var ka: KeyAgreementPlatformKey? = null
+        var pp: PinProtocol? = null
+        if (extensions?.isKeyAgreementRequired() == true) {
+            pp = getPinProtocol(pinProtocol)
+            ka = getKeyAgreement(pp.getVersion())
+        }
+
+        var options: HashMap<GetAssertionOption, Boolean>? = null
+        if (userPresence == false) {
+            options = hashMapOf(
+                GetAssertionOption.UP to false,
+            )
+        }
+
+        val request = GetAssertionCommand(
+            clientDataHash = clientDataHash,
+            rpId = rpId,
+            allowList = allowList,
+            extensions = extensions?.getAssertion(keyAgreement = ka, pinProtocol = pp),
+            options = options,
+            pinUvAuthParam = pinUvAuthParam,
+            pinUvAuthProtocol = pinProtocolVersion,
+        )
+
+        val firstResponse = xmit(request, GetAssertionResponse.serializer())
+
+        extensions?.getAssertionResponse(firstResponse)
+
+        val ret = arrayListOf(firstResponse)
+
+        val numberOfCredentials = firstResponse.numberOfCredentials ?: 1
+        if (numberOfCredentials > 1) {
+            for (i in 2..numberOfCredentials) {
+                val followUpRequest = GetNextAssertionCommand()
+                val laterResponse = xmit(followUpRequest, GetAssertionResponse.serializer())
+                ret.add(laterResponse)
+            }
+        }
 
         return ret
     }
