@@ -2,8 +2,6 @@ package us.q3q.fidok.ctap.commands
 
 import co.touchlab.kermit.Logger
 import kotlinx.serialization.DeserializationStrategy
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.serializer
@@ -14,7 +12,6 @@ import kotlinx.serialization.encoding.Encoder
 
 data class ExtensionResults(val v: Map<ExtensionName, ExtensionParameters>)
 
-@OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 abstract class ExtensionResultsSerializer : KSerializer<ExtensionResults> {
     abstract fun getApplicableSerializer(extensionName: ExtensionName): DeserializationStrategy<ExtensionParameters>
 

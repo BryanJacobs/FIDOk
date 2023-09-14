@@ -7,6 +7,7 @@ import us.q3q.fidok.crypto.P256Point
 import us.q3q.fidok.crypto.PinProtocol
 import us.q3q.fidok.crypto.PinProtocolV1
 import us.q3q.fidok.crypto.PinProtocolV2
+import us.q3q.fidok.ctap.commands.AttestationTypes
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
 import us.q3q.fidok.ctap.commands.CTAPCBORDecoder
 import us.q3q.fidok.ctap.commands.ClientPinCommand
@@ -102,7 +103,11 @@ enum class CTAPPinPermissions(val value: UByte) {
 }
 
 class CTAPError(status: UByte) : RuntimeException(
-    "CTAP error: ${CTAPResponse.entries.find { it.value == status } ?: "unknown"}",
+    "CTAP error: ${CTAPResponse.entries.find { it.value == status } ?: "unknown ($status)"}",
+)
+
+class InvalidAttestationError : RuntimeException(
+    "Attestation failed to validate",
 )
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -179,6 +184,7 @@ class CTAPClient(private val device: Device) {
         pinToken: PinToken? = null,
         enterpiseAttestation: UInt? = null,
         extensions: ExtensionSetup? = null,
+        validateAttestation: Boolean = true,
     ): MakeCredentialResponse {
         require(clientDataHash == null || clientDataHash.size == 32)
         require(userId == null || userId.size == 32)
@@ -200,11 +206,16 @@ class CTAPClient(private val device: Device) {
 
         val options = hashMapOf<CredentialCreationOption, Boolean>()
         if (discoverableCredential) {
+            if (info.options?.containsKey("rk") != true) {
+                throw IllegalArgumentException("Authenticator does not support discoverable credentials")
+            }
             options[CredentialCreationOption.RK] = true
         }
         if (userVerification) {
             options[CredentialCreationOption.UV] = true
         }
+
+        Logger.d { "Making credential with effective client data hash ${effectiveClientDataHash.toHexString()}" }
 
         var pinProtocolVersion: UByte? = null
         val pinUvAuthParam = if (pinToken != null) {
@@ -239,9 +250,76 @@ class CTAPClient(private val device: Device) {
         )
         val ret = xmit(request, MakeCredentialResponse.serializer())
 
+        if (validateAttestation) {
+            validateCredentialSignature(ret, effectiveClientDataHash)
+        }
+
         extensions?.makeCredentialResponse(ret)
 
         return ret
+    }
+
+    fun validateSelfAttestation(
+        makeCredentialResponse: MakeCredentialResponse,
+        clientDataHash: ByteArray,
+        alg: Int,
+        sig: ByteArray,
+    ) {
+        if (alg != COSEAlgorithmIdentifier.ES256.value) {
+            // Unsupported, presently
+            Logger.w { "Skipping signature validation for unsupported algorithm $alg" }
+            return
+        }
+
+        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
+
+        val pubKey = makeCredentialResponse.authData.attestedCredentialData!!.credentialPublicKey
+
+        val signedBytes = (makeCredentialResponse.authData.rawBytes.toList() + clientDataHash.toList()).toByteArray()
+
+        Logger.v { "Signature-verifying ${signedBytes.size} bytes" }
+
+        if (!crypto.es256SignatureValidate(signedBytes = signedBytes, keyX = pubKey.x, keyY = pubKey.y, sig = sig)) {
+            throw InvalidAttestationError()
+        }
+    }
+
+    private fun validateBasicAttestation(
+        makeCredentialResponse: MakeCredentialResponse,
+        clientDataHash: ByteArray,
+        alg: Int,
+        sig: ByteArray,
+        bytes: ByteArray,
+    ) {
+        if (alg != COSEAlgorithmIdentifier.ES256.value) {
+            // Unsupported, presently
+            Logger.w { "Skipping signature validation for unsupported algorithm $alg" }
+            return
+        }
+
+        TODO("Not yet implemented")
+    }
+
+    fun validateCredentialSignature(makeCredentialResponse: MakeCredentialResponse, clientDataHash: ByteArray) {
+        when (makeCredentialResponse.fmt) {
+            AttestationTypes.PACKED.value -> {
+                val alg = makeCredentialResponse.attStmt["alg"] as Int
+                val sig = makeCredentialResponse.attStmt["sig"] as ByteArray
+                val x5c = makeCredentialResponse.attStmt["x5c"] as Array<*>?
+                if (x5c == null) {
+                    validateSelfAttestation(makeCredentialResponse, clientDataHash, alg, sig)
+                } else {
+                    validateBasicAttestation(makeCredentialResponse, clientDataHash, alg, sig, x5c[0] as ByteArray)
+                }
+            }
+            AttestationTypes.NONE.value -> {
+                // Nothing to do, here...
+            }
+            else -> {
+                // we don't understand this attestation type, so ignore it and assume it's valid
+                Logger.w { "Could not validate unsupported attestation type ${makeCredentialResponse.fmt}" }
+            }
+        }
     }
 
     fun getAssertions(

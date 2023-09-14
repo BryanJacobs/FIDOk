@@ -1,5 +1,6 @@
 package us.q3q.fidok
 
+import botan.BOTAN_FFI_INVALID_VERIFIER
 import botan.BOTAN_FFI_SUCCESS
 import botan.botan_cipher_destroy
 import botan.botan_cipher_init
@@ -24,6 +25,7 @@ import botan.botan_mac_set_key
 import botan.botan_mac_tVar
 import botan.botan_mac_update
 import botan.botan_mp_destroy
+import botan.botan_mp_from_bin
 import botan.botan_mp_init
 import botan.botan_mp_tVar
 import botan.botan_mp_to_bin
@@ -32,12 +34,20 @@ import botan.botan_pk_op_key_agreement
 import botan.botan_pk_op_key_agreement_create
 import botan.botan_pk_op_key_agreement_destroy
 import botan.botan_pk_op_key_agreement_size
+import botan.botan_pk_op_verify_create
+import botan.botan_pk_op_verify_destroy
+import botan.botan_pk_op_verify_finish
+import botan.botan_pk_op_verify_tVar
+import botan.botan_pk_op_verify_update
 import botan.botan_privkey_create
 import botan.botan_privkey_destroy
 import botan.botan_privkey_export
 import botan.botan_privkey_get_field
 import botan.botan_privkey_load
 import botan.botan_privkey_tVar
+import botan.botan_pubkey_destroy
+import botan.botan_pubkey_load_ecdsa
+import botan.botan_pubkey_tVar
 import botan.botan_rng_destroy
 import botan.botan_rng_get
 import botan.botan_rng_init
@@ -336,7 +346,7 @@ class BotanCryptoProvider : CryptoProvider {
         return memScoped {
             val arr = this.allocArray<uint8_tVar>(bytes.size)
             for (i in bytes.indices) {
-                arr[i] = bytes[i].convert()
+                arr[i] = bytes[i].toUByte().convert()
             }
             f(arr)
         }
@@ -371,6 +381,60 @@ class BotanCryptoProvider : CryptoProvider {
                 }
 
                 SHA256Result(ret)
+            }
+        }
+    }
+
+    override fun es256SignatureValidate(
+        signedBytes: ByteArray,
+        keyX: ByteArray,
+        keyY: ByteArray,
+        sig: ByteArray,
+    ): Boolean {
+        return withBotanAlloc<botan_pubkey_tVar, Boolean>({ botan_pubkey_destroy(it.value) }) { pubKey ->
+            withBotanAlloc<botan_mp_tVar, Unit>({ botan_mp_destroy(it.value) }) { pX ->
+                botanSuccessCheck {
+                    botan_mp_init(pX.ptr)
+                }
+                withInBuffer(keyX) {
+                    botanSuccessCheck {
+                        botan_mp_from_bin(pX.value, it, keyX.size.convert())
+                    }
+                }
+                withBotanAlloc<botan_mp_tVar, Unit>({ botan_mp_destroy(it.value) }) { pY ->
+                    botanSuccessCheck {
+                        botan_mp_init(pY.ptr)
+                    }
+                    withInBuffer(keyY) {
+                        botanSuccessCheck {
+                            botan_mp_from_bin(pY.value, it, keyY.size.convert())
+                        }
+                    }
+
+                    botanSuccessCheck {
+                        botan_pubkey_load_ecdsa(pubKey.ptr, pX.value, pY.value, "secp256r1")
+                    }
+                }
+            }
+
+            withBotanAlloc<botan_pk_op_verify_tVar, Boolean>({ botan_pk_op_verify_destroy(it.value) }) { verify ->
+                botanSuccessCheck {
+                    botan_pk_op_verify_create(verify.ptr, pubKey.value, "SHA-256", 1.convert())
+                }
+
+                withInBuffer(signedBytes) { inBuf ->
+                    botanSuccessCheck {
+                        botan_pk_op_verify_update(verify.value, inBuf, signedBytes.size.convert())
+                    }
+
+                    withInBuffer(sig) { sigBuf ->
+                        val result = botan_pk_op_verify_finish(verify.value, sigBuf, sig.size.convert())
+                        if (result != BOTAN_FFI_SUCCESS && result != BOTAN_FFI_INVALID_VERIFIER) {
+                            botanSuccessCheck { result }
+                        }
+                        result == BOTAN_FFI_SUCCESS
+                    }
+                }
             }
         }
     }

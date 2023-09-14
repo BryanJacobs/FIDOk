@@ -126,3 +126,21 @@ fun hmac_sha256(data: COpaquePointer, len: Int, key: COpaquePointer, out: COpaqu
 
     outFill(ret.hash, out)
 }
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fidok_crypto_es256_signature_validate")
+fun es256_signature_validate(
+    signedBytes: COpaquePointer,
+    signedBytesLen: Int,
+    keyX: COpaquePointer,
+    keyY: COpaquePointer,
+    signature: COpaquePointer,
+    signatureLen: Int,
+): Boolean {
+    val signedBytesB = inAsByteArray(signedBytes, signedBytesLen)
+    val keyXB = inAsByteArray(keyX, 32)
+    val keyYB = inAsByteArray(keyY, 32)
+    val sigB = inAsByteArray(signature, signatureLen)
+
+    return crypto.es256SignatureValidate(signedBytesB, keyXB, keyYB, sigB)
+}

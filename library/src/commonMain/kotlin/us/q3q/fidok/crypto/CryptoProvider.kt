@@ -37,4 +37,6 @@ interface CryptoProvider {
     fun aes256CBCDecrypt(bytes: ByteArray, key: AES256Key): ByteArray
 
     fun hmacSHA256(bytes: ByteArray, key: AES256Key): SHA256Result
+
+    fun es256SignatureValidate(signedBytes: ByteArray, keyX: ByteArray, keyY: ByteArray, sig: ByteArray): Boolean
 }

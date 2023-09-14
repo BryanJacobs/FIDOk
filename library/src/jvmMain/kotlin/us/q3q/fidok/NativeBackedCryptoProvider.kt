@@ -94,4 +94,20 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
         )
         return SHA256Result(toBA(ret))
     }
+
+    override fun es256SignatureValidate(
+        signedBytes: ByteArray,
+        keyX: ByteArray,
+        keyY: ByteArray,
+        sig: ByteArray,
+    ): Boolean {
+        return native.fidok_crypto_es256_signature_validate(
+            toBB(signedBytes),
+            signedBytes.size,
+            toBB(keyX),
+            toBB(keyY),
+            toBB(sig),
+            sig.size,
+        )
+    }
 }

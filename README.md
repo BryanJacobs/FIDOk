@@ -61,7 +61,7 @@ provided by native implementations specific to each platform.
 | Authenticator Selection                  | Incomplete  |
 | MakeCredential                           | Supported   |
 | GetAssertion                             | Supported   |
-| Self Attestation                         | Unsupported |
+| Self Attestation                         | Supported   |
 | Basic Attestation                        | Unsupported |
 | Enterprise Attestation                   | Incomplete  |
 | FIDO Metadata Data Service               | Unsupported |

@@ -15,6 +15,12 @@ import kotlinx.serialization.encoding.Encoder
 
 enum class AttestationTypes(val value: String) {
     PACKED("packed"),
+    TPM("tpm"),
+    ANDROID_KEY("android-key"),
+    ANDROID_SAFETYNET("android-safetynet"),
+    FIDO_U2F("fido-u2f"),
+    NONE("none"),
+    APPLE("apple"),
 }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -115,6 +121,17 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
                                     "sig" to att.sig,
                                 )
                             }
+                        }
+                        AttestationTypes.NONE -> {
+                            val gottenMap = composite.decodeSerializableElement(
+                                descriptor,
+                                idx - 1,
+                                MapSerializer(String.serializer(), String.serializer()),
+                            )
+                            if (gottenMap.size > 0) {
+                                throw SerializationException("None attestationtype has non-empty data")
+                            }
+                            attStmt = hashMapOf()
                         }
                         else -> {
                             TODO("handle as byte array")

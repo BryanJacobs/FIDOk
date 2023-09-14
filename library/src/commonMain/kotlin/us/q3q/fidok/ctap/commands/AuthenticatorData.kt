@@ -25,6 +25,7 @@ enum class FLAGS(val value: Byte) {
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = AuthenticatorDataSerializer::class)
 data class AuthenticatorData(
+    @ByteString val rawBytes: ByteArray,
     @ByteString val rpIdHash: ByteArray,
     val flags: Byte,
     val signCount: UInt,
@@ -78,24 +79,26 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
         }
 
     override fun deserialize(decoder: Decoder): AuthenticatorData {
-        val composite = decoder.beginStructure(ByteArraySerializer().descriptor)
-        composite.decodeCollectionSize(ByteArraySerializer().descriptor)
+        val rawAuthData = decoder.decodeSerializableValue(ByteArraySerializer())
+
+        val nestedDeserializer = CTAPCBORDecoder(rawAuthData)
+
         val rpIdHash = arrayListOf<Byte>()
         for (i in 1..32) {
-            rpIdHash.add(composite.decodeByteElement(descriptor, 0))
+            rpIdHash.add(nestedDeserializer.decodeByteElement(descriptor, 0))
         }
-        val flags = composite.decodeByteElement(descriptor, 1)
-        val signCount = (composite.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 24) +
-            (composite.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 16) +
-            (composite.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 8) +
-            composite.decodeByteElement(descriptor, 2).toUByte().toUInt()
+        val flags = nestedDeserializer.decodeByteElement(descriptor, 1)
+        val signCount = (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 24) +
+            (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 16) +
+            (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 8) +
+            nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt()
         var attestedCredentialData: AttestedCredentialData? = null
         if ((flags and FLAGS.AT.value) != 0.toByte()) {
-            attestedCredentialData = composite.decodeSerializableElement(descriptor, 3, AttestedCredentialData.serializer())
+            attestedCredentialData = nestedDeserializer.decodeSerializableElement(descriptor, 3, AttestedCredentialData.serializer())
         }
         var extensions: Map<ExtensionName, ExtensionParameters>? = null
         if ((flags and FLAGS.ED.value) != 0.toByte()) {
-            val results = composite.decodeSerializableElement(
+            val results = nestedDeserializer.decodeSerializableElement(
                 descriptor,
                 4,
                 CreationExtensionResultsSerializer(),
@@ -103,9 +106,8 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
             extensions = results.v
         }
 
-        // composite.endStructure(descriptor)
-
         return AuthenticatorData(
+            rawBytes = rawAuthData,
             rpIdHash = rpIdHash.toByteArray(),
             flags = flags,
             signCount = signCount,
