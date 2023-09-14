@@ -144,3 +144,19 @@ fun es256_signature_validate(
 
     return crypto.es256SignatureValidate(signedBytesB, keyXB, keyYB, sigB)
 }
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fidok_crypto_parse_es256_x509")
+fun es256_x509_info(
+    cert: COpaquePointer,
+    certLen: Int,
+    keyX: COpaquePointer,
+    keyY: COpaquePointer,
+) {
+    val certB = inAsByteArray(cert, certLen)
+
+    val ret = crypto.parseES256X509(certB)
+
+    outFill(ret.publicX, keyX)
+    outFill(ret.publicY, keyY)
+}

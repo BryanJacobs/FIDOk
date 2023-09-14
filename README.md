@@ -62,7 +62,7 @@ provided by native implementations specific to each platform.
 | MakeCredential                           | Supported   |
 | GetAssertion                             | Supported   |
 | Self Attestation                         | Supported   |
-| Basic Attestation                        | Unsupported |
+| Basic Attestation                        | Incomplete  |
 | Enterprise Attestation                   | Incomplete  |
 | FIDO Metadata Data Service               | Unsupported |
 | Android-key Attestation                  | Unsupported |

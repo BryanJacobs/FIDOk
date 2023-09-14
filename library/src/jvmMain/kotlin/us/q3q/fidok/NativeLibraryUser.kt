@@ -85,6 +85,13 @@ interface FIDOkNative {
         signatureLen: Int,
     ): Boolean
 
+    fun fidok_crypto_parse_es256_x509(
+        @In cert: ByteBuffer,
+        certLen: Int,
+        keyX: ByteBuffer,
+        keyY: ByteBuffer,
+    )
+
     fun fidok_count_devices(): Int
     fun fidok_send_bytes(
         deviceNumber: Int,

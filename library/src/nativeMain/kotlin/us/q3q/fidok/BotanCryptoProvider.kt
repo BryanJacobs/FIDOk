@@ -46,6 +46,7 @@ import botan.botan_privkey_get_field
 import botan.botan_privkey_load
 import botan.botan_privkey_tVar
 import botan.botan_pubkey_destroy
+import botan.botan_pubkey_get_field
 import botan.botan_pubkey_load_ecdsa
 import botan.botan_pubkey_tVar
 import botan.botan_rng_destroy
@@ -53,6 +54,10 @@ import botan.botan_rng_get
 import botan.botan_rng_init
 import botan.botan_rng_t
 import botan.botan_rng_tVar
+import botan.botan_x509_cert_destroy
+import botan.botan_x509_cert_get_public_key
+import botan.botan_x509_cert_load
+import botan.botan_x509_cert_tVar
 import co.touchlab.kermit.Logger
 import kotlinx.cinterop.CArrayPointer
 import kotlinx.cinterop.CVariable
@@ -76,6 +81,7 @@ import us.q3q.fidok.crypto.KeyAgreementResult
 import us.q3q.fidok.crypto.KeyAgreementState
 import us.q3q.fidok.crypto.P256Point
 import us.q3q.fidok.crypto.SHA256Result
+import us.q3q.fidok.crypto.X509Info
 
 @OptIn(ExperimentalForeignApi::class)
 class BotanCryptoProvider : CryptoProvider {
@@ -435,6 +441,43 @@ class BotanCryptoProvider : CryptoProvider {
                         result == BOTAN_FFI_SUCCESS
                     }
                 }
+            }
+        }
+    }
+
+    override fun parseES256X509(x509Bytes: ByteArray): X509Info {
+        return withBotanAlloc<botan_x509_cert_tVar, X509Info>({ botan_x509_cert_destroy(it.value) }) { cert ->
+            withInBuffer(x509Bytes) {
+                botanSuccessCheck {
+                    botan_x509_cert_load(cert.ptr, it, x509Bytes.size.convert())
+                }
+            }
+            withBotanAlloc<botan_pubkey_tVar, X509Info>({ botan_pubkey_destroy(it.value) }) { pubKey ->
+                botanSuccessCheck {
+                    botan_x509_cert_get_public_key(cert.value, pubKey.ptr)
+                }
+
+                val points = listOf("public_x", "public_y").map { fieldName ->
+                    withBotanAlloc<botan_mp_tVar, ByteArray>({ botan_mp_destroy(it.value) }) { mp ->
+                        botanSuccessCheck {
+                            botan_mp_init(mp.ptr)
+                        }
+                        botanSuccessCheck {
+                            botan_pubkey_get_field(mp.value, pubKey.value, fieldName)
+                        }
+                        withOutBuffer(32) {
+                            botanSuccessCheck {
+                                botan_mp_to_bin(mp.value, it)
+                            }
+                        }
+                    }
+                }
+
+                // TODO: also verify cert chain
+                // ... and get aaguid from extension OID 1.3.6.1.4.1.45724.1.1.4
+                // botan_x509_cert_verify()
+
+                X509Info(points[0], points[1], aaguid = null)
             }
         }
     }

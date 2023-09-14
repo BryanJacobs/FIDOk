@@ -17,6 +17,13 @@ class KeyAgreementResult(val bytes: ByteArray) {
     }
 }
 
+class X509Info(val publicX: ByteArray, val publicY: ByteArray, val aaguid: ByteArray?) {
+    init {
+        require(publicX.size == 32)
+        require(publicY.size == 32)
+    }
+}
+
 interface CryptoProvider {
     fun ecdhKeyAgreementInit(otherPublicKeyPoint: P256Point): KeyAgreementState
     fun ecdhKeyAgreementKDF(
@@ -39,4 +46,6 @@ interface CryptoProvider {
     fun hmacSHA256(bytes: ByteArray, key: AES256Key): SHA256Result
 
     fun es256SignatureValidate(signedBytes: ByteArray, keyX: ByteArray, keyY: ByteArray, sig: ByteArray): Boolean
+
+    fun parseES256X509(x509Bytes: ByteArray): X509Info
 }

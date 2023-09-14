@@ -259,6 +259,24 @@ class CTAPClient(private val device: Device) {
         return ret
     }
 
+    private fun validateES256UsingPubKey(
+        makeCredentialResponse: MakeCredentialResponse,
+        clientDataHash: ByteArray,
+        keyX: ByteArray,
+        keyY: ByteArray,
+        sig: ByteArray,
+    ) {
+        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
+
+        val signedBytes = (makeCredentialResponse.authData.rawBytes.toList() + clientDataHash.toList()).toByteArray()
+
+        Logger.v { "Signature-verifying ${signedBytes.size} bytes" }
+
+        if (!crypto.es256SignatureValidate(signedBytes = signedBytes, keyX = keyX, keyY = keyY, sig = sig)) {
+            throw InvalidAttestationError()
+        }
+    }
+
     fun validateSelfAttestation(
         makeCredentialResponse: MakeCredentialResponse,
         clientDataHash: ByteArray,
@@ -271,17 +289,9 @@ class CTAPClient(private val device: Device) {
             return
         }
 
-        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
-
         val pubKey = makeCredentialResponse.authData.attestedCredentialData!!.credentialPublicKey
 
-        val signedBytes = (makeCredentialResponse.authData.rawBytes.toList() + clientDataHash.toList()).toByteArray()
-
-        Logger.v { "Signature-verifying ${signedBytes.size} bytes" }
-
-        if (!crypto.es256SignatureValidate(signedBytes = signedBytes, keyX = pubKey.x, keyY = pubKey.y, sig = sig)) {
-            throw InvalidAttestationError()
-        }
+        validateES256UsingPubKey(makeCredentialResponse, clientDataHash, pubKey.x, pubKey.y, sig)
     }
 
     private fun validateBasicAttestation(
@@ -289,7 +299,7 @@ class CTAPClient(private val device: Device) {
         clientDataHash: ByteArray,
         alg: Int,
         sig: ByteArray,
-        bytes: ByteArray,
+        caCert: ByteArray,
     ) {
         if (alg != COSEAlgorithmIdentifier.ES256.value) {
             // Unsupported, presently
@@ -297,7 +307,11 @@ class CTAPClient(private val device: Device) {
             return
         }
 
-        TODO("Not yet implemented")
+        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
+
+        val x509Info = crypto.parseES256X509(caCert)
+
+        validateES256UsingPubKey(makeCredentialResponse, clientDataHash, x509Info.publicX, x509Info.publicY, sig)
     }
 
     fun validateCredentialSignature(makeCredentialResponse: MakeCredentialResponse, clientDataHash: ByteArray) {

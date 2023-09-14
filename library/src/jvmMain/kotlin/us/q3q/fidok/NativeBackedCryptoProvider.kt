@@ -6,6 +6,7 @@ import us.q3q.fidok.crypto.KeyAgreementResult
 import us.q3q.fidok.crypto.KeyAgreementState
 import us.q3q.fidok.crypto.P256Point
 import us.q3q.fidok.crypto.SHA256Result
+import us.q3q.fidok.crypto.X509Info
 import java.nio.ByteBuffer
 
 class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(libraryPath), CryptoProvider {
@@ -108,6 +109,24 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
             toBB(keyY),
             toBB(sig),
             sig.size,
+        )
+    }
+
+    override fun parseES256X509(x509Bytes: ByteArray): X509Info {
+        val keyX = ByteBuffer.allocateDirect(32)
+        val keyY = ByteBuffer.allocateDirect(32)
+
+        native.fidok_crypto_parse_es256_x509(
+            toBB(x509Bytes),
+            x509Bytes.size,
+            keyX,
+            keyY,
+        )
+
+        return X509Info(
+            toBA(keyX, 32),
+            toBA(keyY, 32),
+            null,
         )
     }
 }
