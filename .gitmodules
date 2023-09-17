@@ -4,3 +4,6 @@
 [submodule "library/submodules/hidapi"]
 	path = library/submodules/hidapi
 	url = https://github.com/libusb/hidapi.git
+[submodule "library/submodules/FIDO2Applet"]
+	path = library/submodules/FIDO2Applet
+	url = https://github.com/BryanJacobs/FIDO2Applet.git

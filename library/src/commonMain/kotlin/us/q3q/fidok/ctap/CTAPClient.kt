@@ -9,6 +9,7 @@ import us.q3q.fidok.crypto.PinProtocolV1
 import us.q3q.fidok.crypto.PinProtocolV2
 import us.q3q.fidok.ctap.commands.AttestationTypes
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
+import us.q3q.fidok.ctap.commands.COSEKey
 import us.q3q.fidok.ctap.commands.CTAPCBORDecoder
 import us.q3q.fidok.ctap.commands.ClientPinCommand
 import us.q3q.fidok.ctap.commands.ClientPinGetKeyAgreementResponse
@@ -102,12 +103,16 @@ enum class CTAPPinPermissions(val value: UByte) {
     AUTHENTICATOR_CONFIGURATION(0x20u),
 }
 
-class CTAPError(status: UByte) : RuntimeException(
-    "CTAP error: ${CTAPResponse.entries.find { it.value == status } ?: "unknown ($status)"}",
+class CTAPError(val code: UByte) : RuntimeException(
+    "CTAP error: ${CTAPResponse.entries.find { it.value == code } ?: "unknown ($code)"}",
 )
 
 class InvalidAttestationError : RuntimeException(
     "Attestation failed to validate",
+)
+
+class InvalidSignatureError : RuntimeException(
+    "Assertion signature failed to validate",
 )
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -187,7 +192,6 @@ class CTAPClient(private val device: Device) {
         validateAttestation: Boolean = true,
     ): MakeCredentialResponse {
         require(clientDataHash == null || clientDataHash.size == 32)
-        require(userId == null || userId.size == 32)
         require(enterpiseAttestation == null || enterpiseAttestation == 1u || enterpiseAttestation == 2u)
         require(
             (pinToken == null && pinProtocol == null) ||
@@ -251,7 +255,7 @@ class CTAPClient(private val device: Device) {
         val ret = xmit(request, MakeCredentialResponse.serializer())
 
         if (validateAttestation) {
-            validateCredentialSignature(ret, effectiveClientDataHash)
+            validateCredentialAttestation(ret, effectiveClientDataHash)
         }
 
         extensions?.makeCredentialResponse(ret)
@@ -314,7 +318,7 @@ class CTAPClient(private val device: Device) {
         validateES256UsingPubKey(makeCredentialResponse, clientDataHash, x509Info.publicX, x509Info.publicY, sig)
     }
 
-    fun validateCredentialSignature(makeCredentialResponse: MakeCredentialResponse, clientDataHash: ByteArray) {
+    fun validateCredentialAttestation(makeCredentialResponse: MakeCredentialResponse, clientDataHash: ByteArray) {
         when (makeCredentialResponse.fmt) {
             AttestationTypes.PACKED.value -> {
                 val alg = makeCredentialResponse.attStmt["alg"] as Int
@@ -333,6 +337,28 @@ class CTAPClient(private val device: Device) {
                 // we don't understand this attestation type, so ignore it and assume it's valid
                 Logger.w { "Could not validate unsupported attestation type ${makeCredentialResponse.fmt}" }
             }
+        }
+    }
+
+    fun validateAssertionSignature(getAssertionResponse: GetAssertionResponse, clientDataHash: ByteArray, publicKey: COSEKey) {
+        if (publicKey.alg != COSEAlgorithmIdentifier.ES256.value) {
+            throw NotImplementedError("Only ES256 signatures are currently implemented")
+        }
+
+        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
+
+        val signedBytes = (getAssertionResponse.authData.rawBytes.toList() + clientDataHash.toList()).toByteArray()
+
+        Logger.v { "Signature-verifying ${signedBytes.size} bytes" }
+
+        if (!crypto.es256SignatureValidate(
+                signedBytes = signedBytes,
+                keyX = publicKey.x,
+                keyY = publicKey.y,
+                sig = getAssertionResponse.signature,
+            )
+        ) {
+            throw InvalidSignatureError()
         }
     }
 

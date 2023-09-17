@@ -5,12 +5,6 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-repositories {
-    maven {
-        url = uri("https://jitpack.io")
-    }
-}
-
 val submodulesDir = project.layout.projectDirectory.dir("submodules")
 val botanDir = submodulesDir.dir("botan")
 val hidDir = submodulesDir.dir("hidapi")
@@ -52,6 +46,18 @@ hidAPITasks(
         "-DCMAKE_CROSSCOMPILING=TRUE",
     ),
 )
+
+task<Exec>("buildEmbeddedAuthenticatorJar") {
+    val appletDir = project.layout.projectDirectory.dir("submodules").dir("FIDO2Applet")
+    val appletBuildDir = appletDir.dir("build")
+    workingDir(appletDir)
+    commandLine(listOf("./gradlew", "jar", "testJar"))
+    inputs.files(fileTree(appletDir) - fileTree(appletBuildDir))
+    outputs.files(
+        appletBuildDir.dir("libs").file("fido2applet-1.0-SNAPSHOT.jar"),
+        appletBuildDir.dir("libs").file("fido2applet-tests-1.0-SNAPSHOT.jar"),
+    )
+}
 
 fun botanTasks(platform: String, extraArgs: List<String> = listOf(), dlSuffix: String = "so") {
     val buildDir = project.layout.buildDirectory.dir("botan-${platform.lowercase()}").get()
@@ -136,7 +142,9 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
                 }
             }
             executable()
-            sharedLib("fidok")
+            if (platform != "Windows") {
+                sharedLib("fidok")
+            }
         }
     }
 }
@@ -185,7 +193,11 @@ kotlin {
                 implementation("com.github.weliem.blessed-bluez:blessed:0.61")
             }
         }
-        val jvmTest by getting
+        val jvmTest by getting {
+            dependencies {
+                implementation(tasks.getByName("buildEmbeddedAuthenticatorJar").outputs.files)
+            }
+        }
         val jsMain by getting
         val jsTest by getting
         val nativeMain by creating {
@@ -234,3 +246,5 @@ tasks.getByName("compileKotlinLinux").dependsOn("buildBotanLinux", "buildHIDLinu
 tasks.getByName("cinteropBotanLinux").dependsOn("buildBotanLinux")
 tasks.getByName("compileKotlinWindows").dependsOn("buildBotanWindows", "buildHIDWindows")
 tasks.getByName("cinteropBotanWindows").dependsOn("buildBotanWindows")
+
+tasks.getByName("jvmTestClasses").dependsOn("buildEmbeddedAuthenticatorJar")

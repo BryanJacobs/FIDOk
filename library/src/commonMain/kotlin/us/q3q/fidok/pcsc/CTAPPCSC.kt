@@ -22,8 +22,11 @@ class CTAPPCSC {
                         0x10.toByte(),
                         0x00.toByte(),
                         0x00.toByte(),
-                        bytes.size.toByte(),
+                        ((bytes.size and 0x00FF0000) shr 16).toByte(),
+                        ((bytes.size and 0x0000FF00) shr 8).toByte(),
+                        (bytes.size and 0x000000FF).toByte(),
                     ) + bytes.toList() + listOf(
+                        0x00.toByte(),
                         0x00.toByte(),
                     )
                     ).toByteArray(),
@@ -56,13 +59,13 @@ class CTAPPCSC {
             return ret
         }
 
-        fun sendAndReceive(bytes: ByteArray, selectApplet: Boolean, xmit: (bytes: ByteArray) -> ByteArray): ByteArray {
+        fun sendAndReceive(bytes: ByteArray, selectApplet: Boolean, useExtendedMessages: Boolean, xmit: (bytes: ByteArray) -> ByteArray): ByteArray {
             if (selectApplet) {
                 val selectResponse = xmit(APPLET_SELECT_BYTES)
                 Logger.i { "Got applet select response ${selectResponse.toHexString()}" }
             }
 
-            val packets = packetizeMessageChained(bytes)
+            val packets = if (useExtendedMessages) packetizeMessageExtended(bytes) else packetizeMessageChained(bytes)
             if (packets.isEmpty()) {
                 return byteArrayOf()
             }

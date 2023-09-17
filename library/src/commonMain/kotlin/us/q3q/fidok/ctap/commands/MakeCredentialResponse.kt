@@ -12,15 +12,20 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlin.reflect.KClass
 
-enum class AttestationTypes(val value: String) {
-    PACKED("packed"),
+enum class AttestationTypes(val value: String, val klass: KClass<out Any>? = null) {
+    PACKED("packed", PackedAttestationStatement::class),
     TPM("tpm"),
     ANDROID_KEY("android-key"),
     ANDROID_SAFETYNET("android-safetynet"),
     FIDO_U2F("fido-u2f"),
     NONE("none"),
-    APPLE("apple"),
+    APPLE("apple"), ;
+
+    override fun toString(): String {
+        return "AttestationType($value)"
+    }
 }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -32,6 +37,31 @@ data class MakeCredentialResponse(
     val epAtt: Boolean?,
     @ByteString val largeBlobKey: ByteArray?,
 ) {
+
+    fun getCredentialID(): ByteArray {
+        return authData.attestedCredentialData?.credentialId
+            ?: throw IllegalStateException("MakeCredentialResponse has no credential in it")
+    }
+
+    fun getCredentialPublicKey(): COSEKey {
+        return authData.attestedCredentialData?.credentialPublicKey
+            ?: throw IllegalStateException("MakeCredentialResponse has no credential in it")
+    }
+
+    fun getPackedAttestationStatement(): PackedAttestationStatement {
+        if (fmt != AttestationTypes.PACKED.value) {
+            throw IllegalStateException("Not using packed attestation")
+        }
+
+        val arrUncast = attStmt["x5c"] as Array<*>?
+
+        return PackedAttestationStatement(
+            alg = attStmt["alg"] as Int,
+            sig = attStmt["sig"] as ByteArray,
+            x5c = arrUncast?.map { it as ByteArray }?.toTypedArray(),
+        )
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -128,7 +158,7 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
                                 idx - 1,
                                 MapSerializer(String.serializer(), String.serializer()),
                             )
-                            if (gottenMap.size > 0) {
+                            if (gottenMap.isNotEmpty()) {
                                 throw SerializationException("None attestationtype has non-empty data")
                             }
                             attStmt = hashMapOf()

@@ -50,6 +50,15 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview() {
     FidoKTheme {
-        Greeting("Android")
+        InfoDisplay(
+            GetInfoResponse(
+                versions = arrayOf("FIDO_2_0"),
+                aaguid = Random.nextBytes(32),
+                options = mapOf(
+                    "clientPin" to false,
+                    "something" to true,
+                ),
+            ),
+        )
     }
 }

@@ -13,13 +13,13 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlin.experimental.and
 
-enum class FLAGS(val value: Byte) {
-    UP(0x01),
-    UV(0x04),
-    BE(0x08),
-    BS(0x10),
-    AT(0x40),
-    ED(0x80.toByte()),
+enum class FLAGS(val value: UByte) {
+    UP(0x01u),
+    UV(0x04u),
+    BE(0x08u),
+    BS(0x10u),
+    AT(0x40u),
+    ED(0x80u),
 }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -27,13 +27,17 @@ enum class FLAGS(val value: Byte) {
 data class AuthenticatorData(
     @ByteString val rawBytes: ByteArray,
     @ByteString val rpIdHash: ByteArray,
-    val flags: Byte,
+    val flags: UByte,
     val signCount: UInt,
     val attestedCredentialData: AttestedCredentialData? = null,
     val extensions: Map<ExtensionName, ExtensionParameters>? = null,
 ) {
     init {
         require(rpIdHash.size == 32)
+    }
+
+    fun hasFlag(flag: FLAGS): Boolean {
+        return (flags and flag.value) != 0x00.toUByte()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -53,7 +57,7 @@ data class AuthenticatorData(
 
     override fun hashCode(): Int {
         var result = rpIdHash.contentHashCode()
-        result = 31 * result + flags
+        result = 31 * result + flags.toInt()
         result = 31 * result + signCount.hashCode()
         result = 31 * result + (attestedCredentialData?.hashCode() ?: 0)
         result = 31 * result + (extensions?.hashCode() ?: 0)
@@ -65,7 +69,7 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("AuthenticatorData") {
             element("rpIdHash", ByteArraySerializer().descriptor)
-            element("flags", Byte.serializer().descriptor)
+            element("flags", UByte.serializer().descriptor)
             element("signCount", UInt.serializer().descriptor)
             element("attestedCredentialData", AttestedCredentialData.serializer().descriptor, isOptional = true)
             element(
@@ -87,17 +91,17 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
         for (i in 1..32) {
             rpIdHash.add(nestedDeserializer.decodeByteElement(descriptor, 0))
         }
-        val flags = nestedDeserializer.decodeByteElement(descriptor, 1)
+        val flags = nestedDeserializer.decodeByteElement(descriptor, 1).toUByte()
         val signCount = (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 24) +
             (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 16) +
             (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 8) +
             nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt()
         var attestedCredentialData: AttestedCredentialData? = null
-        if ((flags and FLAGS.AT.value) != 0.toByte()) {
+        if ((flags and FLAGS.AT.value) != 0.toUByte()) {
             attestedCredentialData = nestedDeserializer.decodeSerializableElement(descriptor, 3, AttestedCredentialData.serializer())
         }
         var extensions: Map<ExtensionName, ExtensionParameters>? = null
-        if ((flags and FLAGS.ED.value) != 0.toByte()) {
+        if ((flags and FLAGS.ED.value) != 0.toUByte()) {
             val results = nestedDeserializer.decodeSerializableElement(
                 descriptor,
                 4,
@@ -124,7 +128,7 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
         for (i in value.rpIdHash.indices) {
             composite.encodeByteElement(descriptor, 0, value.rpIdHash[i])
         }
-        composite.encodeByteElement(descriptor, 1, value.flags)
+        composite.encodeIntElement(descriptor, 1, value.flags.toInt())
         composite.encodeIntElement(descriptor, 2, value.signCount.toInt())
         if (value.attestedCredentialData != null) {
             composite.encodeSerializableElement(

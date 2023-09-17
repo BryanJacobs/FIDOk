@@ -38,7 +38,7 @@ class MakeCredentialResponseTest {
 
         assertNull(res.epAtt)
         assertEquals(13u, res.authData.signCount)
-        assertEquals(0x41, res.authData.flags)
+        assertEquals(0x41u, res.authData.flags)
         assertNull(res.authData.extensions)
         assertEquals(16, res.authData.attestedCredentialData?.aaguid?.size)
         assertEquals("packed", res.fmt)
