@@ -98,8 +98,8 @@ class PureJVMCryptoProvider : CryptoProvider {
         info: ByteArray,
     ): KeyAgreementResult {
         if (useHKDF) {
-            // HKDF step one: get PRK by using zeros as a key to HMAC-SHA256 the IKM
-            val prk = hmacSHA256(salt, AES256Key(state.opaqueState as ByteArray, null))
+            // HKDF step one: get PRK by using salt as a key to HMAC-SHA256 the IKM
+            val prk = hmacSHA256(state.opaqueState as ByteArray, AES256Key(salt, null))
 
             // HKDF step two: use PRK to hash the "info" array given
             val res = hmacSHA256((info.toList() + listOf(0x01)).toByteArray(), AES256Key(prk.hash, null))

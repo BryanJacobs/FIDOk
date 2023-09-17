@@ -33,7 +33,7 @@ class MakeCredential : SimulationTest() {
     }
 
     @Test
-    fun makeCredentialWithPIN() {
+    fun makeCredentialWithPINProtocolOne() {
         val pin = "something"
 
         client.setPIN(pin, pinProtocol = 1u)
@@ -41,6 +41,19 @@ class MakeCredential : SimulationTest() {
         val token = client.getPinToken(pin, pinProtocol = 1u)
 
         val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinToken = token, pinProtocol = 1u)
+
+        assertTrue(res.authData.hasFlag(FLAGS.UV))
+    }
+
+    @Test
+    fun makeCredentialWithPINProtocolTwo() {
+        val pin = "something"
+
+        client.setPIN(pin, pinProtocol = 2u)
+
+        val token = client.getPinToken(pin, pinProtocol = 2u)
+
+        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinToken = token, pinProtocol = 2u)
 
         assertTrue(res.authData.hasFlag(FLAGS.UV))
     }
