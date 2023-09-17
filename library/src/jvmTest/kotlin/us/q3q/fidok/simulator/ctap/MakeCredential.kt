@@ -10,6 +10,7 @@ import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -23,11 +24,25 @@ class MakeCredential : SimulationTest() {
         assertEquals(0u, res.authData.signCount)
         assertTrue(res.authData.hasFlag(FLAGS.UP))
         assertTrue(res.authData.hasFlag(FLAGS.AT))
+        assertFalse(res.authData.hasFlag(FLAGS.UV))
         assertEquals(65u, res.authData.flags)
         assertEquals(64, res.getCredentialID().size)
         assertNull(res.authData.extensions)
         assertEquals("packed", res.fmt)
         assertEquals(COSEAlgorithmIdentifier.ES256.value, res.getPackedAttestationStatement().alg)
+    }
+
+    @Test
+    fun makeCredentialWithPIN() {
+        val pin = "something"
+
+        client.setPIN(pin, pinProtocol = 1u)
+
+        val token = client.getPinToken(pin, pinProtocol = 1u)
+
+        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinToken = token, pinProtocol = 1u)
+
+        assertTrue(res.authData.hasFlag(FLAGS.UV))
     }
 
     @Test

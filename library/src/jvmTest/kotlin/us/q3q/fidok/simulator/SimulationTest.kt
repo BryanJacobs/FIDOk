@@ -2,8 +2,9 @@ package us.q3q.fidok.simulator
 
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
+import us.q3q.fidok.PureJVMCryptoProvider
 import us.q3q.fidok.ctap.CTAPClient
-import us.q3q.fidok.loadNativeLibraryForPlatform
+import us.q3q.fidok.ctap.Library
 import kotlin.random.Random
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -18,7 +19,8 @@ open class SimulationTest {
         @JvmStatic
         @BeforeAll
         fun loadNativeLibrary() {
-            loadNativeLibraryForPlatform()
+            // loadNativeLibraryForPlatform()
+            Library.init(PureJVMCryptoProvider())
         }
     }
 

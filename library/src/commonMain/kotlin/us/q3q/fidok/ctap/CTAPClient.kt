@@ -225,6 +225,9 @@ class CTAPClient(private val device: Device) {
         val pinUvAuthParam = if (pinToken != null) {
             val pp = getPinProtocol(pinProtocol)
             pinProtocolVersion = pp.getVersion()
+
+            Logger.d { "Authenticating request using PIN protocol $pinProtocolVersion" }
+
             pp.authenticate(pinToken, effectiveClientDataHash)
         } else {
             null
@@ -293,7 +296,7 @@ class CTAPClient(private val device: Device) {
             return
         }
 
-        val pubKey = makeCredentialResponse.authData.attestedCredentialData!!.credentialPublicKey
+        val pubKey = makeCredentialResponse.getCredentialPublicKey()
 
         validateES256UsingPubKey(makeCredentialResponse, clientDataHash, pubKey.x, pubKey.y, sig)
     }
