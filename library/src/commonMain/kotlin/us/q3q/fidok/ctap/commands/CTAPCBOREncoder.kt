@@ -45,7 +45,7 @@ open class CTAPCBOREncoder : AbstractEncoder() {
         serializer: SerializationStrategy<T>,
         value: T,
     ) {
-        Logger.v("SE $index ${descriptor.getElementDescriptor(index)} $value")
+        Logger.v { "Encoding SerializableElement $index ${descriptor.getElementDescriptor(index)} = $value" }
         val element = descriptor.getElementDescriptor(index)
         if (element.kind == StructureKind.LIST && element.getElementDescriptor(0).kind == PrimitiveKind.BYTE) {
             val ba = ByteArrayEncoder(this)
@@ -57,12 +57,10 @@ open class CTAPCBOREncoder : AbstractEncoder() {
     }
 
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
-        Logger.v("COLLECTION " + descriptor.kind + " - " + descriptor.toString() + " = " + collectionSize)
         if (descriptor.kind == StructureKind.LIST &&
             descriptor.getElementDescriptor(0).kind == PrimitiveKind.BYTE
         ) {
             // Lists of bytes are byte strings
-            Logger.v("Handling as byte array")
             return ByteArrayEncoder(this)
         }
         if (descriptor.kind == StructureKind.MAP) {
@@ -75,7 +73,6 @@ open class CTAPCBOREncoder : AbstractEncoder() {
     }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        Logger.v("BEGINS " + descriptor.kind + " - " + descriptor.toString())
         return when (descriptor.kind) {
             PolymorphicKind.SEALED ->
                 SealedEncoder(this)
@@ -87,7 +84,6 @@ open class CTAPCBOREncoder : AbstractEncoder() {
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
-        Logger.v("ENDS $descriptor")
         // Do nothing
     }
 
@@ -105,7 +101,6 @@ open class CTAPCBOREncoder : AbstractEncoder() {
     }
 
     override fun encodeString(value: String) {
-        Logger.v("STRING $value")
         accumulatedBytes.addAll(cbor.encodeToByteArray(value).toList())
     }
 
@@ -122,7 +117,6 @@ open class CTAPCBOREncoder : AbstractEncoder() {
 open class ParentFeedingEncoder(val parentEncoder: CTAPCBOREncoder) : CTAPCBOREncoder() {
 
     fun feedParent() {
-        Logger.v("Ending subclass - feeding: ${accumulatedBytes.toByteArray().toHexString()}")
         for (x in accumulatedBytes) {
             parentEncoder.encodeByte(x)
         }
@@ -157,21 +151,9 @@ class ClassEncoder(parentEncoder: CTAPCBOREncoder) : ParentFeedingEncoder(parent
     private var descriptorIndex = 0
     private var classDescriptor: SerialDescriptor? = null
 
-    override fun <T> encodeSerializableElement(
-        descriptor: SerialDescriptor,
-        index: Int,
-        serializer: SerializationStrategy<T>,
-        value: T,
-    ) {
-        Logger.v("Class child element: " + descriptor.getElementDescriptor(index) + " = " + value)
-        super.encodeSerializableElement(descriptor, index, serializer, value)
-    }
-
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        Logger.v("Class BEGINS: $descriptor")
         if (descriptor.kind == StructureKind.LIST) {
             // Sub-lists should be handled as children of this class
-            Logger.v("Sublist")
             val pe = ParentFeedingEncoder(this)
             pe.beginStructure(descriptor)
             return pe
@@ -181,12 +163,10 @@ class ClassEncoder(parentEncoder: CTAPCBOREncoder) : ParentFeedingEncoder(parent
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
-        Logger.v("Class ENDS")
         super.endStructure(descriptor)
     }
 
     override fun encodeString(value: String) {
-        Logger.v("Class child string: $value with $descriptorIndex $classDescriptor")
         super.encodeString(value)
     }
 }
@@ -283,7 +263,6 @@ class MapEncoder(parentEncoder: CTAPCBOREncoder, private val numElements: Int) :
         serializer: SerializationStrategy<T>,
         value: T,
     ) {
-        Logger.v("MAP $value")
         // Hold this for later - we'll need to sort the values
         stashResult {
             super.encodeSerializableElement(descriptor, index, serializer, value)

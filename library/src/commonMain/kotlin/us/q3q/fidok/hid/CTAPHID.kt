@@ -46,7 +46,6 @@ class CTAPHID {
                 throw RuntimeException("Too much data sent to HID device: $totalLength bytes")
             }
             val ret = arrayListOf(
-                0x00u, // report number
                 ((channel and 0xFF000000u) shr 24).toUByte(),
                 ((channel and 0x00FF0000u) shr 16).toUByte(),
                 ((channel and 0x0000FF00u) shr 8).toUByte(),
@@ -56,7 +55,7 @@ class CTAPHID {
                 (totalLength and 0x00FF).toUByte(),
             )
             ret.addAll(data.toList())
-            while (ret.size < packetSize + 1) {
+            while (ret.size < packetSize) {
                 ret.add(0x00u)
             }
             return ret.toUByteArray()
@@ -67,7 +66,6 @@ class CTAPHID {
                 throw RuntimeException("Overlarge continuation packet sent to HID device: ${data.size} bytes")
             }
             val ret = arrayListOf(
-                0x00u, // report number
                 ((channel and 0xFF000000u) shr 24).toUByte(),
                 ((channel and 0x00FF0000u) shr 16).toUByte(),
                 ((channel and 0x0000FF00u) shr 8).toUByte(),
@@ -75,7 +73,7 @@ class CTAPHID {
                 seq,
             )
             ret.addAll(data.toList())
-            while (ret.size < packetSize + 1) {
+            while (ret.size < packetSize) {
                 ret.add(0x00u)
             }
             return ret.toUByteArray()

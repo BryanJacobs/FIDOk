@@ -71,4 +71,5 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.5.0")
+    implementation("co.touchlab:kermit:2.0.0-RC5")
 }

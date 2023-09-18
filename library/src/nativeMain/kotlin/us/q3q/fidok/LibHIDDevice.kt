@@ -66,8 +66,8 @@ class LibHIDDevice(private val path: String) : Device {
     private fun readOnePacket(handle: CPointer<hid_device>): UByteArray {
         Logger.d("Attempting to read from device $path")
         memScoped {
-            val packet = allocArray<UByteVar>(PACKET_SIZE + 1)
-            val read = hid_read_timeout(handle, packet, (PACKET_SIZE + 1).convert(), TIMEOUT)
+            val packet = allocArray<UByteVar>(PACKET_SIZE)
+            val read = hid_read_timeout(handle, packet, PACKET_SIZE.convert(), TIMEOUT)
             if (read == 0) {
                 throw RuntimeException("Timed out reading from HID device $path")
             }

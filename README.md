@@ -99,7 +99,7 @@ provided by native implementations specific to each platform.
 
 | Attachment / Protocol | Status        | Linux | Mac | Windows | JVM       | Android | iOS |
 |-----------------------|---------------|-------|-----|---------|-----------|---------|-----|
-| USB-HID               | Working       | Y     |     | N       | As Native |         |     |
+| USB-HID               | Working       | Y     |     | N       | As Native | Y       |     |
 | BT-HID                | Working       | Y     |     | N       | As Native |         |     |
 | PC/SC (USB or NFC)    | Working       | Y     |     | Y       | As Native |         |     |
 | Bluetooth LE          | Working       | N     |     | N       | Y         |         |     |

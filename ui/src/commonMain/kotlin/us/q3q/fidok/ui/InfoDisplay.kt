@@ -78,8 +78,13 @@ fun CardsForMap(label: String, elements: Map<String, Any>) {
 }
 
 @Composable
-fun InfoDisplay(info: GetInfoResponse) {
+fun InfoDisplay(info: GetInfoResponse?) {
     val state = rememberLazyListState()
+
+    if (info == null) {
+        return
+    }
+
     Box(
         modifier = Modifier.fillMaxSize()
             .background(color = Color(180, 180, 180))

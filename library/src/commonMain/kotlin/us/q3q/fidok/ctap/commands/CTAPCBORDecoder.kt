@@ -1,6 +1,5 @@
 package us.q3q.fidok.ctap.commands
 
-import co.touchlab.kermit.Logger
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
@@ -40,13 +39,10 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
         if (offset == input.size) {
             return -1
         }
-        val ret = input[offset++].toInt()
-        Logger.v("DEI ($ret) $descriptor")
-        return ret
+        return input[offset++].toInt()
     }
 
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
-        Logger.v("DSV $deserializer")
         return deserializer.deserialize(this)
     }
 
@@ -164,7 +160,6 @@ class CTAPCBORArrayDecoder(bytes: ByteArray) : CTAPCBORDecoder(bytes) {
 
 class AdvancingDecoder(bytes: ByteArray, val parent: CTAPCBORArrayDecoder) : CTAPCBORDecoder(bytes) {
     override fun endStructure(descriptor: SerialDescriptor) {
-        Logger.v { "ES - advancing ${this.offset} bytes" }
         super.endStructure(descriptor)
         parent.advance(this.offset)
     }

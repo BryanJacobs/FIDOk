@@ -40,7 +40,7 @@ class UByteParameterSerializer : KSerializer<UByteParameter> {
     }
 }
 
-@OptIn(ExperimentalSerializationApi::class)
+@OptIn(ExperimentalSerializationApi::class, ExperimentalStdlibApi::class)
 @Serializable
 data class ByteArrayParameter(@ByteString override val v: ByteArray) : ParameterValue() {
     override fun equals(other: Any?): Boolean {
@@ -54,6 +54,10 @@ data class ByteArrayParameter(@ByteString override val v: ByteArray) : Parameter
 
     override fun hashCode(): Int {
         return v.contentHashCode()
+    }
+
+    override fun toString(): String {
+        return "ByteArrayParameter(${v.toHexString()})"
     }
 }
 
@@ -158,5 +162,9 @@ sealed class CtapCommand {
         val encoder = CTAPCBOREncoder()
         encoder.encodeSerializableValue(serializer(), this)
         return encoder.getBytes()
+    }
+
+    override fun toString(): String {
+        return this::class.simpleName ?: super.toString()
     }
 }
