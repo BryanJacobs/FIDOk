@@ -6,11 +6,13 @@ import android.hardware.usb.UsbConstants
 import android.hardware.usb.UsbManager
 import co.touchlab.kermit.Logger
 
+const val USB_TIMEOUT_MS = 15000
+
 @OptIn(ExperimentalStdlibApi::class)
 class AndroidUSBHIDListing {
 
     companion object {
-        fun listDevices(c: Context, permissionIntent: PendingIntent): List<AndroidUSBHIDDevice> {
+        fun listDevices(c: Context, permissionIntent: PendingIntent?): List<AndroidUSBHIDDevice> {
             val m = c.getSystemService(UsbManager::class.java)
 
             val ret = arrayListOf<AndroidUSBHIDDevice>()
@@ -32,7 +34,9 @@ class AndroidUSBHIDListing {
                     var foundOutEndpoint = false
 
                     val interf = d.getInterface(interfaceNumber)
-                    if (interf.interfaceClass != UsbConstants.USB_CLASS_HID) {
+                    if (interf.interfaceClass != UsbConstants.USB_CLASS_HID || interf.interfaceSubclass != 0 ||
+                        interf.interfaceProtocol != 0
+                    ) {
                         continue
                     }
                     if (interf.endpointCount < 2) {
@@ -65,6 +69,10 @@ class AndroidUSBHIDListing {
                 }
 
                 if (!m.hasPermission(d)) {
+                    if (permissionIntent == null) {
+                        Logger.w { "Missing permission for $deviceAddr, but not given a permission Intent" }
+                        continue
+                    }
                     Logger.i { "Requesting permission for $deviceAddr" }
                     m.requestPermission(d, permissionIntent)
                     continue // FIXME
@@ -79,8 +87,6 @@ class AndroidUSBHIDListing {
                 // Get HID report descriptor - from whichever interface...
                 for (interfaceNumber in potentiallyValidInterfaceIDs) {
                     val response = ByteArray(outBufferSize.toInt())
-                    val REPORT_DESCRIPTOR = 0x22
-                    val TIMEOUT_MS = 15000
 
                     val ifaceObj = d.getInterface(interfaceNumber)
                     if (!conn.claimInterface(ifaceObj, true)) {
@@ -91,14 +97,12 @@ class AndroidUSBHIDListing {
 
                     val bytesTransferred = conn.controlTransfer(
                         UsbConstants.USB_DIR_IN or 0x01,
-                        // 0x00000081,
                         0x00000006,
-                        // (REPORT_DESCRIPTOR shl 8) + 0,
                         0x00002200 + interfaceNumber,
                         interfaceNumber,
                         response,
                         response.size,
-                        TIMEOUT_MS,
+                        USB_TIMEOUT_MS,
                     )
                     Logger.v { "Transferred $bytesTransferred report descriptor bytes from $deviceAddr interface $interfaceNumber : ${response[0].toHexString()}" }
 

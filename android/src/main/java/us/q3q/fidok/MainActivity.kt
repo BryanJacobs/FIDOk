@@ -20,8 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +48,8 @@ class MainActivity : ComponentActivity() {
 
     private var nfcPendingIntent: PendingIntent? = null
     private var infoLive = MutableLiveData<GetInfoResponse?>(null)
+    private var deviceListLive = MutableLiveData<List<Device>?>(null)
+    private var usbPermissionIntent: PendingIntent? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,12 +58,13 @@ class MainActivity : ComponentActivity() {
 
         Logger.setMinSeverity(Severity.Verbose)
 
-        val usbPermissionIntent = PendingIntent.getBroadcast(
+        val permissionIntent = PendingIntent.getBroadcast(
             this,
             0,
             Intent(ACTION_USB_PERMISSION),
             PendingIntent.FLAG_IMMUTABLE,
         )
+        usbPermissionIntent = permissionIntent
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         registerReceiver(usbPermissionIntentReceiver, filter)
 
@@ -77,7 +78,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             FidoKTheme {
-                var deviceList by remember { mutableStateOf<List<Device>?>(null) }
+                val deviceList: List<Device>? by deviceListLive.observeAsState()
                 val info: GetInfoResponse? by infoLive.observeAsState()
 
                 // A surface container using the 'background' color from the theme
@@ -86,7 +87,8 @@ class MainActivity : ComponentActivity() {
                         DeviceDisplayAndManip(
                             deviceList = deviceList,
                             onListUSBReq = {
-                                deviceList = AndroidUSBHIDListing.listDevices(applicationContext, usbPermissionIntent)
+                                val gottenDeviceList = AndroidUSBHIDListing.listDevices(applicationContext, permissionIntent)
+                                deviceListLive.postValue(gottenDeviceList)
                             },
                             getInfoReq = {
                                 val gottenInfo = CTAPClient(it).getInfo()
@@ -131,14 +133,20 @@ class MainActivity : ComponentActivity() {
 
     public override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Logger.v { "Main activity intent handler called" }
-        val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
-        Logger.i { "Detected tag $tag" }
+        Logger.v { "Main activity intent handler called for action ${intent.action}" }
+        if (intent.action == "android.hardware.usb.action.USB_DEVICE_ATTACHED") {
+            val listing = AndroidUSBHIDListing.listDevices(applicationContext, usbPermissionIntent)
+            deviceListLive.postValue(listing)
+        } else {
+            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+            Logger.i { "Detected tag $tag" }
 
-        val device = AndroidNFCDevice(IsoDep.get(tag))
-        val response = CTAPClient(device).getInfo()
+            val device = AndroidNFCDevice(IsoDep.get(tag))
+            val response = CTAPClient(device).getInfo()
 
-        infoLive.postValue(response)
+            deviceListLive.postValue(listOf(device))
+            infoLive.postValue(response)
+        }
     }
 }
 

@@ -33,9 +33,15 @@
             <intent-filter>
                 <action android:name="android.nfc.action.TECH_DISCOVERED"/>
             </intent-filter>
-
             <meta-data android:name="android.nfc.action.TECH_DISCOVERED"
                        android:resource="@xml/nfc_tech_filter" />
+
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
+            </intent-filter>
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                       android:resource="@xml/usb_class_filter" />
+
         </activity>
     </application>
 

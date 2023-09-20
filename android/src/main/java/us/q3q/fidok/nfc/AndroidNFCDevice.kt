@@ -5,7 +5,7 @@ import co.touchlab.kermit.Logger
 import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.pcsc.CTAPPCSC
 
-const val TIMEOUT = 5000
+const val NFC_TIMEOUT_MS = 5000
 
 @OptIn(ExperimentalStdlibApi::class)
 class AndroidNFCDevice(
@@ -14,7 +14,7 @@ class AndroidNFCDevice(
     override fun sendBytes(bytes: ByteArray): ByteArray {
         if (!tag.isConnected) {
             tag.connect()
-            tag.timeout = TIMEOUT
+            tag.timeout = NFC_TIMEOUT_MS
         }
 
         // TODO: packetize using tag.getMaxTransceiveLength
@@ -31,5 +31,9 @@ class AndroidNFCDevice(
 
             res
         }
+    }
+
+    override fun toString(): String {
+        return "NFC Device $tag"
     }
 }
