@@ -19,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -26,11 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.MutableLiveData
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.ctap.commands.GetInfoResponse
+import us.q3q.fidok.nfc.AndroidNFCDevice
 import us.q3q.fidok.ui.InfoDisplay
 import us.q3q.fidok.ui.theme.FidoKTheme
 import us.q3q.fidok.usb.ACTION_USB_PERMISSION
@@ -38,14 +41,15 @@ import us.q3q.fidok.usb.AndroidUSBHIDListing
 import us.q3q.fidok.usb.usbPermissionIntentReceiver
 
 class MainActivity : ComponentActivity() {
-    var nfcAdapter: NfcAdapter? = null
+    private var nfcAdapter: NfcAdapter? = null
 
-    val techDiscoveredIntentFilter = IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED)
-    val supportedTechClassNames = arrayOf(
+    private val techDiscoveredIntentFilter = IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED)
+    private val supportedTechClassNames = arrayOf(
         IsoDep::class.java.name,
     )
 
-    var nfcPendingIntent: PendingIntent? = null
+    private var nfcPendingIntent: PendingIntent? = null
+    private var infoLive = MutableLiveData<GetInfoResponse?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +78,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             FidoKTheme {
                 var deviceList by remember { mutableStateOf<List<Device>?>(null) }
-                var info by remember { mutableStateOf<GetInfoResponse?>(null) }
+                val info: GetInfoResponse? by infoLive.observeAsState()
 
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -85,7 +89,8 @@ class MainActivity : ComponentActivity() {
                                 deviceList = AndroidUSBHIDListing.listDevices(applicationContext, usbPermissionIntent)
                             },
                             getInfoReq = {
-                                info = CTAPClient(it).getInfo()
+                                val gottenInfo = CTAPClient(it).getInfo()
+                                infoLive.postValue(gottenInfo)
                             },
                         )
                         InfoDisplay(info = info)
@@ -114,18 +119,26 @@ class MainActivity : ComponentActivity() {
 
     public override fun onPause() {
         super.onPause()
+        Logger.v { "Pausing; disabling foreground NFC handling" }
         nfcAdapter?.disableForegroundDispatch(this)
     }
 
     public override fun onResume() {
         super.onResume()
+        Logger.v { "Resuming; enabling foreground NFC handling" }
         foregroundNfcDispatch()
     }
 
     public override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        Logger.v { "Main activity intent handler called" }
         val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
         Logger.i { "Detected tag $tag" }
+
+        val device = AndroidNFCDevice(IsoDep.get(tag))
+        val response = CTAPClient(device).getInfo()
+
+        infoLive.postValue(response)
     }
 }
 

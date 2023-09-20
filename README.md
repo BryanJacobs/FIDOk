@@ -103,7 +103,7 @@ provided by native implementations specific to each platform.
 |---------------|-------------------------------------|---------------|----------------|-----|----------------|-----------|---------|-----|
 | USB-HID       | Plug-in USB tokens                  | Working       | Y              |     | N              | As Native | Y       |     |
 | USB-CCID      | Smart Card Readers (via USB)        | Working       | Y (via PC/SC)  |     | Y (via PC/SC)  | As Native | N       |     |
-| NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |     | N (Y via CCID) | As Native |         |     |
+| NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |     | N (Y via CCID) | As Native | Y       |     |
 | Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |     | N              | As Native | N       |     |
 | Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |     | N              | Y         | N       |     |
 | TPM           | Chips built into computers          | Unimplemented |                |     |                |           |         |     |
