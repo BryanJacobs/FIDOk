@@ -3,6 +3,9 @@ package us.q3q.fidok
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.IntentFilter
+import android.nfc.NfcAdapter
+import android.nfc.Tag
+import android.nfc.tech.IsoDep
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,10 +38,23 @@ import us.q3q.fidok.usb.AndroidUSBHIDListing
 import us.q3q.fidok.usb.usbPermissionIntentReceiver
 
 class MainActivity : ComponentActivity() {
+    var nfcAdapter: NfcAdapter? = null
+
+    val techDiscoveredIntentFilter = IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED)
+    val supportedTechClassNames = arrayOf(
+        IsoDep::class.java.name,
+    )
+
+    var nfcPendingIntent: PendingIntent? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val permissionIntent = PendingIntent.getBroadcast(
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+
+        Logger.setMinSeverity(Severity.Verbose)
+
+        val usbPermissionIntent = PendingIntent.getBroadcast(
             this,
             0,
             Intent(ACTION_USB_PERMISSION),
@@ -47,7 +63,13 @@ class MainActivity : ComponentActivity() {
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         registerReceiver(usbPermissionIntentReceiver, filter)
 
-        Logger.setMinSeverity(Severity.Verbose)
+        val nfcIntent = Intent(this, javaClass).apply {
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+        nfcPendingIntent = PendingIntent.getActivity(
+            this, 0, nfcIntent,
+            PendingIntent.FLAG_MUTABLE,
+        )
 
         setContent {
             FidoKTheme {
@@ -60,7 +82,7 @@ class MainActivity : ComponentActivity() {
                         DeviceDisplayAndManip(
                             deviceList = deviceList,
                             onListUSBReq = {
-                                deviceList = AndroidUSBHIDListing.listDevices(applicationContext, permissionIntent)
+                                deviceList = AndroidUSBHIDListing.listDevices(applicationContext, usbPermissionIntent)
                             },
                             getInfoReq = {
                                 info = CTAPClient(it).getInfo()
@@ -73,9 +95,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun foregroundNfcDispatch() {
+        val adapter = nfcAdapter
+        if (nfcPendingIntent != null && adapter != null) {
+            adapter.enableForegroundDispatch(
+                this,
+                nfcPendingIntent,
+                arrayOf(techDiscoveredIntentFilter),
+                arrayOf(supportedTechClassNames),
+            )
+        }
+    }
+
     override fun onDestroy() {
         unregisterReceiver(usbPermissionIntentReceiver)
         super.onDestroy()
+    }
+
+    public override fun onPause() {
+        super.onPause()
+        nfcAdapter?.disableForegroundDispatch(this)
+    }
+
+    public override fun onResume() {
+        super.onResume()
+        foregroundNfcDispatch()
+    }
+
+    public override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        Logger.i { "Detected tag $tag" }
     }
 }
 

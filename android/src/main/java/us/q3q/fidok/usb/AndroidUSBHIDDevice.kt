@@ -25,6 +25,10 @@ class AndroidUSBHIDDevice(
             throw IllegalStateException("Cannot send to $deviceAddr - permission not granted")
         }
 
+        if (interfaceNumber >= device.interfaceCount) {
+            throw IllegalStateException("Cannot send to $deviceAddr - interface $interfaceNumber too high")
+        }
+
         val interfaceObject = device.getInterface(interfaceNumber)
 
         val conn = manager.openDevice(device)

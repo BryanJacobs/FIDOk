@@ -81,6 +81,7 @@ provided by native implementations specific to each platform.
 | Easy Task-Specific APIs           | Unimplemented |
 | Command Line                      | Unimplemented |
 | User Interface                    | Incomplete    |
+| Authenticator Proxying            | Unimplemented |
 
 ## Platforms
 
@@ -93,16 +94,16 @@ provided by native implementations specific to each platform.
 | Windows Executable/DLL     | Working (.dll, .exe native binary)                   |
 | iOS Framework              | Unimplemented                                        |
 | Android JAR/SO             | Incomplete                                           |
+| Android Demo Application   | Working (.apk)                                       |
 | Web Page :)                | Unimplemented                                        |
 
 ## Authenticator Types / Protocols
 
-| Attachment / Protocol | Status        | Linux | Mac | Windows | JVM       | Android | iOS |
-|-----------------------|---------------|-------|-----|---------|-----------|---------|-----|
-| USB-HID               | Working       | Y     |     | N       | As Native | Y       |     |
-| BT-HID                | Working       | Y     |     | N       | As Native |         |     |
-| PC/SC (USB or NFC)    | Working       | Y     |     | Y       | As Native |         |     |
-| Bluetooth LE          | Working       | N     |     | N       | Y         |         |     |
-| TPM                   | Unimplemented |       |     |         |           |         |     |
-| E-APDUs               | Working       | Y     | Y   | Y       | Y         | Y       | Y   |
-| APDU Chaining         | Working       | Y     | Y   | Y       | Y         | Y       | Y   |
+| Attachment    | What is this?                       | Status        | Linux          | Mac | Windows        | JVM       | Android | iOS |
+|---------------|-------------------------------------|---------------|----------------|-----|----------------|-----------|---------|-----|
+| USB-HID       | Plug-in USB tokens                  | Working       | Y              |     | N              | As Native | Y       |     |
+| USB-CCID      | Smart Card Readers (via USB)        | Working       | Y (via PC/SC)  |     | Y (via PC/SC)  | As Native | N       |     |
+| NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |     | N (Y via CCID) | As Native |         |     |
+| Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |     | N              | As Native | N       |     |
+| Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |     | N              | Y         | N       |     |
+| TPM           | Chips built into computers          | Unimplemented |                |     |                |           |         |     |

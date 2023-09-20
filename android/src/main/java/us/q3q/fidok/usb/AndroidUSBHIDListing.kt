@@ -26,43 +26,36 @@ class AndroidUSBHIDListing {
                 Logger.v { "Device entry: ${d.deviceName}" }
 
                 val potentiallyValidInterfaceIDs = arrayListOf<Int>()
-                var hidInterfaceIndex = 0
 
-                for (configNumber in 0..<d.configurationCount) {
-                    Logger.v { "Examining device $deviceAddr configuration $configNumber" }
+                for (interfaceNumber in 0..<d.interfaceCount) {
+                    var foundInEndpoint = false
+                    var foundOutEndpoint = false
 
-                    val config = d.getConfiguration(configNumber)
-                    for (interfaceNumber in 0..<config.interfaceCount) {
-                        var foundInEndpoint = false
-                        var foundOutEndpoint = false
+                    val interf = d.getInterface(interfaceNumber)
+                    if (interf.interfaceClass != UsbConstants.USB_CLASS_HID) {
+                        continue
+                    }
+                    if (interf.endpointCount < 2) {
+                        // Need one in and one out endpoint...
+                        Logger.v { "Interface $interfaceNumber ignored because it has too few interfaces" }
+                        continue
+                    }
 
-                        val interf = config.getInterface(interfaceNumber)
-                        if (interf.interfaceClass != UsbConstants.USB_CLASS_HID) {
-                            continue
+                    for (endpointNumber in 0..<interf.endpointCount) {
+                        val endPoint = interf.getEndpoint(endpointNumber)
+                        if (endPoint.direction == UsbConstants.USB_DIR_OUT) {
+                            foundOutEndpoint = true
+                        } else if (endPoint.direction == UsbConstants.USB_DIR_IN) {
+                            foundInEndpoint = true
                         }
-                        hidInterfaceIndex++
-                        if (interf.endpointCount < 2) {
-                            // Need one in and one out endpoint...
-                            Logger.v { "Interface $interfaceNumber ignored because it has too few interfaces" }
-                            continue
-                        }
+                    }
 
-                        for (endpointNumber in 0..<interf.endpointCount) {
-                            val endPoint = interf.getEndpoint(endpointNumber)
-                            if (endPoint.direction == UsbConstants.USB_DIR_OUT) {
-                                foundOutEndpoint = true
-                            } else if (endPoint.direction == UsbConstants.USB_DIR_IN) {
-                                foundInEndpoint = true
-                            }
-                        }
-
-                        if (foundInEndpoint && foundOutEndpoint) {
-                            // This might be an okay interface for us...
-                            potentiallyValidInterfaceIDs.add(hidInterfaceIndex)
-                            Logger.d { "Interface $interfaceNumber (${interf.id}) [$hidInterfaceIndex] on $deviceAddr might be FIDO" }
-                        } else {
-                            Logger.v { "Interface $interfaceNumber ignored because we couldn't find an in+out endpoint" }
-                        }
+                    if (foundInEndpoint && foundOutEndpoint) {
+                        // This might be an okay interface for us...
+                        potentiallyValidInterfaceIDs.add(interfaceNumber)
+                        Logger.d { "Interface $interfaceNumber on $deviceAddr might be FIDO" }
+                    } else {
+                        Logger.v { "Interface $interfaceNumber ignored because we couldn't find an in+out endpoint" }
                     }
                 }
 
