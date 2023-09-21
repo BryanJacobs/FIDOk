@@ -107,3 +107,4 @@ provided by native implementations specific to each platform.
 | Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |     | N              | As Native | N       |     |
 | Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |     | N              | Y         | N       |     |
 | TPM           | Chips built into computers          | Unimplemented |                |     |                |           |         |     |
+| CaBLE         | Authenticators using the Internet   | Unimplemented |                |     |                |           |         |     |

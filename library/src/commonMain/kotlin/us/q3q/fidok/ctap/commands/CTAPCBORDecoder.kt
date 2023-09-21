@@ -69,6 +69,24 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
         return ret
     }
 
+    override fun decodeLong(): Long {
+        val ret = cbor.decodeFromByteArray(
+            Long.serializer(),
+            input.toList().subList(offset, input.size).toByteArray(),
+        )
+        offset++
+        if (ret > 23 || ret < -24) {
+            offset++
+        }
+        if (ret > 255 || ret < -256) {
+            offset++
+        }
+        if (ret > UShort.MAX_VALUE.toInt() || ret < -1 * UShort.MAX_VALUE.toInt() - 1) {
+            offset += 2
+        }
+        return ret
+    }
+
     override fun decodeSequentially(): Boolean {
         return true
     }

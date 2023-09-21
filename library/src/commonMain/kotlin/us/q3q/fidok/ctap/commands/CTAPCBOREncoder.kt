@@ -92,6 +92,12 @@ open class CTAPCBOREncoder : AbstractEncoder() {
         accumulatedBytes.addAll(gotten.toList())
     }
 
+    override fun encodeLong(value: Long) {
+        // FIXME: UNSIGNED long!!!
+        val gotten = Cbor { serializersModule = customSerializers }.encodeToByteArray(Long.serializer(), value)
+        accumulatedBytes.addAll(gotten.toList())
+    }
+
     override fun encodeByte(value: Byte) {
         accumulatedBytes.add(value)
     }

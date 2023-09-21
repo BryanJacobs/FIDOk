@@ -22,6 +22,7 @@ kotlin {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material)
+                implementation("io.github.g0dkar:qrcode-kotlin:3.3.0")
             }
         }
         val commonTest by getting {

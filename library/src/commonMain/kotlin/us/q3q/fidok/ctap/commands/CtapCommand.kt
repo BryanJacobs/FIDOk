@@ -115,6 +115,9 @@ data class BooleanParameter(override val v: Boolean) : ParameterValue()
 @Serializable
 data class UIntParameter(override val v: UInt) : ParameterValue()
 
+@Serializable
+data class ULongParameter(override val v: ULong) : ParameterValue()
+
 @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 class CtapCommandEncoder : KSerializer<CtapCommand> {
     override val descriptor: SerialDescriptor
