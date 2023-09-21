@@ -1,12 +1,21 @@
 package us.q3q.fidok
 
+import android.Manifest
 import android.app.PendingIntent
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import android.os.Bundle
+import android.os.ParcelUuid
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
@@ -20,14 +29,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.MutableLiveData
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
+import us.q3q.fidok.ble.AndroidBLEDevice
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.ctap.commands.GetInfoResponse
@@ -50,6 +60,8 @@ class MainActivity : ComponentActivity() {
     private var infoLive = MutableLiveData<GetInfoResponse?>(null)
     private var deviceListLive = MutableLiveData<List<Device>?>(null)
     private var usbPermissionIntent: PendingIntent? = null
+
+    private val REQUEST_ENABLE_BT = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,6 +88,16 @@ class MainActivity : ComponentActivity() {
             PendingIntent.FLAG_MUTABLE,
         )
 
+        val bluetoothManager = getSystemService(BluetoothManager::class.java)
+        var bluetoothAdapter = bluetoothManager.adapter
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            bluetoothAdapter = null
+        }
+
         setContent {
             FidoKTheme {
                 val deviceList: List<Device>? by deviceListLive.observeAsState()
@@ -89,6 +111,55 @@ class MainActivity : ComponentActivity() {
                             onListUSBReq = {
                                 val gottenDeviceList = AndroidUSBHIDListing.listDevices(applicationContext, permissionIntent)
                                 deviceListLive.postValue(gottenDeviceList)
+                            },
+                            onListBLEReq = bleList@{
+                                if (bluetoothAdapter != null) {
+                                    if (!bluetoothAdapter.isEnabled) {
+                                        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                                        startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+                                        Logger.i { "BLE scan not started because adapter disabled; trying to enable" }
+                                        return@bleList
+                                    }
+
+                                    val bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
+
+                                    Logger.i { "Starting BLE scan" }
+                                    val leCallback = object : ScanCallback() {
+                                        override fun onScanResult(callbackType: Int, result: ScanResult?) {
+                                            Logger.i { "Got BLE scan result $result" }
+                                            if (result != null) {
+                                                try {
+                                                    bluetoothLeScanner.stopScan(this)
+                                                } catch (e: SecurityException) {
+                                                    Logger.e { "Was unable to stop self-initiated BLE scan: $e" }
+                                                }
+                                                deviceListLive.postValue(
+                                                    listOf(
+                                                        AndroidBLEDevice(this@MainActivity, result.device),
+                                                    ),
+                                                )
+                                            }
+                                            super.onScanResult(callbackType, result)
+                                        }
+
+                                        override fun onScanFailed(errorCode: Int) {
+                                            Logger.w { "BLE scan failed with error $errorCode" }
+                                            super.onScanFailed(errorCode)
+                                        }
+                                    }
+
+                                    bluetoothLeScanner.startScan(
+                                        listOf(
+                                            ScanFilter.Builder()
+                                                .setServiceUuid(ParcelUuid.fromString(FIDO_BLE_SERVICE_UUID))
+                                                .build(),
+                                        ),
+                                        ScanSettings.Builder().build(),
+                                        leCallback,
+                                    )
+                                } else {
+                                    Logger.i { "BLE scanning not available" }
+                                }
                             },
                             getInfoReq = {
                                 val gottenInfo = CTAPClient(it).getInfo()
@@ -154,11 +225,17 @@ class MainActivity : ComponentActivity() {
 fun DeviceDisplayAndManip(
     deviceList: List<Device>?,
     onListUSBReq: () -> Unit = {},
+    onListBLEReq: () -> Unit = {},
     getInfoReq: (d: Device) -> Unit = {},
 ) {
     Column {
-        Button(onClick = onListUSBReq) {
-            Text("List USB Devices")
+        Row {
+            Button(onClick = onListUSBReq) {
+                Text("List USB")
+            }
+            Button(onClick = onListBLEReq) {
+                Text("List BLE")
+            }
         }
         if (deviceList != null) {
             DevicesDisplay(deviceList, getInfoReq = getInfoReq)
