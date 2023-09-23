@@ -99,15 +99,15 @@ provided by native implementations specific to each platform.
 
 ## Authenticator Types / Protocols
 
-| Attachment    | What is this?                       | Status        | Linux          | Mac | Windows        | JVM       | Android | iOS |
-|---------------|-------------------------------------|---------------|----------------|-----|----------------|-----------|---------|-----|
-| USB-HID       | Plug-in USB tokens                  | Working       | Y              |     | N              | As Native | Y       |     |
-| USB-CCID      | Smart Card Readers (via USB)        | Working       | Y (via PC/SC)  |     | Y (via PC/SC)  | As Native | N       |     |
-| NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |     | N (Y via CCID) | As Native | Y       |     |
-| Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |     | N              | As Native | N       |     |
-| Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |     | N              | Y         | *1      |     |
-| TPM           | Chips built into computers          | Unimplemented |                |     |                |           |         |     |
-| CaBLE         | Authenticators using the Internet   | Unimplemented |                |     |                |           |         |     |
+| Attachment    | What is this?                       | Status        | Linux          | Mac | Windows        | JVM       | Android    | iOS |
+|---------------|-------------------------------------|---------------|----------------|-----|----------------|-----------|------------|-----|
+| USB-HID       | Plug-in USB tokens                  | Working       | Y              |     | N              | As Native | Y          |     |
+| USB-CCID      | Smart Card Readers (via USB)        | Working       | Y (via PC/SC)  |     | Y (via PC/SC)  | As Native | N          |     |
+| NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |     | N (Y via CCID) | As Native | Y          |     |
+| Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |     | N              | As Native | N (and *1) |     |
+| Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |     | N              | Y         | *1         |     |
+| TPM           | Chips built into computers          | Unimplemented |                |     |                |           |            |     |
+| CaBLE         | Authenticators using the Internet!  | Unimplemented |                |     |                |           |            |     |
 
-*1 - BLE support for Android is implemented, but for reasons unknown Android restricts the ability to access BLE FIDO
+*1 - Bluetooth LE support for Android is implemented, but for reasons unknown Android restricts the ability to access BLE FIDO
      tokens to "system" applications, so FIDOk can't be used with BLE authenticators over BLE in a normal install

@@ -16,8 +16,10 @@ import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import android.os.Bundle
 import android.os.ParcelUuid
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +40,7 @@ import androidx.lifecycle.MutableLiveData
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import us.q3q.fidok.ble.AndroidBLEDevice
+import us.q3q.fidok.ble.AndroidBLEServer
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.ctap.commands.GetInfoResponse
@@ -47,6 +50,7 @@ import us.q3q.fidok.ui.theme.FidoKTheme
 import us.q3q.fidok.usb.ACTION_USB_PERMISSION
 import us.q3q.fidok.usb.AndroidUSBHIDListing
 import us.q3q.fidok.usb.usbPermissionIntentReceiver
+import java.lang.IllegalArgumentException
 
 class MainActivity : ComponentActivity() {
     private var nfcAdapter: NfcAdapter? = null
@@ -55,6 +59,10 @@ class MainActivity : ComponentActivity() {
     private val supportedTechClassNames = arrayOf(
         IsoDep::class.java.name,
     )
+
+    private val blePermissionRequestLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        Logger.d { "BLE permissions request result: $it" }
+    }
 
     private var nfcPendingIntent: PendingIntent? = null
     private var infoLive = MutableLiveData<GetInfoResponse?>(null)
@@ -112,6 +120,34 @@ class MainActivity : ComponentActivity() {
                                 val gottenDeviceList = AndroidUSBHIDListing.listDevices(applicationContext, permissionIntent)
                                 deviceListLive.postValue(gottenDeviceList)
                             },
+                            onStartServer = {
+                                Logger.v { "About to check BLE permissions" }
+
+                                if (ActivityCompat.checkSelfPermission(
+                                        this@MainActivity,
+                                        Manifest.permission.BLUETOOTH_CONNECT,
+                                    ) != PackageManager.PERMISSION_GRANTED ||
+                                    ActivityCompat.checkSelfPermission(
+                                        this@MainActivity,
+                                        Manifest.permission.BLUETOOTH_ADVERTISE,
+                                    ) != PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    Logger.v { "Trying to request BLE permissions" }
+
+                                    blePermissionRequestLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.BLUETOOTH_CONNECT,
+                                            Manifest.permission.BLUETOOTH_ADVERTISE,
+                                        ),
+                                    )
+
+                                    Logger.v { "BLE permissions request launched" }
+                                } else {
+                                    Logger.v { "BLE permissions check passed, moving into server" }
+
+                                    AndroidBLEServer(this@MainActivity, bluetoothManager, bluetoothAdapter).startBLEServer()
+                                }
+                            },
                             onListBLEReq = bleList@{
                                 if (bluetoothAdapter != null) {
                                     if (!bluetoothAdapter.isEnabled) {
@@ -162,8 +198,16 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             getInfoReq = {
-                                val gottenInfo = CTAPClient(it).getInfo()
-                                infoLive.postValue(gottenInfo)
+                                try {
+                                    val gottenInfo = CTAPClient(it).getInfo()
+                                    infoLive.postValue(gottenInfo)
+                                } catch (e: IllegalArgumentException) {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Exception getting info: $e",
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                }
                             },
                         )
                         InfoDisplay(info = info)
@@ -226,6 +270,7 @@ fun DeviceDisplayAndManip(
     deviceList: List<Device>?,
     onListUSBReq: () -> Unit = {},
     onListBLEReq: () -> Unit = {},
+    onStartServer: () -> Unit = {},
     getInfoReq: (d: Device) -> Unit = {},
 ) {
     Column {
@@ -235,6 +280,9 @@ fun DeviceDisplayAndManip(
             }
             Button(onClick = onListBLEReq) {
                 Text("List BLE")
+            }
+            Button(onClick = onStartServer) {
+                Text("BLE Server")
             }
         }
         if (deviceList != null) {
