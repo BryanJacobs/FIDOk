@@ -16,18 +16,21 @@ open class SimulationTest {
     lateinit var userDisplayName: String
 
     companion object {
+
+        lateinit var library: Library
+
         @JvmStatic
         @BeforeAll
         fun loadNativeLibrary() {
             // loadNativeLibraryForPlatform()
-            Library.init(PureJVMCryptoProvider())
+            library = Library.init(PureJVMCryptoProvider())
         }
     }
 
     @BeforeEach
     fun setup() {
         device = SimulatedAppletDevice()
-        client = CTAPClient(device)
+        client = library.ctapClient(device)
 
         rpId = Random.nextBytes(Random.nextInt(1, 64)).toHexString()
         userDisplayName = Random.nextBytes(Random.nextInt(1, 64)).toHexString()

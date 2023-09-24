@@ -1,20 +1,17 @@
 package us.q3q.fidok.crypto
 
-import us.q3q.fidok.ctap.Library
 import us.q3q.fidok.ctap.PinToken
 
-class PinProtocolV2 : PinProtocol {
+class PinProtocolV2(private val cryptoProvider: CryptoProvider) : PinProtocol {
 
     private val EMPTY_IV = ByteArray(16) { 0x00 }
 
     override fun encrypt(key: KeyAgreementPlatformKey, data: ByteArray): ByteArray {
-        val crypto = Library.cryptoProvider ?: throw IllegalStateException("Library not initialized")
-
-        val newIV = crypto.secureRandom(16)
+        val newIV = cryptoProvider.secureRandom(16)
 
         return (
             newIV.toList() +
-                crypto.aes256CBCEncrypt(data, AES256Key(key.pinProtocol2AESKey, newIV)).toList()
+                cryptoProvider.aes256CBCEncrypt(data, AES256Key(key.pinProtocol2AESKey, newIV)).toList()
             ).toByteArray()
     }
 
@@ -22,18 +19,15 @@ class PinProtocolV2 : PinProtocol {
         if (data.size < 16) {
             throw IllegalArgumentException("Data to decrypt must be at least 16 bytes long")
         }
-        val crypto = Library.cryptoProvider ?: throw IllegalStateException("Library not initialized")
 
-        return crypto.aes256CBCDecrypt(
+        return cryptoProvider.aes256CBCDecrypt(
             data.copyOfRange(16, data.size),
             AES256Key(key.pinProtocol2AESKey, data.copyOfRange(0, 16)),
         )
     }
 
     private fun underlyingAuthenticate(key: ByteArray, data: ByteArray): ByteArray {
-        val crypto = Library.cryptoProvider ?: throw IllegalStateException("Library not initialized")
-
-        return crypto.hmacSHA256(data, AES256Key(key, EMPTY_IV)).hash
+        return cryptoProvider.hmacSHA256(data, AES256Key(key, EMPTY_IV)).hash
     }
 
     override fun authenticate(key: KeyAgreementPlatformKey, data: ByteArray): ByteArray {

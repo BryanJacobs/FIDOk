@@ -13,12 +13,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import us.q3q.fidok.ctap.CTAPClient
+import us.q3q.fidok.crypto.NullCryptoProvider
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.Library
 import us.q3q.fidok.ctap.commands.GetInfoResponse
 
 @Composable
-fun MainView(deviceConstructor: () -> List<Device>) {
+fun MainView(library: Library, deviceConstructor: () -> List<Device>) {
     var devices by remember { mutableStateOf<List<Device>?>(null) }
     var infoByDevice by remember { mutableStateOf<Map<Int, GetInfoResponse>>(hashMapOf()) }
     MaterialTheme {
@@ -29,7 +30,7 @@ fun MainView(deviceConstructor: () -> List<Device>) {
             }
             (0..<(devs?.size ?: 0)).map { deviceNum ->
                 Button(onClick = {
-                    val info = CTAPClient(devices!![deviceNum]).getInfo()
+                    val info = library.ctapClient(devices!![deviceNum]).getInfo()
                     infoByDevice = infoByDevice.plus(deviceNum to info)
                 }) {
                     Text("Get Info on Device $deviceNum")
@@ -45,5 +46,5 @@ fun MainView(deviceConstructor: () -> List<Device>) {
 @Preview
 @Composable
 fun MainViewPreview() {
-    MainView { listOf() }
+    MainView(Library.init(NullCryptoProvider())) { listOf() }
 }

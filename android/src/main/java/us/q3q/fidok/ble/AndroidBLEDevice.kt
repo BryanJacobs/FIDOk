@@ -17,7 +17,9 @@ import us.q3q.fidok.FIDO_CONTROL_POINT_ATTRIBUTE
 import us.q3q.fidok.FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE
 import us.q3q.fidok.FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE
 import us.q3q.fidok.FIDO_STATUS_ATTRIBUTE
+import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.DeviceCommunicationException
 import java.util.*
 import kotlin.experimental.and
 
@@ -39,23 +41,23 @@ class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDe
             }
         }
 
-        val g = gatt ?: throw IllegalArgumentException("BLE not connected to device $address")
+        val g = gatt ?: throw DeviceCommunicationException("BLE not connected to device $address")
 
         checkPermission(address)
 
         val s = g.getService(UUID.fromString(FIDO_BLE_SERVICE_UUID))
         val controlPointChara = s.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_ATTRIBUTE))
-            ?: throw IllegalStateException("Could not get FIDO control point for $address")
+            ?: throw DeviceCommunicationException("Could not get FIDO control point for $address")
 
         val statusAttribute = s.getCharacteristic(UUID.fromString(FIDO_STATUS_ATTRIBUTE))
         if (!g.setCharacteristicNotification(statusAttribute, true)) {
-            throw IllegalStateException("Could not enable BLE notifications on $address")
+            throw DeviceCommunicationException("Could not enable BLE notifications on $address")
         }
 
         val ret = CTAPBLE.sendAndReceive({
             controlPointChara.setValue(it.toByteArray())
             if (!g.writeCharacteristic(controlPointChara)) {
-                throw IllegalStateException("Could not write message to BLE $address")
+                throw DeviceCommunicationException("Could not write message to BLE $address")
             }
         }, {
             runBlocking {
@@ -64,10 +66,14 @@ class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDe
         }, CTAPBLECommand.MSG, bytes.toUByteArray(), cpLen).toByteArray()
 
         if (!g.setCharacteristicNotification(statusAttribute, false)) {
-            throw IllegalStateException("Could not disable BLE notifications on $address")
+            throw DeviceCommunicationException("Could not disable BLE notifications on $address")
         }
 
         return ret
+    }
+
+    override fun getTransports(): List<AuthenticatorTransport> {
+        return listOf(AuthenticatorTransport.BLE)
     }
 
     private suspend fun connect(address: String?) {

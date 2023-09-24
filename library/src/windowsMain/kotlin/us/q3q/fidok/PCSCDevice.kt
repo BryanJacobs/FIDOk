@@ -37,15 +37,17 @@ import platform.windows.SCardListReaders
 import platform.windows.SCardReleaseContext
 import platform.windows.SCardTransmit
 import platform.windows.WCHARVar
+import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.DeviceListing
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.APPLET_SELECT_BYTES
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.sendAndReceive
 
 class PCSCDevice(private val readerName: String) : Device {
-    var appletSelected = false
+    private var appletSelected = false
 
     @OptIn(ExperimentalStdlibApi::class, ExperimentalForeignApi::class)
-    companion object {
+    companion object : DeviceListing {
 
         private fun checkOp(msg: String, f: () -> platform.windows.LONG?): Boolean? {
             val ret = f()
@@ -193,7 +195,7 @@ class PCSCDevice(private val readerName: String) : Device {
             } != null
         }
 
-        fun list(): List<PCSCDevice> {
+        override fun listDevices(): List<PCSCDevice> {
             Logger.v("Listing PCSC devices")
             return withContext { ctx ->
                 memScoped {
@@ -232,12 +234,16 @@ class PCSCDevice(private val readerName: String) : Device {
     override fun sendBytes(bytes: ByteArray): ByteArray {
         return withContext { ctx ->
             return@withContext withConnection(ctx, readerName) { conn, protocol ->
-                return@withConnection sendAndReceive(bytes, !appletSelected) {
+                return@withConnection sendAndReceive(bytes, !appletSelected, false) {
                     appletSelected = true
                     xmitBytes(conn, protocol, it, false)
                         ?: throw RuntimeException("Failed to send bytes to $readerName")
                 }
             } ?: throw RuntimeException("Failed to connect to $readerName")
         } ?: throw RuntimeException("Failed to open smartcard context")
+    }
+
+    override fun getTransports(): List<AuthenticatorTransport> {
+        return listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
     }
 }

@@ -2,7 +2,9 @@ package us.q3q.fidok.nfc
 
 import android.nfc.tech.IsoDep
 import co.touchlab.kermit.Logger
+import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.pcsc.CTAPPCSC
 
 const val NFC_TIMEOUT_MS = 5000
@@ -11,6 +13,8 @@ const val NFC_TIMEOUT_MS = 5000
 class AndroidNFCDevice(
     private val tag: IsoDep,
 ) : Device {
+
+    @Throws(DeviceCommunicationException::class)
     override fun sendBytes(bytes: ByteArray): ByteArray {
         if (!tag.isConnected) {
             tag.connect()
@@ -31,6 +35,10 @@ class AndroidNFCDevice(
 
             res
         }
+    }
+
+    override fun getTransports(): List<AuthenticatorTransport> {
+        return listOf(AuthenticatorTransport.NFC)
     }
 
     override fun toString(): String {

@@ -41,8 +41,9 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import us.q3q.fidok.ble.AndroidBLEDevice
 import us.q3q.fidok.ble.AndroidBLEServer
-import us.q3q.fidok.ctap.CTAPClient
+import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.Library
 import us.q3q.fidok.ctap.commands.GetInfoResponse
 import us.q3q.fidok.nfc.AndroidNFCDevice
 import us.q3q.fidok.ui.InfoDisplay
@@ -70,6 +71,8 @@ class MainActivity : ComponentActivity() {
     private var usbPermissionIntent: PendingIntent? = null
 
     private val REQUEST_ENABLE_BT = 1
+
+    private val library = Library.init(PureJVMCryptoProvider())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -199,7 +202,7 @@ class MainActivity : ComponentActivity() {
                             },
                             getInfoReq = {
                                 try {
-                                    val gottenInfo = CTAPClient(it).getInfo()
+                                    val gottenInfo = library.ctapClient(it).getInfo()
                                     infoLive.postValue(gottenInfo)
                                 } catch (e: IllegalArgumentException) {
                                     Toast.makeText(
@@ -257,7 +260,7 @@ class MainActivity : ComponentActivity() {
             Logger.i { "Detected tag $tag" }
 
             val device = AndroidNFCDevice(IsoDep.get(tag))
-            val response = CTAPClient(device).getInfo()
+            val response = library.ctapClient(device).getInfo()
 
             deviceListLive.postValue(listOf(device))
             infoLive.postValue(response)
@@ -326,10 +329,13 @@ fun DevicesDisplayPreview() {
         deviceList = listOf(
             object : Device {
                 override fun sendBytes(bytes: ByteArray) = byteArrayOf()
+                override fun getTransports(): List<AuthenticatorTransport> =
+                    listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
                 override fun toString(): String = "FirstDevice"
             },
             object : Device {
                 override fun sendBytes(bytes: ByteArray) = byteArrayOf()
+                override fun getTransports(): List<AuthenticatorTransport> = listOf(AuthenticatorTransport.USB)
                 override fun toString(): String = "SecondDevice"
             },
         ),

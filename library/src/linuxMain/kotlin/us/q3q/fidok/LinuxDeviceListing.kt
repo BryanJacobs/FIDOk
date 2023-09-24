@@ -1,7 +1,7 @@
 package us.q3q.fidok
 
-import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.DeviceListing
 
-actual fun platformListDevices(): List<Device> {
-    return LibPCSCLiteDevice.list() + LibHIDDevice.list()
+actual fun platformDeviceProviders(): List<DeviceListing> {
+    return listOf(LibPCSCLiteDevice, LibHIDDevice)
 }

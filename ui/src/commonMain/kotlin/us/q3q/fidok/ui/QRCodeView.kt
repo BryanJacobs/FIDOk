@@ -10,7 +10,8 @@ import io.github.g0dkar.qrcode.ErrorCorrectionLevel
 import io.github.g0dkar.qrcode.QRCode
 import io.github.g0dkar.qrcode.QRCodeDataType
 import us.q3q.fidok.cable.CaBLECode
-import us.q3q.fidok.cable.CaBLESupport
+import us.q3q.fidok.crypto.NullCryptoProvider
+import us.q3q.fidok.ctap.Library
 import java.io.ByteArrayInputStream
 import java.time.Instant
 import kotlin.random.Random
@@ -48,5 +49,6 @@ fun QRCodeCaBLEPreview() {
         knownTunnelServerDomains = 2u,
         currentEpochSeconds = Instant.now().toEpochMilli().toULong(),
     )
-    QRCodeView(CaBLESupport.buildCaBLEURL(code), size = 2)
+    val url = Library.init(NullCryptoProvider()).caBLESupport().buildCaBLEURL(code)
+    QRCodeView(url, size = 2)
 }

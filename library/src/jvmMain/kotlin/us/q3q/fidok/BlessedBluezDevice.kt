@@ -11,7 +11,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ble.CTAPBLE
 import us.q3q.fidok.ble.CTAPBLECommand
+import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.IncorrectDataException
+import us.q3q.fidok.ctap.InvalidDeviceException
 import java.lang.IllegalStateException
 import java.util.UUID
 import kotlin.experimental.and
@@ -63,13 +67,14 @@ class BlessedBluezDevice(
             }
         }
 
+    @Throws(DeviceCommunicationException::class)
     private suspend fun connect() {
         if (!connected) {
             central.connectPeripheral(peripheral, callback)
             connectResult.receive()
             val service = peripheral.services.find {
                 it.uuid.toString() == FIDO_BLE_SERVICE_UUID
-            } ?: throw IllegalStateException("BLE device '${peripheral.name}' has no FIDO service")
+            } ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no FIDO service")
 
             /*if (!peripheral.createBond(callback)) {
                 throw IllegalStateException("Could not bond with BLE device ${peripheral.name}")
@@ -77,29 +82,29 @@ class BlessedBluezDevice(
             bondResult.receive()*/
 
             val cpLenChara = service.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE))
-                ?: throw IllegalStateException("BLE device '${peripheral.name}' has no control point length characteristic")
+                ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no control point length characteristic")
             if (!peripheral.readCharacteristic(cpLenChara)) {
-                throw IllegalStateException("BLE device '${peripheral.name}' could not read control point length")
+                throw DeviceCommunicationException("BLE device '${peripheral.name}' could not read control point length")
             }
 
             val cpLenArr = readResult.receive()
             if (cpLenArr.size != 2) {
-                throw IllegalStateException("Control point length was not itself two bytes long: ${cpLenArr.size}")
+                throw IncorrectDataException("Control point length was not itself two bytes long: ${cpLenArr.size}")
             }
             cpLen = cpLenArr[0] * 256 + cpLenArr[1]
             if (cpLen < 20 || cpLen > 512) {
-                throw IllegalStateException("Control point length out of bounds: $cpLen")
+                throw IncorrectDataException("Control point length out of bounds: $cpLen")
             }
 
             val srevChara = service.getCharacteristic(UUID.fromString(FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE))
                 ?: throw IllegalStateException("BLE device '${peripheral.name}' has no service revision bitfield attribute")
             if (!peripheral.readCharacteristic(srevChara)) {
-                throw IllegalStateException("BLE device '${peripheral.name}' could not read service revision chara")
+                throw DeviceCommunicationException("BLE device '${peripheral.name}' could not read service revision chara")
             }
 
             val rev = readResult.receive()
             if (rev.isEmpty() || (rev[0] and 0x20.toByte()) != 0x20.toByte()) {
-                throw IllegalStateException("BLE device '${peripheral.name}' does not support FIDO2-BLE")
+                throw InvalidDeviceException("BLE device '${peripheral.name}' does not support FIDO2-BLE")
             }
             revBF = rev
 
@@ -109,11 +114,12 @@ class BlessedBluezDevice(
                     BluetoothGattCharacteristic.WriteType.WITH_RESPONSE,
                 )
             ) {
-                throw IllegalStateException("BLE device '${peripheral.name}' could not be set to FIDO2-BLE")
+                throw DeviceCommunicationException("BLE device '${peripheral.name}' could not be set to FIDO2-BLE")
             }
         }
     }
 
+    @Throws(DeviceCommunicationException::class)
     override fun sendBytes(bytes: ByteArray): ByteArray {
         runBlocking {
             connect()
@@ -123,7 +129,7 @@ class BlessedBluezDevice(
             UUID.fromString(FIDO_BLE_SERVICE_UUID),
             UUID.fromString(FIDO_CONTROL_POINT_ATTRIBUTE),
         )
-            ?: throw IllegalStateException("Could not get FIDO control point for ${peripheral.name}")
+            ?: throw InvalidDeviceException("Could not get FIDO control point for ${peripheral.name}")
 
         peripheral.setNotify(
             UUID.fromString(FIDO_BLE_SERVICE_UUID),
@@ -133,7 +139,7 @@ class BlessedBluezDevice(
 
         val ret = CTAPBLE.sendAndReceive({
             if (!peripheral.writeCharacteristic(controlPointChara, it.toByteArray(), BluetoothGattCharacteristic.WriteType.WITH_RESPONSE)) {
-                throw IllegalStateException("Could not write message to peripheral ${peripheral.name}")
+                throw DeviceCommunicationException("Could not write message to peripheral ${peripheral.name}")
             }
         }, {
             runBlocking {
@@ -144,5 +150,9 @@ class BlessedBluezDevice(
         peripheral.setNotify(UUID.fromString(FIDO_BLE_SERVICE_UUID), UUID.fromString(FIDO_STATUS_ATTRIBUTE), false)
 
         return ret
+    }
+
+    override fun getTransports(): List<AuthenticatorTransport> {
+        return listOf(AuthenticatorTransport.BLE)
     }
 }

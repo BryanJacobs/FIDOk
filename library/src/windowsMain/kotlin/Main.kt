@@ -1,7 +1,6 @@
 import co.touchlab.kermit.Logger
 import us.q3q.fidok.BotanCryptoProvider
 import us.q3q.fidok.LibHIDDevice
-import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.CTAPPinPermissions
 import us.q3q.fidok.ctap.Library
 import us.q3q.fidok.ctap.commands.CredProtectExtension
@@ -12,16 +11,19 @@ import kotlin.random.Random
 
 @OptIn(ExperimentalStdlibApi::class)
 fun main() {
-    val devices = LibHIDDevice.list()
+    val library = Library.init(
+        BotanCryptoProvider(),
+        listOf(LibHIDDevice),
+    )
+
+    val devices = library.listDevices()
     if (devices.isEmpty()) {
         Logger.e("No devices found!")
         return
     }
 
-    Library.init(BotanCryptoProvider())
-
     val device = devices[0]
-    val client = CTAPClient(device)
+    val client = library.ctapClient(device)
 
     var cred: ByteArray? = null
     for (i in 1..5) {

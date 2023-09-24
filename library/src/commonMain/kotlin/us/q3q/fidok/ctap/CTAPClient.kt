@@ -116,7 +116,7 @@ class InvalidSignatureError : RuntimeException(
 )
 
 @OptIn(ExperimentalStdlibApi::class)
-class CTAPClient(private val device: Device) {
+class CTAPClient(private val library: Library, private val device: Device) {
 
     private val PP_2_AES_INFO = "CTAP2 AES key".encodeToByteArray()
     private val PP_2_HMAC_INFO = "CTAP2 HMAC key".encodeToByteArray()
@@ -273,13 +273,11 @@ class CTAPClient(private val device: Device) {
         keyY: ByteArray,
         sig: ByteArray,
     ) {
-        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
-
         val signedBytes = (makeCredentialResponse.authData.rawBytes.toList() + clientDataHash.toList()).toByteArray()
 
         Logger.v { "Signature-verifying ${signedBytes.size} bytes" }
 
-        if (!crypto.es256SignatureValidate(signedBytes = signedBytes, keyX = keyX, keyY = keyY, sig = sig)) {
+        if (!library.cryptoProvider.es256SignatureValidate(signedBytes = signedBytes, keyX = keyX, keyY = keyY, sig = sig)) {
             throw InvalidAttestationError()
         }
     }
@@ -314,9 +312,7 @@ class CTAPClient(private val device: Device) {
             return
         }
 
-        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
-
-        val x509Info = crypto.parseES256X509(caCert)
+        val x509Info = library.cryptoProvider.parseES256X509(caCert)
 
         validateES256UsingPubKey(makeCredentialResponse, clientDataHash, x509Info.publicX, x509Info.publicY, sig)
     }
@@ -348,13 +344,11 @@ class CTAPClient(private val device: Device) {
             throw NotImplementedError("Only ES256 signatures are currently implemented")
         }
 
-        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
-
         val signedBytes = (getAssertionResponse.authData.rawBytes.toList() + clientDataHash.toList()).toByteArray()
 
         Logger.v { "Signature-verifying ${signedBytes.size} bytes" }
 
-        if (!crypto.es256SignatureValidate(
+        if (!library.cryptoProvider.es256SignatureValidate(
                 signedBytes = signedBytes,
                 keyX = publicKey.x,
                 keyY = publicKey.y,
@@ -449,7 +443,8 @@ class CTAPClient(private val device: Device) {
 
     fun getKeyAgreement(pinProtocol: UByte = 2u): KeyAgreementPlatformKey {
         require(pinProtocol == 1u.toUByte() || pinProtocol == 2u.toUByte())
-        val crypto = Library.cryptoProvider ?: throw RuntimeException("Library not initialized")
+
+        val crypto = library.cryptoProvider
 
         val decoded = xmit(
             ClientPinCommand.getKeyAgreement(pinProtocol),
@@ -533,19 +528,19 @@ class CTAPClient(private val device: Device) {
                 if (supportedProtocols != null && !supportedProtocols.contains(1u)) {
                     throw IllegalArgumentException("Authenticator doesn't support PIN protocol one")
                 }
-                PinProtocolV1()
+                PinProtocolV1(library.cryptoProvider)
             }
             2u -> {
                 if (supportedProtocols?.contains(2u) != true) {
                     throw IllegalArgumentException("Authenticator doesn't support PIN protocol two")
                 }
-                PinProtocolV2()
+                PinProtocolV2(library.cryptoProvider)
             }
             null -> {
                 if (supportedProtocols?.contains(2u) == true) {
-                    return PinProtocolV2()
+                    return PinProtocolV2(library.cryptoProvider)
                 }
-                PinProtocolV1()
+                PinProtocolV1(library.cryptoProvider)
             }
             else -> throw IllegalArgumentException("Unsupported PIN protocol $pinProtocol")
         }
@@ -558,8 +553,7 @@ class CTAPClient(private val device: Device) {
         val newPINBytes = checkAndPadPIN(newPinUnicode)
         val newPinEnc = pp.encrypt(pk, newPINBytes)
 
-        val crypto = Library.cryptoProvider ?: throw IllegalStateException("Library not initialized")
-        val left16 = crypto.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
+        val left16 = library.cryptoProvider.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
         val pinHashEnc = pp.encrypt(pk, left16)
 
         val authBlob = (newPinEnc.toList() + pinHashEnc.toList()).toByteArray()
@@ -593,8 +587,7 @@ class CTAPClient(private val device: Device) {
         val pp = getPinProtocol(pinProtocol)
         val pk = ensurePlatformKey(pp)
 
-        val crypto = Library.cryptoProvider ?: throw IllegalStateException("Library not initialized")
-        val left16 = crypto.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
+        val left16 = library.cryptoProvider.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
         val pinHashEnc = pp.encrypt(pk, left16)
 
         val command = ClientPinCommand.getPinToken(
@@ -619,8 +612,7 @@ class CTAPClient(private val device: Device) {
         val pp = getPinProtocol(pinProtocol)
         val pk = ensurePlatformKey(pp)
 
-        val crypto = Library.cryptoProvider ?: throw IllegalStateException("Library not initialized")
-        val left16 = crypto.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
+        val left16 = library.cryptoProvider.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
         val pinHashEnc = pp.encrypt(pk, left16)
 
         val command = ClientPinCommand.getPinUvAuthTokenUsingPinWithPermissions(

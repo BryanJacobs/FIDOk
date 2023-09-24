@@ -20,7 +20,9 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.set
 import kotlinx.cinterop.toKString
+import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.DeviceListing
 import us.q3q.fidok.hid.CTAPHID.Companion.sendAndReceive
 import us.q3q.fidok.hid.CTAPHIDCommand
 import us.q3q.fidok.hid.PACKET_SIZE
@@ -32,12 +34,12 @@ const val TIMEOUT = 5000
 
 @OptIn(ExperimentalForeignApi::class)
 class LibHIDDevice(private val path: String) : Device {
-    companion object {
+    companion object : DeviceListing {
         init {
             hid_init()
         }
 
-        fun list(): List<LibHIDDevice> {
+        override fun listDevices(): List<LibHIDDevice> {
             val foundDevices = arrayListOf<LibHIDDevice>()
 
             val enumeratedDevicesHandle = hid_enumerate(0x00u, 0x00u)
@@ -61,6 +63,10 @@ class LibHIDDevice(private val path: String) : Device {
 
             return foundDevices
         }
+    }
+
+    override fun getTransports(): List<AuthenticatorTransport> {
+        return listOf(AuthenticatorTransport.USB)
     }
 
     private fun readOnePacket(handle: CPointer<hid_device>): UByteArray {

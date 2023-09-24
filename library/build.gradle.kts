@@ -141,8 +141,9 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
                     binaryOption("sourceInfoType", "libbacktrace")
                 }
             }
-            executable()
             if (platform != "Windows") {
+                // FIXME
+                executable()
                 sharedLib("fidok")
             }
         }

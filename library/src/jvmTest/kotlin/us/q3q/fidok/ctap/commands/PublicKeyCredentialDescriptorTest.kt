@@ -1,6 +1,7 @@
 package us.q3q.fidok.ctap.commands
 
 import org.junit.jupiter.api.Test
+import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.commands.Utils.Companion.roundTripSerialize
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,6 +32,6 @@ class PublicKeyCredentialDescriptorTest {
         val known = pk.getKnownTransports()
         assertNotNull(known)
         assertEquals(1, known.size)
-        assertEquals(AuthenticatorTransports.NFC, known[0])
+        assertEquals(AuthenticatorTransport.NFC, known[0])
     }
 }

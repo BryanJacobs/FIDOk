@@ -1,25 +1,85 @@
+/**
+ * CTAP Authenticators may be connecting to Platforms via Bluetooth Low Energy,
+ * with the Authenticator providing a GATT server and the Platform a GATT client.
+ * This class implements support for the byte-level encoding of messages for that transport.
+ */
 
 package us.q3q.fidok.ble
 
 import co.touchlab.kermit.Logger
+import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.IncorrectDataException
+import kotlin.jvm.JvmStatic
 import kotlin.math.min
 
+/**
+ * Bytes representing command types
+ */
 enum class CTAPBLECommand(val value: UByte) {
+    /**
+     * An "are you still there" packet
+     */
     PING(0x81u),
+
+    /**
+     * A delay representing that a request is still being processed
+     */
     KEEPALIVE(0x82u),
+
+    /**
+     * A real CTAP message - the most common command type
+     */
     MSG(0x83u),
+
+    /**
+     * A cancellation of an outstanding message still processing
+     */
     CANCEL(0xBEu),
+
+    /**
+     * An error response from the authenticator to the platform
+     */
     ERROR(0xBFu),
 }
 
+/**
+ * Bytes representing the possible reasons a keepalive was sent
+ */
 enum class CTAPBLEKeepalivePayload(val value: UByte) {
+    /**
+     * The request is being processed, but needs more time
+     */
     PROCESSING(0x01u),
+
+    /**
+     * The request requires user presence and that hasn't yet been obtained.
+     *
+     * This could take a long time.
+     */
     UP_NEEDED(0x02u),
 }
 
+/**
+ * Code for handle the BLE transport of CTAP, communicating with the authenticators that support it
+ */
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalStdlibApi::class)
 class CTAPBLE {
     companion object {
+        /**
+         * Breaks a byte array into a series of packets for sending over BLE.
+         *
+         * Generally, you should use [sendAndReceive] instead, but this is
+         * available in the event you need packetization but not send/recv
+         * logic handling.
+         *
+         * @param command The type of message being sent
+         * @param bytes The message body, likely CBOR-encoded CTAP bytes
+         * @param packetSize The maximum size of an individual packet. This should
+         *                   probably come from reading `fidoControlPointLength` via GATT
+         * @return A list of byte arrays, each one of which represents a single packet
+         *         to send. If sent in sequence they will deliver the requested message over BLE
+         */
+        @JvmStatic
         fun packetizeMessage(command: CTAPBLECommand, bytes: UByteArray, packetSize: Int): List<UByteArray> {
             val bytesForFirstPacket = bytes.copyOfRange(0, min(bytes.size, packetSize - 3))
             val lenHigh = (bytes.size and 0xFF00) shr 8
@@ -31,7 +91,7 @@ class CTAPBLE {
             var sent = bytesForFirstPacket.size
             while (sent < bytes.size) {
                 val bytesForNextPacket = bytes.copyOfRange(sent, min(bytes.size, sent + packetSize - 1))
-                Logger.v("Continuation packet: ${bytesForNextPacket.size} bytes")
+                Logger.v { "Continuation packet: ${bytesForNextPacket.size} bytes" }
                 val nextPacket = (listOf(seq) + bytesForNextPacket.toList()).toUByteArray()
                 packets.add(nextPacket)
                 sent += bytesForNextPacket.size
@@ -43,6 +103,21 @@ class CTAPBLE {
             return packets
         }
 
+        /**
+         * Send and receive (transceive) bytes to/from a Bluetooth LE authenticator
+         *
+         * This method will take the incoming command, packetize it, and sequentially invoke
+         * the `sender` method with them. Then it will call the `receiver` method, and return
+         * its result.
+         *
+         * @param sender Method that delivers bytes to the device
+         * @param receiver Method that returns a response from the device
+         * @param command CTAP-BLE command type
+         * @param bytes Payload for the CTAP-BLE message: probably CBOR-encoded bytes
+         * @param packetSize Maximum size for a single packet, probably from reading `fidoControlPointLength`
+         */
+        @Throws(DeviceCommunicationException::class)
+        @JvmStatic
         fun sendAndReceive(
             sender: (bytes: UByteArray) -> Unit,
             receiver: () -> UByteArray,
@@ -59,10 +134,10 @@ class CTAPBLE {
 
             while (true) {
                 if (packet[0] and 0x80u.toUByte() != 0x80u.toUByte()) {
-                    throw IllegalStateException("Initial packet of response has incorrect start: ${packet[0].toHexString()}")
+                    throw IncorrectDataException("Initial packet of response has incorrect start: ${packet[0].toHexString()}")
                 }
                 if (packet[0] == 0xBFu.toUByte()) {
-                    throw IllegalStateException("BLE error: ${packet[0].toHexString()}")
+                    throw DeviceCommunicationException("BLE error: ${packet[0].toHexString()}")
                 }
                 if (packet[0] != 0x82u.toUByte()) {
                     break
@@ -78,7 +153,7 @@ class CTAPBLE {
                 packet = receiver()
                 Logger.v { "Read packet sequence ${packet[0]}" }
                 if (packet[0] != seq) {
-                    throw IllegalStateException("Unexpected sequence number: expectd $seq, got ${packet[0]}")
+                    throw IncorrectDataException("Unexpected sequence number: expectd $seq, got ${packet[0]}")
                 }
                 response += packet.toList().subList(1, packet.size)
                 if (++seq > 0x7Fu) {

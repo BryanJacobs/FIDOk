@@ -1,9 +1,11 @@
 package us.q3q.fidok
 
-import us.q3q.fidok.ctap.CTAPClient
+import us.q3q.fidok.ctap.Library
 
 fun main() {
-    val libraryPath = loadNativeLibraryForPlatform()
+    val libraryPath = getNativeLibraryPathForPlatform()
+
+    val library = Library.init(NativeBackedCryptoProvider(libraryPath))
 
     val numDevices = NativeDeviceListing(libraryPath).list()
     if (numDevices < 1) {
@@ -11,7 +13,7 @@ fun main() {
     }
 
     val device = NativeBackedDevice(libraryPath, 0)
-    val client = CTAPClient(device)
+    val client = library.ctapClient(device)
 
     println(client.getInfo())
 }

@@ -15,22 +15,14 @@ import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-
-enum class AuthenticatorTransports(val value: String) {
-    USB("usb"),
-    NFC("nfc"),
-    BLE("ble"),
-    SMART_CARD("smart-card"),
-    HYBRID("hybrid"),
-    INTERNAL("internal"),
-}
+import us.q3q.fidok.ctap.AuthenticatorTransport
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = PublicKeyCredentialDescriptorSerializer::class)
 data class PublicKeyCredentialDescriptor(val type: String, @ByteString val id: ByteArray, val transports: List<String>? = null) {
     constructor(id: ByteArray) : this(PublicKeyCredentialType.PUBLIC_KEY.value, id)
 
-    constructor(type: PublicKeyCredentialType, id: ByteArray, transports: List<AuthenticatorTransports>? = null) :
+    constructor(type: PublicKeyCredentialType, id: ByteArray, transports: List<AuthenticatorTransport>? = null) :
         this(type.value, id, transports?.map { it.value })
 
     init {
@@ -38,9 +30,9 @@ data class PublicKeyCredentialDescriptor(val type: String, @ByteString val id: B
         require(type.isNotEmpty())
     }
 
-    fun getKnownTransports(): List<AuthenticatorTransports>? {
+    fun getKnownTransports(): List<AuthenticatorTransport>? {
         return transports?.mapNotNull { stringTransport ->
-            AuthenticatorTransports.entries.find {
+            AuthenticatorTransport.entries.find {
                 it.value == stringTransport
             }
         }

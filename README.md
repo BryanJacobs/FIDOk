@@ -2,7 +2,8 @@ FIDO-k
 ======
 
 This repository contains an early-stage implementation of a FIDO Platform, implementing the
-WebAuthN and CTAP2.1 standards ("FIDO2").
+WebAuthN-2 and CTAP2.1 standards ("FIDO2"). It also includes some CTAP2.2 and 
+WebAuthN-3 functionality.
 
 A FIDO2 Platform sits between an Authenticator and a Relying Party; it runs on a client
 device (such as a laptop or smartphone) and allows the user to communicate with

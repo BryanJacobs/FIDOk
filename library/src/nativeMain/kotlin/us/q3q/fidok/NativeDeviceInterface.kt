@@ -9,17 +9,22 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.DeviceListing
 
 var devices: List<Device>? = null
 
 @CName("fidok_count_devices")
 fun listDevices(): Int {
-    val foundDevices = platformListDevices()
+    val providers = platformDeviceProviders()
+    val foundDevices = arrayListOf<Device>()
+    for (provider in providers) {
+        foundDevices.addAll(provider.listDevices())
+    }
     devices = foundDevices
     return foundDevices.size
 }
 
-expect fun platformListDevices(): List<Device>
+expect fun platformDeviceProviders(): List<DeviceListing>
 
 @Suppress("LocalVariableName")
 @OptIn(ExperimentalForeignApi::class)

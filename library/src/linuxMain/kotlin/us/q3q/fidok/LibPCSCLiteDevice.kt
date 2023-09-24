@@ -37,16 +37,20 @@ import pcsc.SCardListReaders
 import pcsc.SCardReleaseContext
 import pcsc.SCardTransmit
 import pcsc.pcsc_stringify_error
+import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.Device
+import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.DeviceListing
+import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.APPLET_SELECT_BYTES
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.sendAndReceive
 
-class LibPCSCLiteDevice(private val readerName: String) : Device {
+class LibPCSCLiteDevice(private val readerName: String, private val useExtendedMessages: Boolean = false) : Device {
 
-    var appletSelected = false
+    private var appletSelected = false
 
     @OptIn(ExperimentalStdlibApi::class, ExperimentalForeignApi::class)
-    companion object {
+    companion object : DeviceListing {
 
         private fun checkOp(msg: String, f: () -> pcsc.LONG): Boolean? {
             val ret = f()
@@ -101,7 +105,7 @@ class LibPCSCLiteDevice(private val readerName: String) : Device {
                 }
                 if (connectResult != SCARD_S_SUCCESS) {
                     // this error is more serious...
-                    throw RuntimeException(
+                    throw DeviceCommunicationException(
                         "Error connecting to reader $readerName: ${
                             pcsc_stringify_error(connectResult)?.toKString()}",
                     )
@@ -158,11 +162,11 @@ class LibPCSCLiteDevice(private val readerName: String) : Device {
 
             if (checkErrors) {
                 if (received < 2) {
-                    throw RuntimeException("Short receive: only $received bytes")
+                    throw IncorrectDataException("Short receive: only $received bytes")
                 }
                 val status = recvBuffer[received - 2].toInt() shl 8 + recvBuffer[received - 1].toInt()
                 if (status != 0x9000) {
-                    throw RuntimeException("Failure response from card: 0x${status.toHexString()}")
+                    throw IncorrectDataException("Failure response from card: 0x${status.toHexString()}")
                 }
                 received -= 2
             }
@@ -193,7 +197,7 @@ class LibPCSCLiteDevice(private val readerName: String) : Device {
             } != null
         }
 
-        fun list(): List<LibPCSCLiteDevice> {
+        override fun listDevices(): List<LibPCSCLiteDevice> {
             Logger.v("Listing PCSC devices")
             return withContext { ctx ->
                 memScoped {
@@ -213,7 +217,7 @@ class LibPCSCLiteDevice(private val readerName: String) : Device {
                         if (readers[i] == 0x00.toByte()) {
                             if (accumulator.isNotEmpty()) {
                                 if (checkReader(ctx, accumulator)) {
-                                    ret.add(LibPCSCLiteDevice(accumulator))
+                                    ret.add(LibPCSCLiteDevice(accumulator, useExtendedMessages = false))
                                 }
                                 accumulator = ""
                             }
@@ -232,12 +236,16 @@ class LibPCSCLiteDevice(private val readerName: String) : Device {
     override fun sendBytes(bytes: ByteArray): ByteArray {
         return withContext { ctx ->
             return@withContext withConnection(ctx, readerName) { conn, protocol ->
-                return@withConnection sendAndReceive(bytes, !appletSelected) {
+                return@withConnection sendAndReceive(bytes, !appletSelected, useExtendedMessages) {
                     appletSelected = true
                     xmitBytes(conn, protocol, it, false)
-                        ?: throw RuntimeException("Failed to send bytes to $readerName")
+                        ?: throw DeviceCommunicationException("Failed to send bytes to $readerName")
                 }
-            } ?: throw RuntimeException("Failed to connect to $readerName")
-        } ?: throw RuntimeException("Failed to open smartcard context")
+            } ?: throw DeviceCommunicationException("Failed to connect to $readerName")
+        } ?: throw DeviceCommunicationException("Failed to open smartcard context")
+    }
+
+    override fun getTransports(): List<AuthenticatorTransport> {
+        return listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
     }
 }

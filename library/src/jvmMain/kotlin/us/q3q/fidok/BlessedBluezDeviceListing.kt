@@ -6,7 +6,7 @@ import com.welie.blessed.BluetoothCentralManagerCallback
 import com.welie.blessed.BluetoothCommandStatus
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.ScanResult
-import us.q3q.fidok.ctap.CTAPClient
+import us.q3q.fidok.ctap.DeviceListing
 import java.util.UUID
 
 const val FIDO_BLE_SERVICE_UUID = "0000fffd-0000-1000-8000-00805f9b34fb"
@@ -17,7 +17,7 @@ const val FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE = "f1d0fff4-deaa-ecee-b42f-c9
 const val FIDO_SERVICE_REVISION_ATTRIBUTE = "00002a28-0000-1000-8000-00805f9b34fb"
 
 class BlessedBluezDeviceListing {
-    companion object {
+    companion object : DeviceListing {
         private var central: BluetoothCentralManager? = null
         private var devices: HashMap<String, BlessedBluezDevice> = hashMapOf()
 
@@ -55,31 +55,8 @@ class BlessedBluezDeviceListing {
             central = null
         }
 
-        fun list(): List<BlessedBluezDevice> {
+        override fun listDevices(): List<BlessedBluezDevice> {
             return devices.values.toList()
         }
     }
-}
-
-fun main() {
-    BlessedBluezDeviceListing.start()
-    var devices: List<BlessedBluezDevice>
-    while (true) {
-        devices = BlessedBluezDeviceListing.list()
-        println(devices)
-        if (devices.isNotEmpty()) {
-            break
-        }
-        Thread.sleep(1000L)
-    }
-
-    val device = devices[0]
-    val client = CTAPClient(device)
-    val info = client.getInfo()
-
-    println(info)
-
-    val res = client.makeCredential(rpId = "hello.test", userDisplayName = "Bob")
-
-    println(res)
 }

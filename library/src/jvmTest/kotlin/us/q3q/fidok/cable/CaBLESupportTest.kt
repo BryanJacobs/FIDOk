@@ -12,23 +12,25 @@ import kotlin.test.assertTrue
 class CaBLESupportTest {
 
     companion object {
+        lateinit var caBLESupport: CaBLESupport
+
         @BeforeAll
         @JvmStatic
         fun initLibrary() {
-            Library.init(PureJVMCryptoProvider())
+            caBLESupport = Library.init(PureJVMCryptoProvider()).caBLESupport()
         }
     }
 
     @Test
     fun decodeGoogleStaticRegisteredDomain() {
-        val res = CaBLESupport.decodeTunnelServerDomain(0)
+        val res = caBLESupport.decodeTunnelServerDomain(0)
 
         assertEquals("cable.ua5v.com", res)
     }
 
     @Test
     fun decodeAppleStaticRegisteredDomain() {
-        val res = CaBLESupport.decodeTunnelServerDomain(1)
+        val res = caBLESupport.decodeTunnelServerDomain(1)
 
         assertEquals("cable.auth.com", res)
     }
@@ -36,20 +38,20 @@ class CaBLESupportTest {
     @Test
     fun decodeInvalidStaticDomain() {
         assertFailsWith<IllegalArgumentException> {
-            CaBLESupport.decodeTunnelServerDomain(128)
+            caBLESupport.decodeTunnelServerDomain(128)
         }
     }
 
     @Test
     fun decodeHighNumberOrgDomain() {
-        val res = CaBLESupport.decodeTunnelServerDomain(293)
+        val res = caBLESupport.decodeTunnelServerDomain(293)
 
         assertEquals("cable.72jvldr5gf2tb.org", res)
     }
 
     @Test
     fun decodeHighNumberNetDomain() {
-        val res = CaBLESupport.decodeTunnelServerDomain(382)
+        val res = caBLESupport.decodeTunnelServerDomain(382)
 
         assertEquals("cable.v24ui6fwrqljd.net", res)
     }
@@ -61,7 +63,7 @@ class CaBLESupportTest {
             secret = ByteArray(16) { 0xCD.toByte() },
             knownTunnelServerDomains = 2u,
         )
-        val url = CaBLESupport.buildCaBLEURL(code)
+        val url = caBLESupport.buildCaBLEURL(code)
 
         assertTrue(url.startsWith("FIDO:/"))
         for (c in url.substring(6)) {
