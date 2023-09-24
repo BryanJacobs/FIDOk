@@ -7,14 +7,14 @@
 
 package us.q3q.fidok.cable
 
-import us.q3q.fidok.ctap.Library
+import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.commands.CTAPCBOREncoder
 import kotlin.jvm.JvmStatic
 
 /**
  * Code for supporting CaBLE, and hybrid transports generally
  */
-class CaBLESupport(val library: Library) {
+class CaBLESupport(val library: FIDOkLibrary) {
     companion object {
         private val assignedTunnelServerDomains = listOf("cable.ua5v.com", "cable.auth.com")
 

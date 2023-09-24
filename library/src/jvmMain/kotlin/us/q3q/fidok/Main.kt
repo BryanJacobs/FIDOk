@@ -1,11 +1,11 @@
 package us.q3q.fidok
 
-import us.q3q.fidok.ctap.Library
+import us.q3q.fidok.ctap.FIDOkLibrary
 
 fun main() {
     val libraryPath = getNativeLibraryPathForPlatform()
 
-    val library = Library.init(NativeBackedCryptoProvider(libraryPath))
+    val library = FIDOkLibrary.init(NativeBackedCryptoProvider(libraryPath))
 
     val numDevices = NativeDeviceListing(libraryPath).list()
     if (numDevices < 1) {

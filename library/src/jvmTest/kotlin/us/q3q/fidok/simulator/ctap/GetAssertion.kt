@@ -2,8 +2,8 @@ package us.q3q.fidok.simulator.ctap
 
 import org.junit.jupiter.api.BeforeEach
 import us.q3q.fidok.ctap.commands.COSEKey
-import us.q3q.fidok.ctap.commands.FLAGS
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialDescriptor
+import us.q3q.fidok.ctap.data.FLAGS
 import us.q3q.fidok.simulator.SimulationTest
 import kotlin.random.Random
 import kotlin.test.Test

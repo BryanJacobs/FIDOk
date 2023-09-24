@@ -11,12 +11,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ble.CTAPBLE
 import us.q3q.fidok.ble.CTAPBLECommand
+import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.ctap.InvalidDeviceException
-import java.lang.IllegalStateException
 import java.util.UUID
 import kotlin.experimental.and
 
@@ -24,7 +23,7 @@ import kotlin.experimental.and
 class BlessedBluezDevice(
     private val central: BluetoothCentralManager,
     private val peripheral: BluetoothPeripheral,
-) : Device {
+) : AuthenticatorDevice {
     var connected: Boolean = false
 
     val readResult = Channel<ByteArray>(Channel.BUFFERED)
@@ -77,7 +76,7 @@ class BlessedBluezDevice(
             } ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no FIDO service")
 
             /*if (!peripheral.createBond(callback)) {
-                throw IllegalStateException("Could not bond with BLE device ${peripheral.name}")
+                throw DeviceCommunicationException("Could not bond with BLE device ${peripheral.name}")
             }
             bondResult.receive()*/
 
@@ -97,7 +96,7 @@ class BlessedBluezDevice(
             }
 
             val srevChara = service.getCharacteristic(UUID.fromString(FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE))
-                ?: throw IllegalStateException("BLE device '${peripheral.name}' has no service revision bitfield attribute")
+                ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no service revision bitfield attribute")
             if (!peripheral.readCharacteristic(srevChara)) {
                 throw DeviceCommunicationException("BLE device '${peripheral.name}' could not read service revision chara")
             }

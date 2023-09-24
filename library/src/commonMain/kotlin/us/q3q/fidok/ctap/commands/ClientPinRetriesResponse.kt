@@ -2,6 +2,7 @@ package us.q3q.fidok.ctap.commands
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
@@ -22,11 +23,11 @@ class ClientPinGetRetriesResponseSerializer : KSerializer<ClientPinGetRetriesRes
         val composite = decoder.beginStructure(descriptor)
         val numItems = composite.decodeCollectionSize(descriptor)
         if (numItems != 1 && numItems != 2) {
-            throw RuntimeException("ClientPinGetRetriesResponse had incorrect number of items in it: $numItems")
+            throw SerializationException("ClientPinGetRetriesResponse had incorrect number of items in it: $numItems")
         }
         val param = composite.decodeIntElement(descriptor, 0)
         if (param != 0x03) {
-            throw RuntimeException("ClientPinGetRetriesResponse had param $param instead of 0x03")
+            throw SerializationException("ClientPinGetRetriesResponse had param $param instead of 0x03")
         }
         val pinRetries = composite.decodeIntElement(descriptor, 0).toUInt()
         var powerCycleState: Boolean? = null
@@ -34,7 +35,7 @@ class ClientPinGetRetriesResponseSerializer : KSerializer<ClientPinGetRetriesRes
         if (numItems == 2) {
             val nextParam = composite.decodeIntElement(descriptor, 1)
             if (nextParam != 0x04) {
-                throw RuntimeException("ClientPinGetRetriesResponse had param $param instead of 0x04")
+                throw SerializationException("ClientPinGetRetriesResponse had param $param instead of 0x04")
             }
             powerCycleState = composite.decodeBooleanElement(descriptor, 1)
         }

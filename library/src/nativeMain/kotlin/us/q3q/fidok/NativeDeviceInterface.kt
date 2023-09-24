@@ -8,15 +8,15 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
-import us.q3q.fidok.ctap.Device
-import us.q3q.fidok.ctap.DeviceListing
+import us.q3q.fidok.ctap.AuthenticatorDevice
+import us.q3q.fidok.ctap.AuthenticatorListing
 
-var devices: List<Device>? = null
+var devices: List<AuthenticatorDevice>? = null
 
 @CName("fidok_count_devices")
 fun listDevices(): Int {
     val providers = platformDeviceProviders()
-    val foundDevices = arrayListOf<Device>()
+    val foundDevices = arrayListOf<AuthenticatorDevice>()
     for (provider in providers) {
         foundDevices.addAll(provider.listDevices())
     }
@@ -24,7 +24,7 @@ fun listDevices(): Int {
     return foundDevices.size
 }
 
-expect fun platformDeviceProviders(): List<DeviceListing>
+expect fun platformDeviceProviders(): List<AuthenticatorListing>
 
 @Suppress("LocalVariableName")
 @OptIn(ExperimentalForeignApi::class)

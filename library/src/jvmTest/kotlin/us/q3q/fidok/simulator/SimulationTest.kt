@@ -4,26 +4,26 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import us.q3q.fidok.PureJVMCryptoProvider
 import us.q3q.fidok.ctap.CTAPClient
-import us.q3q.fidok.ctap.Library
+import us.q3q.fidok.ctap.FIDOkLibrary
 import kotlin.random.Random
 
 @OptIn(ExperimentalStdlibApi::class)
 open class SimulationTest {
 
-    lateinit var device: SimulatedAppletDevice
+    private lateinit var device: SimulatedAppletDevice
     lateinit var client: CTAPClient
     lateinit var rpId: String
     lateinit var userDisplayName: String
 
     companion object {
 
-        lateinit var library: Library
+        lateinit var library: FIDOkLibrary
 
         @JvmStatic
         @BeforeAll
         fun loadNativeLibrary() {
             // loadNativeLibraryForPlatform()
-            library = Library.init(PureJVMCryptoProvider())
+            library = FIDOkLibrary.init(PureJVMCryptoProvider())
         }
     }
 

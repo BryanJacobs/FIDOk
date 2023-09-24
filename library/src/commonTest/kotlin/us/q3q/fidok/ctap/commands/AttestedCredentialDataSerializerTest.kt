@@ -1,7 +1,8 @@
 package us.q3q.fidok.ctap.commands
 
-import org.junit.jupiter.api.Test
+import us.q3q.fidok.ctap.data.AttestedCredentialData
 import kotlin.random.Random
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class AttestedCredentialDataSerializerTest {

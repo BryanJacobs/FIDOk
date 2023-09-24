@@ -22,10 +22,12 @@ import us.q3q.fidok.FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE
 import us.q3q.fidok.FIDO_SERVICE_REVISION_ATTRIBUTE
 import us.q3q.fidok.FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE
 import us.q3q.fidok.FIDO_STATUS_ATTRIBUTE
+import us.q3q.fidok.ctap.DeviceCommunicationException
 import java.util.*
 
 class AndroidBLEServer(private val ctx: Context, private val manager: BluetoothManager, private val adapter: BluetoothAdapter) {
 
+    @Throws(DeviceCommunicationException::class)
     fun startBLEServer() {
         Logger.i { "Requesting startup of BLE server" }
 
@@ -145,7 +147,7 @@ class AndroidBLEServer(private val ctx: Context, private val manager: BluetoothM
         Logger.v { "BLE server opened" }
 
         if (!server.addService(service)) {
-            throw IllegalStateException("Failed to add BLE service to GATT server")
+            throw DeviceCommunicationException("Failed to add BLE service to GATT server")
         }
 
         Logger.i { "BLE server ready!" }

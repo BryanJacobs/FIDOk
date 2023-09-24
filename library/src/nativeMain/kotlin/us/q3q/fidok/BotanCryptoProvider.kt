@@ -393,8 +393,7 @@ class BotanCryptoProvider : CryptoProvider {
 
     override fun es256SignatureValidate(
         signedBytes: ByteArray,
-        keyX: ByteArray,
-        keyY: ByteArray,
+        key: P256Point,
         sig: ByteArray,
     ): Boolean {
         return withBotanAlloc<botan_pubkey_tVar, Boolean>({ botan_pubkey_destroy(it.value) }) { pubKey ->
@@ -402,18 +401,18 @@ class BotanCryptoProvider : CryptoProvider {
                 botanSuccessCheck {
                     botan_mp_init(pX.ptr)
                 }
-                withInBuffer(keyX) {
+                withInBuffer(key.x) {
                     botanSuccessCheck {
-                        botan_mp_from_bin(pX.value, it, keyX.size.convert())
+                        botan_mp_from_bin(pX.value, it, key.x.size.convert())
                     }
                 }
                 withBotanAlloc<botan_mp_tVar, Unit>({ botan_mp_destroy(it.value) }) { pY ->
                     botanSuccessCheck {
                         botan_mp_init(pY.ptr)
                     }
-                    withInBuffer(keyY) {
+                    withInBuffer(key.y) {
                         botanSuccessCheck {
-                            botan_mp_from_bin(pY.value, it, keyY.size.convert())
+                            botan_mp_from_bin(pY.value, it, key.y.size.convert())
                         }
                     }
 

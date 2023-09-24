@@ -1,7 +1,7 @@
 package us.q3q.fidok.ctap.commands
 
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
-import us.q3q.fidok.crypto.PinProtocol
+import us.q3q.fidok.crypto.PinUVProtocol
 
 class LargeBlobKeyExtension : Extension {
 
@@ -19,7 +19,7 @@ class LargeBlobKeyExtension : Extension {
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters? {
+    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters? {
         return BooleanExtensionParameter(true)
     }
 
@@ -28,7 +28,7 @@ class LargeBlobKeyExtension : Extension {
         largeBlobKey = response.largeBlobKey
     }
 
-    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters {
+    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 

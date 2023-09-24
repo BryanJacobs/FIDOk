@@ -11,7 +11,7 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
-import us.q3q.fidok.crypto.PinProtocol
+import us.q3q.fidok.crypto.PinUVProtocol
 
 class HMACSecretExtension(
     private val salt1: ByteArray,
@@ -30,7 +30,7 @@ class HMACSecretExtension(
     }
 
     private var keyAgreement: KeyAgreementPlatformKey? = null
-    private var pinProtocol: PinProtocol? = null
+    private var pinUVProtocol: PinUVProtocol? = null
     private var created: Boolean = false
     private var res1: ByteArray? = null
     private var res2: ByteArray? = null
@@ -51,17 +51,17 @@ class HMACSecretExtension(
 
     override fun makeCredential(
         keyAgreement: KeyAgreementPlatformKey?,
-        pinProtocol: PinProtocol?,
+        pinUVProtocol: PinUVProtocol?,
     ): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 
-    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters {
-        if (keyAgreement == null || pinProtocol == null) {
+    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
+        if (keyAgreement == null || pinUVProtocol == null) {
             throw IllegalStateException("hmac-secret requires key agreement")
         }
         this.keyAgreement = keyAgreement
-        this.pinProtocol = pinProtocol
+        this.pinUVProtocol = pinUVProtocol
 
         val salt = if (salt2 == null) {
             salt1
@@ -69,14 +69,14 @@ class HMACSecretExtension(
             (salt1.toList() + salt2.toList()).toByteArray()
         }
 
-        val saltEnc = pinProtocol.encrypt(keyAgreement, salt)
-        val saltAuth = pinProtocol.authenticate(keyAgreement, saltEnc)
+        val saltEnc = pinUVProtocol.encrypt(keyAgreement, salt)
+        val saltAuth = pinUVProtocol.authenticate(keyAgreement, saltEnc)
 
         return HMACSecretExtensionParameter(
             keyAgreement.getCOSE(),
             saltEnc = saltEnc,
             saltAuth = saltAuth,
-            pinUvAuthProtocol = pinProtocol.getVersion(),
+            pinUvAuthProtocol = pinUVProtocol.getVersion(),
         )
     }
 
@@ -89,7 +89,7 @@ class HMACSecretExtension(
     override fun getAssertionResponse(response: GetAssertionResponse) {
         val gotten = response.authData.extensions?.get(getName())
             ?: return
-        val pp = pinProtocol
+        val pp = pinUVProtocol
         val ka = keyAgreement
         if (pp == null || ka == null) {
             throw IllegalStateException("hmac-secret response parsing requires key agreement")

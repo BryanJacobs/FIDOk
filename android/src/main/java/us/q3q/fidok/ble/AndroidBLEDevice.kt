@@ -17,14 +17,16 @@ import us.q3q.fidok.FIDO_CONTROL_POINT_ATTRIBUTE
 import us.q3q.fidok.FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE
 import us.q3q.fidok.FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE
 import us.q3q.fidok.FIDO_STATUS_ATTRIBUTE
+import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.IncorrectDataException
+import us.q3q.fidok.ctap.InvalidDeviceException
 import java.util.*
 import kotlin.experimental.and
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDevice) : Device {
+class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDevice) : AuthenticatorDevice {
 
     private val readResult = Channel<ByteArray>(Channel.BUFFERED)
     private val connectResult = Channel<Boolean>()
@@ -130,38 +132,38 @@ class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDe
         connectResult.receive()
 
         val service = g.getService(UUID.fromString(FIDO_BLE_SERVICE_UUID))
-            ?: throw IllegalStateException("BLE device '$address' has no FIDO BLE service")
+            ?: throw InvalidDeviceException("BLE device '$address' has no FIDO BLE service")
 
         val cpLenChara = service.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE))
-            ?: throw IllegalStateException("BLE device '$address' has no control point length characteristic")
+            ?: throw InvalidDeviceException("BLE device '$address' has no control point length characteristic")
         if (!g.readCharacteristic(cpLenChara)) {
-            throw IllegalStateException("BLE device '$address' could not read control point length")
+            throw DeviceCommunicationException("BLE device '$address' could not read control point length")
         }
 
         val cpLenArr = readResult.receive()
         if (cpLenArr.size != 2) {
-            throw IllegalStateException("Control point length was not itself two bytes long: ${cpLenArr.size}")
+            throw IncorrectDataException("Control point length was not itself two bytes long: ${cpLenArr.size}")
         }
         cpLen = cpLenArr[0] * 256 + cpLenArr[1]
         if (cpLen < 20 || cpLen > 512) {
-            throw IllegalStateException("Control point length out of bounds: $cpLen")
+            throw IncorrectDataException("Control point length out of bounds: $cpLen")
         }
 
         val srevChara = service.getCharacteristic(UUID.fromString(FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE))
-            ?: throw IllegalStateException("BLE device '$address' has no service revision bitfield attribute")
+            ?: throw InvalidDeviceException("BLE device '$address' has no service revision bitfield attribute")
         if (!g.readCharacteristic(srevChara)) {
-            throw IllegalStateException("BLE device '$address' could not read service revision chara")
+            throw DeviceCommunicationException("BLE device '$address' could not read service revision chara")
         }
 
         val rev = readResult.receive()
         if (rev.isEmpty() || (rev[0] and 0x20.toByte()) != 0x20.toByte()) {
-            throw IllegalStateException("BLE device '$address' does not support FIDO2-BLE")
+            throw InvalidDeviceException("BLE device '$address' does not support FIDO2-BLE")
         }
         revBF = rev
 
         srevChara.setValue(byteArrayOf(0x20))
         if (!g.writeCharacteristic(srevChara)) {
-            throw IllegalStateException("BLE device '$address' could not be set to FIDO2-BLE")
+            throw DeviceCommunicationException("BLE device '$address' could not be set to FIDO2-BLE")
         }
 
         gatt = g

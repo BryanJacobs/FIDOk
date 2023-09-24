@@ -1,7 +1,7 @@
 package us.q3q.fidok.ctap.commands
 
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
-import us.q3q.fidok.crypto.PinProtocol
+import us.q3q.fidok.crypto.PinUVProtocol
 
 class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension {
 
@@ -26,7 +26,7 @@ class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension 
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters? {
+    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters? {
         if (blobToStore != null) {
             return ByteArrayExtensionParameter(blobToStore)
         }
@@ -38,7 +38,7 @@ class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension 
         created = (gotten as BooleanExtensionParameter).v
     }
 
-    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters {
+    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 

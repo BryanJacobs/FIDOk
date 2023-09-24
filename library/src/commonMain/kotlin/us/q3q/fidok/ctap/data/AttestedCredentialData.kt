@@ -1,4 +1,4 @@
-package us.q3q.fidok.ctap.commands
+package us.q3q.fidok.ctap.data
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -10,7 +10,20 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import us.q3q.fidok.ctap.commands.COSEKey
 
+/**
+ * A CTAP/Webauthn Attested Credential Data object.
+ *
+ * This represents a Credential that a particular Authenticator solemnly swears
+ * belongs to it.
+ *
+ * @property aaguid The unique, 16-byte identifier of the Authenticator doing the attestation
+ * @property credentialId The unique identifier of the credential; length depends on the Authenticator
+ * @property credentialPublicKey The public key for the credential itself (not the attestation). This
+ *                               may be later used to verify assertions gotten using the same
+ *                               Credential.
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = AttestedCredentialDataSerializer::class)
 data class AttestedCredentialData(
@@ -20,7 +33,7 @@ data class AttestedCredentialData(
 ) {
     init {
         require(aaguid.size == 16)
-        require(credentialId.size <= 1023)
+        require(credentialId.size in 1..1023)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -44,6 +57,9 @@ data class AttestedCredentialData(
     }
 }
 
+/**
+ * Serializes an [AttestedCredentialData] object as per the CTAP specification.
+ */
 class AttestedCredentialDataSerializer : KSerializer<AttestedCredentialData> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("AttestedCredentialData") {

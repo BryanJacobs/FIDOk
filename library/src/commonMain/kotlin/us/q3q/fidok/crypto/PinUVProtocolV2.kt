@@ -1,8 +1,13 @@
 package us.q3q.fidok.crypto
 
-import us.q3q.fidok.ctap.PinToken
+import us.q3q.fidok.ctap.PinUVToken
 
-class PinProtocolV2(private val cryptoProvider: CryptoProvider) : PinProtocol {
+/**
+ * Implements PIN/UV protocol version two.
+ *
+ * @param cryptoProvider Provider of the cryptographic capabilities necessary for the protocol
+ */
+class PinUVProtocolV2(private val cryptoProvider: CryptoProvider) : PinUVProtocol {
 
     private val EMPTY_IV = ByteArray(16) { 0x00 }
 
@@ -11,7 +16,7 @@ class PinProtocolV2(private val cryptoProvider: CryptoProvider) : PinProtocol {
 
         return (
             newIV.toList() +
-                cryptoProvider.aes256CBCEncrypt(data, AES256Key(key.pinProtocol2AESKey, newIV)).toList()
+                cryptoProvider.aes256CBCEncrypt(data, AES256Key(key.pinUvProtocol2AESKey, newIV)).toList()
             ).toByteArray()
     }
 
@@ -22,7 +27,7 @@ class PinProtocolV2(private val cryptoProvider: CryptoProvider) : PinProtocol {
 
         return cryptoProvider.aes256CBCDecrypt(
             data.copyOfRange(16, data.size),
-            AES256Key(key.pinProtocol2AESKey, data.copyOfRange(0, 16)),
+            AES256Key(key.pinUvProtocol2AESKey, data.copyOfRange(0, 16)),
         )
     }
 
@@ -31,11 +36,11 @@ class PinProtocolV2(private val cryptoProvider: CryptoProvider) : PinProtocol {
     }
 
     override fun authenticate(key: KeyAgreementPlatformKey, data: ByteArray): ByteArray {
-        return underlyingAuthenticate(key.pinProtocol2HMACKey, data)
+        return underlyingAuthenticate(key.pinUvProtocol2HMACKey, data)
     }
 
-    override fun authenticate(pinToken: PinToken, data: ByteArray): ByteArray {
-        return underlyingAuthenticate(pinToken.token, data)
+    override fun authenticate(pinUVToken: PinUVToken, data: ByteArray): ByteArray {
+        return underlyingAuthenticate(pinUVToken.token, data)
     }
 
     override fun getVersion(): UByte {

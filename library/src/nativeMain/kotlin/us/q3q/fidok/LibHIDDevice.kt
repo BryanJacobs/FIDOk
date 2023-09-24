@@ -20,9 +20,11 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.set
 import kotlinx.cinterop.toKString
+import us.q3q.fidok.ctap.AuthenticatorDevice
+import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.Device
-import us.q3q.fidok.ctap.DeviceListing
+import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.InvalidDeviceException
 import us.q3q.fidok.hid.CTAPHID.Companion.sendAndReceive
 import us.q3q.fidok.hid.CTAPHIDCommand
 import us.q3q.fidok.hid.PACKET_SIZE
@@ -33,8 +35,8 @@ const val FIDO_USAGE = 0x0001u
 const val TIMEOUT = 5000
 
 @OptIn(ExperimentalForeignApi::class)
-class LibHIDDevice(private val path: String) : Device {
-    companion object : DeviceListing {
+class LibHIDDevice(private val path: String) : AuthenticatorDevice {
+    companion object : AuthenticatorListing {
         init {
             hid_init()
         }
@@ -49,7 +51,7 @@ class LibHIDDevice(private val path: String) : Device {
                     if (iterationHandle.pointed.usage_page.toUInt() == FIDO_USAGE_PAGE &&
                         iterationHandle.pointed.usage.toUInt() == FIDO_USAGE
                     ) {
-                        val path = iterationHandle.pointed.path?.toKString() ?: throw RuntimeException("Path to device is null")
+                        val path = iterationHandle.pointed.path?.toKString() ?: throw InvalidDeviceException("Path to device is null")
                         Logger.i("Found device $path")
                         foundDevices.add(LibHIDDevice(path))
                     }
@@ -75,10 +77,10 @@ class LibHIDDevice(private val path: String) : Device {
             val packet = allocArray<UByteVar>(PACKET_SIZE)
             val read = hid_read_timeout(handle, packet, PACKET_SIZE.convert(), TIMEOUT)
             if (read == 0) {
-                throw RuntimeException("Timed out reading from HID device $path")
+                throw DeviceCommunicationException("Timed out reading from HID device $path")
             }
             if (read < 0) {
-                throw RuntimeException("Failed to read from HID device $path: $read")
+                throw DeviceCommunicationException("Failed to read from HID device $path: $read")
             }
             val ret = UByteArray(read)
             for (i in ret.indices) {
@@ -101,13 +103,13 @@ class LibHIDDevice(private val path: String) : Device {
             Logger.v(bytes.toHexString())
             val written = hid_write(handle, packet, bytes.size.convert())
             if (written != bytes.size) {
-                throw RuntimeException("Failed to write to HID device $path: $written bytes written")
+                throw DeviceCommunicationException("Failed to write to HID device $path: $written bytes written")
             }
         }
     }
 
     override fun sendBytes(bytes: ByteArray): ByteArray {
-        val handle = hid_open_path(path) ?: throw RuntimeException("Failed to open HID device $path")
+        val handle = hid_open_path(path) ?: throw InvalidDeviceException("Failed to open HID device $path")
         try {
             return sendAndReceive(
                 { sendOnePacket(handle, it) },

@@ -2,6 +2,8 @@
 package us.q3q.fidok.hid
 
 import co.touchlab.kermit.Logger
+import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.IncorrectDataException
 import kotlin.math.min
 import kotlin.random.Random
 import kotlin.random.nextUBytes
@@ -40,10 +42,10 @@ class CTAPHID {
     companion object {
         fun initPacket(channel: UInt, cmd: CTAPHIDCommand, totalLength: Int, data: UByteArray, packetSize: Int): UByteArray {
             if (data.size > packetSize - 7) {
-                throw RuntimeException("Overlarge packet sent to HID device: ${data.size} bytes")
+                throw DeviceCommunicationException("Overlarge packet sent to HID device: ${data.size} bytes")
             }
             if (totalLength > UShort.MAX_VALUE.toInt()) {
-                throw RuntimeException("Too much data sent to HID device: $totalLength bytes")
+                throw IncorrectDataException("Too much data sent to HID device: $totalLength bytes")
             }
             val ret = arrayListOf(
                 ((channel and 0xFF000000u) shr 24).toUByte(),
@@ -63,7 +65,7 @@ class CTAPHID {
 
         fun continuationPacket(channel: UInt, seq: UByte, data: UByteArray, packetSize: Int): UByteArray {
             if (data.size > packetSize - 5) {
-                throw RuntimeException("Overlarge continuation packet sent to HID device: ${data.size} bytes")
+                throw DeviceCommunicationException("Overlarge continuation packet sent to HID device: ${data.size} bytes")
             }
             val ret = arrayListOf(
                 ((channel and 0xFF000000u) shr 24).toUByte(),
@@ -88,7 +90,7 @@ class CTAPHID {
             var sent = bytesForFirstPacket.size
             while (sent < bytes.size) {
                 val bytesForNextPacket = bytes.copyOfRange(sent, min(bytes.size, sent + packetSize - 5))
-                Logger.v("Continuation packet: ${bytesForNextPacket.size} bytes")
+                Logger.v { "Continuation packet: ${bytesForNextPacket.size} bytes" }
                 val nextPacket = continuationPacket(channel, ++seq, bytesForNextPacket, packetSize)
                 packets.add(nextPacket)
                 sent += bytesForNextPacket.size
@@ -101,31 +103,31 @@ class CTAPHID {
             while (true) {
                 val response = reader()
                 if (response.size < 6) {
-                    throw RuntimeException("HID device returned short packet, ${response.size} bytes long")
+                    throw IncorrectDataException("HID device returned short packet, ${response.size} bytes long")
                 }
                 for (i in 0..<4) {
                     if (response[i] != (channel shr 8 * (3 - i)).toUByte()) {
-                        throw RuntimeException("Channel mismatch in reponse on HID device")
+                        throw IncorrectDataException("Channel mismatch in reponse on HID device")
                     }
                 }
                 if (response[4] and 0x80u == (0x00u).toUByte()) {
-                    throw RuntimeException("Got a non-initial packet at the start of an HID sequence!")
+                    throw IncorrectDataException("Got a non-initial packet at the start of an HID sequence!")
                 }
                 val gottenCmd = response[4] and 0x7Fu
                 if (gottenCmd != cmd.value) {
                     if (gottenCmd == CTAPHIDCommand.ERROR.value) {
                         val errorType = CTAPHIDError.entries.find { it.value == response[6] }
                         if (errorType == null) {
-                            throw RuntimeException("Unknown CTAPHID error type ${response[6]} in response to ${cmd.name}")
+                            throw IncorrectDataException("Unknown CTAPHID error type ${response[6]} in response to ${cmd.name}")
                         } else {
-                            throw RuntimeException("HID ${cmd.name} failed: ${errorType.name}")
+                            throw DeviceCommunicationException("HID ${cmd.name} failed: ${errorType.name}")
                         }
                     }
                     if (gottenCmd == CTAPHIDCommand.KEEPALIVE.value) {
                         // Keepalives are fine... ignore them.
                         continue
                     }
-                    throw RuntimeException("Tried to use command $cmd, but got a response for command $gottenCmd")
+                    throw IncorrectDataException("Tried to use command $cmd, but got a response for command $gottenCmd")
                 }
                 return response
             }
@@ -140,19 +142,19 @@ class CTAPHID {
             val expected = len.toInt()
             while (accumulated.size < expected) {
                 // keep reading...
-                Logger.v("Response ${response.size}, len $len, accumulated ${accumulated.size}")
+                Logger.v { "Response ${response.size}, len $len, accumulated ${accumulated.size}" }
                 val nextBytes = reader()
                 for (i in 0..<4) {
                     if (nextBytes[i] != (channel shr 8 * (3 - i)).toUByte()) {
-                        throw RuntimeException("Channel mismatch in subsequent response on HID device")
+                        throw IncorrectDataException("Channel mismatch in subsequent response on HID device")
                     }
                 }
                 val gottenSeq = nextBytes[4]
                 if (gottenSeq and 0x80u != (0x00u).toUByte()) {
-                    throw RuntimeException("Got initial packet in continuation HID sequence!")
+                    throw IncorrectDataException("Got initial packet in continuation HID sequence")
                 }
                 if (gottenSeq.toUInt() != seq++) {
-                    throw RuntimeException("Invalid HID sequence number: expected $seq, got $gottenSeq")
+                    throw IncorrectDataException("Invalid HID sequence number: expected $seq, got $gottenSeq")
                 }
                 val remaining = expected - accumulated.size
                 for (i in 5..<min(remaining + 5, nextBytes.size)) {
@@ -163,16 +165,16 @@ class CTAPHID {
         }
 
         fun openChannel(packetSize: Int, sender: (bytes: UByteArray) -> Unit, receiver: () -> UByteArray): UInt {
-            Logger.d("Opening new channel with HID device")
+            Logger.d { "Opening new channel with HID device" }
             val nonce = Random.nextUBytes(8)
             sender(initPacket(BROADCAST_CHANNEL, CTAPHIDCommand.INIT, 8, nonce, packetSize))
             val response = readFromChannel(BROADCAST_CHANNEL, CTAPHIDCommand.INIT, receiver)
             if (response.size < 12) {
-                throw RuntimeException("HID device returned short channel-open packet, ${response.size} bytes long")
+                throw IncorrectDataException("HID device returned short channel-open packet, ${response.size} bytes long")
             }
             for (i in nonce.indices) {
                 if (nonce[i] != response[i]) {
-                    throw RuntimeException("Got mismatching nonce in response to HID open")
+                    throw IncorrectDataException("Got mismatching nonce in response to HID open")
                 }
             }
             val ret = (response[8].toUInt() shl 24) +
@@ -180,7 +182,7 @@ class CTAPHID {
                 (response[10].toUInt() shl 8) +
                 response[11]
 
-            Logger.d("HID channel opened!")
+            Logger.d { "HID channel opened" }
             return ret
         }
 
@@ -191,6 +193,7 @@ class CTAPHID {
             }
         }
 
+        @Throws(DeviceCommunicationException::class)
         fun sendAndReceive(
             sender: (bytes: UByteArray) -> Unit,
             receiver: () -> UByteArray,

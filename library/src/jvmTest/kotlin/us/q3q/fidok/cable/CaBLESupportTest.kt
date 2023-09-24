@@ -3,7 +3,7 @@ package us.q3q.fidok.cable
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import us.q3q.fidok.PureJVMCryptoProvider
-import us.q3q.fidok.ctap.Library
+import us.q3q.fidok.ctap.FIDOkLibrary
 import java.lang.IllegalArgumentException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -17,7 +17,7 @@ class CaBLESupportTest {
         @BeforeAll
         @JvmStatic
         fun initLibrary() {
-            caBLESupport = Library.init(PureJVMCryptoProvider()).caBLESupport()
+            caBLESupport = FIDOkLibrary.init(PureJVMCryptoProvider()).caBLESupport()
         }
     }
 

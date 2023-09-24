@@ -144,8 +144,7 @@ class PureJVMCryptoProvider : CryptoProvider {
 
     override fun es256SignatureValidate(
         signedBytes: ByteArray,
-        keyX: ByteArray,
-        keyY: ByteArray,
+        key: P256Point,
         sig: ByteArray,
     ): Boolean {
         val curve = ECGenParameterSpec("secp256r1")
@@ -154,7 +153,7 @@ class PureJVMCryptoProvider : CryptoProvider {
         val ecParameters = parameters.getParameterSpec(ECParameterSpec::class.java)
 
         val verifier = Signature.getInstance("SHA256withECDSA")
-        verifier.initVerify(pointsToECPK(keyX, keyY, ecParameters))
+        verifier.initVerify(pointsToECPK(key.x, key.y, ecParameters))
         verifier.update(signedBytes)
         return verifier.verify(sig)
     }

@@ -9,7 +9,7 @@ enum class AuthenticatorTransport(val value: String) {
     INTERNAL("internal"),
 }
 
-interface Device {
+interface AuthenticatorDevice {
     @Throws(DeviceCommunicationException::class)
     fun sendBytes(bytes: ByteArray): ByteArray
 

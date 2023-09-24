@@ -2,7 +2,7 @@ import co.touchlab.kermit.Logger
 import us.q3q.fidok.BotanCryptoProvider
 import us.q3q.fidok.LibHIDDevice
 import us.q3q.fidok.LibPCSCLiteDevice
-import us.q3q.fidok.ctap.Library
+import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.commands.CredProtectExtension
 import us.q3q.fidok.ctap.commands.ExtensionSetup
 import us.q3q.fidok.ctap.commands.HMACSecretExtension
@@ -11,9 +11,9 @@ import us.q3q.fidok.ctap.commands.UVMExtension
 import kotlin.random.Random
 
 fun main() {
-    val library = Library.init(
+    val library = FIDOkLibrary.init(
         BotanCryptoProvider(),
-        deviceAccessors = listOf(
+        authenticatorAccessors = listOf(
             LibHIDDevice,
             LibPCSCLiteDevice,
         ),

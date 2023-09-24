@@ -1,7 +1,7 @@
 package us.q3q.fidok.ctap.commands
 
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
-import us.q3q.fidok.crypto.PinProtocol
+import us.q3q.fidok.crypto.PinUVProtocol
 
 class MinPinLengthExtension : Extension {
 
@@ -21,7 +21,7 @@ class MinPinLengthExtension : Extension {
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters {
+    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 

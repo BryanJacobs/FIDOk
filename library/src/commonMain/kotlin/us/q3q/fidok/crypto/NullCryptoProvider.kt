@@ -1,5 +1,8 @@
 package us.q3q.fidok.crypto
 
+/**
+ * A non-functional implementation of a [CryptoProvider]. All methods throw exceptions.
+ */
 class NullCryptoProvider : CryptoProvider {
     override fun ecdhKeyAgreementInit(otherPublicKeyPoint: P256Point): KeyAgreementState {
         throw NotImplementedError("Null crypto provider")
@@ -41,8 +44,7 @@ class NullCryptoProvider : CryptoProvider {
 
     override fun es256SignatureValidate(
         signedBytes: ByteArray,
-        keyX: ByteArray,
-        keyY: ByteArray,
+        key: P256Point,
         sig: ByteArray,
     ): Boolean {
         throw NotImplementedError("Null crypto provider")

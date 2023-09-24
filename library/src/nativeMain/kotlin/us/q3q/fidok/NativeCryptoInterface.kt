@@ -142,7 +142,7 @@ fun es256_signature_validate(
     val keyYB = inAsByteArray(keyY, 32)
     val sigB = inAsByteArray(signature, signatureLen)
 
-    return crypto.es256SignatureValidate(signedBytesB, keyXB, keyYB, sigB)
+    return crypto.es256SignatureValidate(signedBytesB, P256Point(keyXB, keyYB), sigB)
 }
 
 @OptIn(ExperimentalForeignApi::class)

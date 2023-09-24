@@ -1,6 +1,7 @@
 package us.q3q.fidok.pcsc
 
 import co.touchlab.kermit.Logger
+import us.q3q.fidok.ctap.IncorrectDataException
 
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalStdlibApi::class)
 class CTAPPCSC {
@@ -73,11 +74,11 @@ class CTAPPCSC {
             var status = 0x9000
             for (packet in packets) {
                 if (status != 0x9000) {
-                    throw RuntimeException("Failure response from card: 0x${status.toHexString()}")
+                    throw IncorrectDataException("Failure response from card: 0x${status.toHexString()}")
                 }
                 resp = xmit(packet)
                 if (resp.size < 2) {
-                    throw RuntimeException("Short response from card: <2 bytes")
+                    throw IncorrectDataException("Short response from card: <2 bytes")
                 }
                 status = (resp[resp.size - 2].toUByte().toInt() shl 8) + resp[resp.size - 1].toUByte().toInt()
             }
@@ -89,7 +90,7 @@ class CTAPPCSC {
                 resp = xmit(byteArrayOf(0x00, 0xC0.toByte(), 0x00, 0x00, 0x00))
                 status = (resp[resp.size - 2].toUByte().toInt() shl 8) + resp[resp.size - 1].toUByte().toInt()
                 if (status != 0x9000 && status !in 0x6101..0x61FF) {
-                    throw RuntimeException("Failure response from card: 0x${status.toHexString()}")
+                    throw IncorrectDataException("Failure response from card: 0x${status.toHexString()}")
                 }
                 finalResult = (finalResult.toList() + resp.toList().subList(0, resp.size - 2)).toByteArray()
             }

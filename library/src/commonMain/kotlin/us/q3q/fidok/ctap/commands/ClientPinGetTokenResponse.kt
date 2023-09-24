@@ -2,6 +2,7 @@ package us.q3q.fidok.ctap.commands
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.ByteArraySerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
@@ -12,6 +13,19 @@ import kotlinx.serialization.encoding.Encoder
 data class ClientPinGetTokenResponse(val pinUvAuthToken: ByteArray) {
     init {
         require(pinUvAuthToken.size == 32 || pinUvAuthToken.size == 48)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as ClientPinGetTokenResponse
+
+        return pinUvAuthToken.contentEquals(other.pinUvAuthToken)
+    }
+
+    override fun hashCode(): Int {
+        return pinUvAuthToken.contentHashCode()
     }
 }
 
@@ -25,11 +39,11 @@ class ClientPinGetTokenResponseSerializer : KSerializer<ClientPinGetTokenRespons
         val composite = decoder.beginStructure(descriptor)
         val numItems = composite.decodeCollectionSize(descriptor)
         if (numItems != 1) {
-            throw RuntimeException("ClientPinGetTokenResponse had incorrect number of items in it: $numItems")
+            throw SerializationException("ClientPinGetTokenResponse had incorrect number of items in it: $numItems")
         }
         val param = composite.decodeIntElement(descriptor, 0)
         if (param != 0x02) {
-            throw RuntimeException("ClientPinGetTokenResponse contained unknown parameter: $param")
+            throw SerializationException("ClientPinGetTokenResponse contained unknown parameter: $param")
         }
         val pinUvAuthToken = composite.decodeSerializableElement(descriptor, 0, ByteArraySerializer())
         composite.endStructure(descriptor)

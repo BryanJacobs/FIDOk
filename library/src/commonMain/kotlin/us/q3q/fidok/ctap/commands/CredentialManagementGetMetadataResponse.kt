@@ -2,6 +2,7 @@ package us.q3q.fidok.ctap.commands
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
@@ -25,16 +26,16 @@ class CredentialManagementGetMetadataResponseSerializer : KSerializer<Credential
         val composite = decoder.beginStructure(descriptor)
         val numItems = composite.decodeCollectionSize(descriptor)
         if (numItems != 2) {
-            throw RuntimeException("CredentialManagementGetMetadataResponse had incorrect number of items in it: $numItems")
+            throw SerializationException("CredentialManagementGetMetadataResponse had incorrect number of items in it: $numItems")
         }
         val param = composite.decodeIntElement(descriptor, 0)
         if (param != 0x01) {
-            throw RuntimeException("CredentialManagementGetMetadataResponse had param $param instead of 0x01")
+            throw SerializationException("CredentialManagementGetMetadataResponse had param $param instead of 0x01")
         }
         val existingResidentCredentialsCount = composite.decodeIntElement(descriptor, 0).toUInt()
         val nextParam = composite.decodeIntElement(descriptor, 1)
         if (nextParam != 0x02) {
-            throw RuntimeException("CredentialManagementGetMetadataResponse had param $nextParam instead of 0x02")
+            throw SerializationException("CredentialManagementGetMetadataResponse had param $nextParam instead of 0x02")
         }
         val maxPossibleRemainingCredentialsCount = composite.decodeIntElement(descriptor, 1).toUInt()
 

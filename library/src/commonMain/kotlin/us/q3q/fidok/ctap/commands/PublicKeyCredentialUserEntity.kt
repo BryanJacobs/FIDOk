@@ -93,7 +93,7 @@ class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialU
 
     override fun serialize(encoder: Encoder, value: PublicKeyCredentialUserEntity) {
         if (value.displayName == null) {
-            throw IllegalStateException("Cannot serialize a PublicKeyCredentialsUserEntity without a displayName")
+            throw SerializationException("Cannot serialize a PublicKeyCredentialsUserEntity without a displayName")
         }
         var size = 2
         if (value.icon != null) {

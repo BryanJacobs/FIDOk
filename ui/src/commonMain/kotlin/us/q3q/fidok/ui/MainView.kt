@@ -14,13 +14,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import us.q3q.fidok.crypto.NullCryptoProvider
-import us.q3q.fidok.ctap.Device
-import us.q3q.fidok.ctap.Library
+import us.q3q.fidok.ctap.AuthenticatorDevice
+import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.commands.GetInfoResponse
 
 @Composable
-fun MainView(library: Library, deviceConstructor: () -> List<Device>) {
-    var devices by remember { mutableStateOf<List<Device>?>(null) }
+fun MainView(library: FIDOkLibrary, deviceConstructor: () -> List<AuthenticatorDevice>) {
+    var devices by remember { mutableStateOf<List<AuthenticatorDevice>?>(null) }
     var infoByDevice by remember { mutableStateOf<Map<Int, GetInfoResponse>>(hashMapOf()) }
     MaterialTheme {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -46,5 +46,5 @@ fun MainView(library: Library, deviceConstructor: () -> List<Device>) {
 @Preview
 @Composable
 fun MainViewPreview() {
-    MainView(Library.init(NullCryptoProvider())) { listOf() }
+    MainView(FIDOkLibrary.init(NullCryptoProvider())) { listOf() }
 }

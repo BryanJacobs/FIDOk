@@ -12,7 +12,7 @@ import kotlinx.serialization.descriptors.listSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
-import us.q3q.fidok.crypto.PinProtocol
+import us.q3q.fidok.crypto.PinUVProtocol
 
 class UVMExtension : Extension {
 
@@ -32,7 +32,7 @@ class UVMExtension : Extension {
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters {
+    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 

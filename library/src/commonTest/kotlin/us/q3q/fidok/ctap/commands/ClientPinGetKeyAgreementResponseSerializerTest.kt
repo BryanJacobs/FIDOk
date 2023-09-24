@@ -1,6 +1,6 @@
 package us.q3q.fidok.ctap.commands
 
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalStdlibApi::class)

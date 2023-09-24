@@ -41,9 +41,9 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import us.q3q.fidok.ble.AndroidBLEDevice
 import us.q3q.fidok.ble.AndroidBLEServer
+import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.Device
-import us.q3q.fidok.ctap.Library
+import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.commands.GetInfoResponse
 import us.q3q.fidok.nfc.AndroidNFCDevice
 import us.q3q.fidok.ui.InfoDisplay
@@ -67,12 +67,12 @@ class MainActivity : ComponentActivity() {
 
     private var nfcPendingIntent: PendingIntent? = null
     private var infoLive = MutableLiveData<GetInfoResponse?>(null)
-    private var deviceListLive = MutableLiveData<List<Device>?>(null)
+    private var deviceListLive = MutableLiveData<List<AuthenticatorDevice>?>(null)
     private var usbPermissionIntent: PendingIntent? = null
 
     private val REQUEST_ENABLE_BT = 1
 
-    private val library = Library.init(PureJVMCryptoProvider())
+    private val library = FIDOkLibrary.init(PureJVMCryptoProvider())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             FidoKTheme {
-                val deviceList: List<Device>? by deviceListLive.observeAsState()
+                val deviceList: List<AuthenticatorDevice>? by deviceListLive.observeAsState()
                 val info: GetInfoResponse? by infoLive.observeAsState()
 
                 // A surface container using the 'background' color from the theme
@@ -270,11 +270,11 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun DeviceDisplayAndManip(
-    deviceList: List<Device>?,
+    deviceList: List<AuthenticatorDevice>?,
     onListUSBReq: () -> Unit = {},
     onListBLEReq: () -> Unit = {},
     onStartServer: () -> Unit = {},
-    getInfoReq: (d: Device) -> Unit = {},
+    getInfoReq: (d: AuthenticatorDevice) -> Unit = {},
 ) {
     Column {
         Row {
@@ -295,7 +295,7 @@ fun DeviceDisplayAndManip(
 }
 
 @Composable
-fun DevicesDisplay(devices: List<Device>, getInfoReq: (d: Device) -> Unit) {
+fun DevicesDisplay(devices: List<AuthenticatorDevice>, getInfoReq: (d: AuthenticatorDevice) -> Unit) {
     Column {
         Text("Found ${devices.size} devices")
         devices.map {
@@ -307,7 +307,7 @@ fun DevicesDisplay(devices: List<Device>, getInfoReq: (d: Device) -> Unit) {
 }
 
 @Composable
-fun DeviceDisplay(device: Device, getInfoReq: () -> Unit) {
+fun DeviceDisplay(device: AuthenticatorDevice, getInfoReq: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(device.toString(), modifier = Modifier.padding(3.dp))
         Button(onClick = getInfoReq) {
@@ -327,13 +327,13 @@ fun DevicesDisplayPreviewEmpty() {
 fun DevicesDisplayPreview() {
     DeviceDisplayAndManip(
         deviceList = listOf(
-            object : Device {
+            object : AuthenticatorDevice {
                 override fun sendBytes(bytes: ByteArray) = byteArrayOf()
                 override fun getTransports(): List<AuthenticatorTransport> =
                     listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
                 override fun toString(): String = "FirstDevice"
             },
-            object : Device {
+            object : AuthenticatorDevice {
                 override fun sendBytes(bytes: ByteArray) = byteArrayOf()
                 override fun getTransports(): List<AuthenticatorTransport> = listOf(AuthenticatorTransport.USB)
                 override fun toString(): String = "SecondDevice"

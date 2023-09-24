@@ -30,6 +30,9 @@ implementation as a replacement for e.g. `libfido2`!
 This implementation will likely improve in coverage rapidly! It doesn't yet have stable
 APIs and isn't nearly feature complete.
 
+You can [read basic developer documentation for the CTAP layer](docs/CTAP.md) if you want
+to use it anyhow.
+
 # Overview
 
 The core code is all Kotlin/Multiplatform, and can be used from any target. Interfaces
@@ -50,7 +53,7 @@ provided by native implementations specific to each platform.
 | PIN Protocol Two                         | Supported   |
 | PIN tokens using PIN without permissions | Supported   |
 | PIN tokens using PIN with permissions    | Supported   |
-| PIN tokens using onboard UV              | Unsupported |
+| PIN tokens using onboard UV              | Supported   |
 | `minPinLength` Extension                 | Supported   |
 | `credProtect` Extension                  | Supported   |
 | `hmac-secret` Extension                  | Supported   |
@@ -108,7 +111,7 @@ provided by native implementations specific to each platform.
 | Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |     | N              | As Native | N (and *1) |     |
 | Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |     | N              | Y         | *1         |     |
 | TPM           | Chips built into computers          | Unimplemented |                |     |                |           |            |     |
-| CaBLE         | Authenticators using the Internet!  | Unimplemented |                |     |                |           |            |     |
+| CaBLE         | Authenticators using the Internet!  | Incomplete    |                |     |                |           |            |     |
 
 *1 - Bluetooth LE support for Android is implemented, but for reasons unknown Android restricts the ability to access BLE FIDO
      tokens to "system" applications, so FIDOk can't be used with BLE authenticators over BLE in a normal install

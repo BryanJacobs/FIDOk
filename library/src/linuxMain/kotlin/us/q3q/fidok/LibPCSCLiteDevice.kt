@@ -37,20 +37,20 @@ import pcsc.SCardListReaders
 import pcsc.SCardReleaseContext
 import pcsc.SCardTransmit
 import pcsc.pcsc_stringify_error
+import us.q3q.fidok.ctap.AuthenticatorDevice
+import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.ctap.DeviceCommunicationException
-import us.q3q.fidok.ctap.DeviceListing
 import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.APPLET_SELECT_BYTES
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.sendAndReceive
 
-class LibPCSCLiteDevice(private val readerName: String, private val useExtendedMessages: Boolean = false) : Device {
+class LibPCSCLiteDevice(private val readerName: String, private val useExtendedMessages: Boolean = false) : AuthenticatorDevice {
 
     private var appletSelected = false
 
     @OptIn(ExperimentalStdlibApi::class, ExperimentalForeignApi::class)
-    companion object : DeviceListing {
+    companion object : AuthenticatorListing {
 
         private fun checkOp(msg: String, f: () -> pcsc.LONG): Boolean? {
             val ret = f()

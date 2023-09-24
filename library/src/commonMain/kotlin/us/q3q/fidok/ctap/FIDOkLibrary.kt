@@ -4,21 +4,21 @@ import us.q3q.fidok.cable.CaBLESupport
 import us.q3q.fidok.crypto.CryptoProvider
 import kotlin.jvm.JvmStatic
 
-class Library private constructor(
+class FIDOkLibrary private constructor(
     val cryptoProvider: CryptoProvider,
-    private val deviceAccessors: List<DeviceListing>,
+    private val authenticatorAccessors: List<AuthenticatorListing>,
 ) {
 
     companion object {
         @JvmStatic
-        fun init(cryptoProvider: CryptoProvider, deviceAccessors: List<DeviceListing> = listOf()): Library {
-            return Library(cryptoProvider, deviceAccessors)
+        fun init(cryptoProvider: CryptoProvider, authenticatorAccessors: List<AuthenticatorListing> = listOf()): FIDOkLibrary {
+            return FIDOkLibrary(cryptoProvider, authenticatorAccessors)
         }
     }
 
-    fun listDevices(allowedTransports: List<AuthenticatorTransport>? = null): Array<Device> {
-        val devices = arrayListOf<Device>()
-        for (accessor in deviceAccessors) {
+    fun listDevices(allowedTransports: List<AuthenticatorTransport>? = null): Array<AuthenticatorDevice> {
+        val devices = arrayListOf<AuthenticatorDevice>()
+        for (accessor in authenticatorAccessors) {
             devices.addAll(
                 accessor.listDevices().filter {
                     if (allowedTransports == null) {
@@ -43,7 +43,7 @@ class Library private constructor(
         return CaBLESupport(this)
     }
 
-    fun ctapClient(device: Device): CTAPClient {
+    fun ctapClient(device: AuthenticatorDevice): CTAPClient {
         return CTAPClient(this, device)
     }
 }

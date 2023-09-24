@@ -3,7 +3,14 @@ package us.q3q.fidok.ctap.commands
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.cbor.ByteString
+import kotlin.jvm.JvmStatic
 
+/**
+ * Represents a CTAP `clientPin` subcommand.
+ *
+ * This class is difficult to create directly, and is best built through the static
+ * methods here.
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 class ClientPinCommand private constructor(
@@ -20,14 +27,17 @@ class ClientPinCommand private constructor(
 
     companion object {
 
+        @JvmStatic
         fun getPINRetries(pinUvAuthProtocol: UByte): ClientPinCommand {
             return ClientPinCommand(subCommand = 0x01u, pinUvAuthProtocol = pinUvAuthProtocol)
         }
 
+        @JvmStatic
         fun getKeyAgreement(pinUvAuthProtocol: UByte): ClientPinCommand {
             return ClientPinCommand(subCommand = 0x02u, pinUvAuthProtocol = pinUvAuthProtocol)
         }
 
+        @JvmStatic
         fun setPIN(
             pinUvAuthProtocol: UByte,
             keyAgreement: COSEKey,
@@ -43,6 +53,7 @@ class ClientPinCommand private constructor(
             )
         }
 
+        @JvmStatic
         fun changePIN(
             pinUvAuthProtocol: UByte,
             keyAgreement: COSEKey,
@@ -60,6 +71,7 @@ class ClientPinCommand private constructor(
             )
         }
 
+        @JvmStatic
         fun getPinToken(pinUvAuthProtocol: UByte, keyAgreement: COSEKey, pinHashEnc: ByteArray): ClientPinCommand {
             return ClientPinCommand(
                 subCommand = 0x05u,
@@ -69,6 +81,7 @@ class ClientPinCommand private constructor(
             )
         }
 
+        @JvmStatic
         fun getPinUvAuthTokenUsingUvWithPermissions(
             pinUvAuthProtocol: UByte,
             keyAgreement: COSEKey,
@@ -84,10 +97,12 @@ class ClientPinCommand private constructor(
             )
         }
 
-        fun getUVRetries(pinUvAuthProtocol: UByte): ClientPinCommand {
-            return ClientPinCommand(subCommand = 0x07u, pinUvAuthProtocol = pinUvAuthProtocol)
+        @JvmStatic
+        fun getUVRetries(): ClientPinCommand {
+            return ClientPinCommand(subCommand = 0x07u)
         }
 
+        @JvmStatic
         fun getPinUvAuthTokenUsingPinWithPermissions(
             pinUvAuthProtocol: UByte,
             keyAgreement: COSEKey,

@@ -11,17 +11,29 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.experimental.and
+import us.q3q.fidok.ctap.data.AttestedCredentialData
+import us.q3q.fidok.ctap.data.FLAGS
 
-enum class FLAGS(val value: UByte) {
-    UP(0x01u),
-    UV(0x04u),
-    BE(0x08u),
-    BS(0x10u),
-    AT(0x40u),
-    ED(0x80u),
-}
-
+/**
+ * Represents a CTAP/Webauthn "authenticator data" object.
+ *
+ * This contains various data to do with either asserting a [newly created credential][MakeCredentialCommand]
+ * or [an assertion with an existing credential][GetAssertionResponse]. The [attestedCredentialData]
+ * field will be present only for newly created credentials.
+ *
+ * @property rawBytes The raw bytes representing this data object, exactly as they were received from
+ *                    the authenticator. This is necessary for signature checking, or to parse out
+ *                    unknown fields (such as enterprise attestations) from the `attestedCredentialData`
+ * @property rpIdHash The SHA-256 hash of the Relying Party ID to which the assertion pertains
+ * @property flags The raw CTAP flags received; use the `hasFlag` method to check the contents of this field
+ * @property signCount The Authenticator's signature operations counter, measuring the number of assertions
+ *                     (even as part of a `MakeCredential`) since the last Reset
+ * @property attestedCredentialData The credential itself, including its public key. This field will be absent
+ *                                  in `GetAssertion` calls using passed-in credentials, and present in
+ *                                  `MakeCredential` calls or `GetAssertion` calls using discoverable credentials
+ * @property extensions Any extension data sent back by the Authenticator. Keys are extension names, and values
+ *                      (and their types) depend on the particular extension
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = AuthenticatorDataSerializer::class)
 data class AuthenticatorData(
@@ -65,6 +77,9 @@ data class AuthenticatorData(
     }
 }
 
+/**
+ * Serializes or deserializes an [AuthenticatorData] object
+ */
 class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("AuthenticatorData") {

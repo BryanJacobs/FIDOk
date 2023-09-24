@@ -37,17 +37,20 @@ import platform.windows.SCardListReaders
 import platform.windows.SCardReleaseContext
 import platform.windows.SCardTransmit
 import platform.windows.WCHARVar
+import us.q3q.fidok.ctap.AuthenticatorDevice
+import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.Device
-import us.q3q.fidok.ctap.DeviceListing
+import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.IncorrectDataException
+import us.q3q.fidok.ctap.InvalidDeviceException
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.APPLET_SELECT_BYTES
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.sendAndReceive
 
-class PCSCDevice(private val readerName: String) : Device {
+class PCSCDevice(private val readerName: String) : AuthenticatorDevice {
     private var appletSelected = false
 
     @OptIn(ExperimentalStdlibApi::class, ExperimentalForeignApi::class)
-    companion object : DeviceListing {
+    companion object : AuthenticatorListing {
 
         private fun checkOp(msg: String, f: () -> platform.windows.LONG?): Boolean? {
             val ret = f()
@@ -98,17 +101,17 @@ class PCSCDevice(private val readerName: String) : Device {
                     )
                     if (connectResult == SCARD_E_NO_SMARTCARD) {
                         // oops, empty reader
-                        Logger.d("No card in reader $readerName")
+                        Logger.d { "No card in reader $readerName" }
                         return null
                     }
                     if (connectResult != SCARD_S_SUCCESS) {
                         // this error is more serious...
-                        throw RuntimeException(
+                        throw InvalidDeviceException(
                             "Error connecting to reader $readerName: $connectResult",
                         )
                     }
                 }
-                Logger.d("Connected to card in reader $readerName with protocol ${protocol.value}")
+                Logger.d { "Connected to card in reader $readerName with protocol ${protocol.value}" }
 
                 val ret = f(scard.value, protocol.value.convert())
 
@@ -160,11 +163,11 @@ class PCSCDevice(private val readerName: String) : Device {
 
             if (checkErrors) {
                 if (received < 2) {
-                    throw RuntimeException("Short receive: only $received bytes")
+                    throw DeviceCommunicationException("Short receive: only $received bytes")
                 }
                 val status = recvBuffer[received - 2].toInt() shl 8 + recvBuffer[received - 1].toInt()
                 if (status != 0x9000) {
-                    throw RuntimeException("Failure response from card: 0x${status.toHexString()}")
+                    throw IncorrectDataException("Failure response from card: 0x${status.toHexString()}")
                 }
                 received -= 2
             }
@@ -180,11 +183,11 @@ class PCSCDevice(private val readerName: String) : Device {
         private fun checkReader(ctx: SCARDCONTEXT, readerName: String): Boolean {
             return withConnection(ctx, readerName) { conn, protocol ->
 
-                Logger.v("Selecting PC/SC applet on $readerName")
+                Logger.v { "Selecting PC/SC applet on $readerName" }
 
                 val readBytes = xmitBytes(conn, protocol, APPLET_SELECT_BYTES, false) ?: return@withConnection null
 
-                Logger.v("Gotten response to select: ${readBytes.toHexString()}")
+                Logger.v { "Gotten response to select: ${readBytes.toHexString()}" }
 
                 if (readBytes[readBytes.size - 2] != 0x90.toByte() || readBytes[readBytes.size - 1] != 0x00.toByte()) {
                     return@withConnection null
@@ -196,7 +199,7 @@ class PCSCDevice(private val readerName: String) : Device {
         }
 
         override fun listDevices(): List<PCSCDevice> {
-            Logger.v("Listing PCSC devices")
+            Logger.v { "Listing PCSC devices" }
             return withContext { ctx ->
                 memScoped {
                     val numReaders = nativeHeap.alloc<DWORDVar>()
@@ -224,7 +227,7 @@ class PCSCDevice(private val readerName: String) : Device {
                         accumulator += readers[i].toInt().toChar()
                     }
 
-                    Logger.d("Found ${ret.size} valid readers")
+                    Logger.d { "Found ${ret.size} valid readers" }
 
                     return@withContext ret
                 }
@@ -237,10 +240,10 @@ class PCSCDevice(private val readerName: String) : Device {
                 return@withConnection sendAndReceive(bytes, !appletSelected, false) {
                     appletSelected = true
                     xmitBytes(conn, protocol, it, false)
-                        ?: throw RuntimeException("Failed to send bytes to $readerName")
+                        ?: throw DeviceCommunicationException("Failed to send bytes to $readerName")
                 }
-            } ?: throw RuntimeException("Failed to connect to $readerName")
-        } ?: throw RuntimeException("Failed to open smartcard context")
+            } ?: throw InvalidDeviceException("Failed to connect to $readerName")
+        } ?: throw InvalidDeviceException("Failed to open smartcard context")
     }
 
     override fun getTransports(): List<AuthenticatorTransport> {

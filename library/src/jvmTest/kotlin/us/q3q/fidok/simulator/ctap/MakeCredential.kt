@@ -3,8 +3,8 @@ package us.q3q.fidok.simulator.ctap
 import us.q3q.fidok.ctap.CTAPError
 import us.q3q.fidok.ctap.CTAPResponse
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
-import us.q3q.fidok.ctap.commands.FLAGS
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialDescriptor
+import us.q3q.fidok.ctap.data.FLAGS
 import us.q3q.fidok.simulator.SimulationTest
 import kotlin.random.Random
 import kotlin.test.Test
@@ -36,11 +36,11 @@ class MakeCredential : SimulationTest() {
     fun makeCredentialWithPINProtocolOne() {
         val pin = "something"
 
-        client.setPIN(pin, pinProtocol = 1u)
+        client.setPIN(pin, pinUvProtocol = 1u)
 
-        val token = client.getPinToken(pin, pinProtocol = 1u)
+        val token = client.getPinToken(pin, pinUvProtocol = 1u)
 
-        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinToken = token, pinProtocol = 1u)
+        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinUvToken = token, pinUvProtocol = 1u)
 
         assertTrue(res.authData.hasFlag(FLAGS.UV))
     }
@@ -49,11 +49,11 @@ class MakeCredential : SimulationTest() {
     fun makeCredentialWithPINProtocolTwo() {
         val pin = "something"
 
-        client.setPIN(pin, pinProtocol = 2u)
+        client.setPIN(pin, pinUvProtocol = 2u)
 
-        val token = client.getPinToken(pin, pinProtocol = 2u)
+        val token = client.getPinToken(pin, pinUvProtocol = 2u)
 
-        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinToken = token, pinProtocol = 2u)
+        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinUvToken = token, pinUvProtocol = 2u)
 
         assertTrue(res.authData.hasFlag(FLAGS.UV))
     }

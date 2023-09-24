@@ -1,12 +1,12 @@
 package us.q3q.fidok
 
 import co.touchlab.kermit.Logger
+import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import java.nio.ByteBuffer
 
-class NativeBackedDevice(libraryPath: String, private val deviceNumber: Int) : NativeLibraryUser(libraryPath), Device {
+class NativeBackedDevice(libraryPath: String, private val deviceNumber: Int) : NativeLibraryUser(libraryPath), AuthenticatorDevice {
     override fun sendBytes(bytes: ByteArray): ByteArray {
         val capacity = 32768
         val output = ByteBuffer.allocateDirect(capacity)

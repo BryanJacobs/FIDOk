@@ -1,8 +1,8 @@
 package us.q3q.fidok.ctap.commands
 
-import org.junit.jupiter.api.Test
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.commands.Utils.Companion.roundTripSerialize
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue

@@ -3,8 +3,8 @@ package us.q3q.fidok.usb
 import android.hardware.usb.UsbConstants
 import android.hardware.usb.UsbManager
 import co.touchlab.kermit.Logger
+import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.Device
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.ctap.InvalidDeviceException
@@ -18,7 +18,7 @@ class AndroidUSBHIDDevice(
     private val manager: UsbManager,
     private val deviceAddr: String,
     private val interfaceNumber: Int,
-) : Device {
+) : AuthenticatorDevice {
 
     @Throws(DeviceCommunicationException::class)
     override fun sendBytes(bytes: ByteArray): ByteArray {

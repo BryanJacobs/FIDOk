@@ -1,28 +1,28 @@
 package us.q3q.fidok.ctap
 
-import us.q3q.fidok.crypto.PinProtocol
+import us.q3q.fidok.crypto.PinUVProtocol
 import us.q3q.fidok.ctap.commands.AuthenticatorConfigCommand
 
 class AuthenticatorConfigClient internal constructor(private val client: CTAPClient) {
 
-    private fun withPinParameters(pinProtocol: UByte?, pinToken: PinToken, f: (pp: PinProtocol) -> AuthenticatorConfigCommand) {
+    private fun withPinParameters(pinProtocol: UByte?, pinUVToken: PinUVToken, f: (pp: PinUVProtocol) -> AuthenticatorConfigCommand) {
         val pp = client.getPinProtocol(pinProtocol)
         val command = f(pp)
-        command.pinUvAuthParam = pp.authenticate(pinToken, command.getUvParamData())
+        command.pinUvAuthParam = pp.authenticate(pinUVToken, command.getUvParamData())
         command.params = command.generateParams()
         client.xmit(command)
     }
 
-    fun enableEnterpriseAttestation(pinProtocol: UByte? = null, pinToken: PinToken) {
-        withPinParameters(pinProtocol, pinToken) {
+    fun enableEnterpriseAttestation(pinProtocol: UByte? = null, pinUVToken: PinUVToken) {
+        withPinParameters(pinProtocol, pinUVToken) {
             AuthenticatorConfigCommand.enableEnterpriseAttestation(
                 pinUvAuthProtocol = it.getVersion(),
             )
         }
     }
 
-    fun toggleAlwaysUv(pinProtocol: UByte? = null, pinToken: PinToken) {
-        withPinParameters(pinProtocol, pinToken) {
+    fun toggleAlwaysUv(pinProtocol: UByte? = null, pinUVToken: PinUVToken) {
+        withPinParameters(pinProtocol, pinUVToken) {
             AuthenticatorConfigCommand.toggleAlwaysUv(
                 pinUvAuthProtocol = it.getVersion(),
             )
@@ -31,12 +31,12 @@ class AuthenticatorConfigClient internal constructor(private val client: CTAPCli
 
     fun setMinPINLength(
         pinProtocol: UByte? = null,
-        pinToken: PinToken,
+        pinUVToken: PinUVToken,
         newMinPINLength: UInt? = null,
         minPinLengthRPIDs: Array<String>? = null,
         forceChangePin: Boolean? = null,
     ) {
-        withPinParameters(pinProtocol, pinToken) {
+        withPinParameters(pinProtocol, pinUVToken) {
             AuthenticatorConfigCommand.setMinPINLength(
                 pinUvAuthProtocol = it.getVersion(),
                 newMinPINLength = newMinPINLength,

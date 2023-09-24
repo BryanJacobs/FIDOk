@@ -2,12 +2,12 @@ package us.q3q.fidok.ctap.commands
 
 import kotlinx.serialization.DeserializationStrategy
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
-import us.q3q.fidok.crypto.PinProtocol
+import us.q3q.fidok.crypto.PinUVProtocol
 
 interface Extension {
     fun getName(): ExtensionName
-    fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters? = null
-    fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): ExtensionParameters? = null
+    fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters? = null
+    fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters? = null
 
     fun makeCredentialResponse(response: MakeCredentialResponse) {}
 
@@ -65,10 +65,10 @@ class ExtensionSetup(private val appliedExtensions: List<Extension>) {
         return false
     }
 
-    fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): Map<ExtensionName, ExtensionParameters> {
+    fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): Map<ExtensionName, ExtensionParameters> {
         val ret = hashMapOf<ExtensionName, ExtensionParameters>()
         for (extension in appliedExtensions) {
-            val params = extension.makeCredential(keyAgreement, pinProtocol)
+            val params = extension.makeCredential(keyAgreement, pinUVProtocol)
             if (params != null) {
                 ret[extension.getName()] = params
             }
@@ -76,10 +76,10 @@ class ExtensionSetup(private val appliedExtensions: List<Extension>) {
         return ret
     }
 
-    fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinProtocol: PinProtocol?): Map<ExtensionName, ExtensionParameters> {
+    fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): Map<ExtensionName, ExtensionParameters> {
         val ret = hashMapOf<ExtensionName, ExtensionParameters>()
         for (extension in appliedExtensions) {
-            val params = extension.getAssertion(keyAgreement, pinProtocol)
+            val params = extension.getAssertion(keyAgreement, pinUVProtocol)
             if (params != null) {
                 ret[extension.getName()] = params
             }
