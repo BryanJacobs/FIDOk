@@ -136,10 +136,28 @@ enum class CTAPPinPermission(val value: UByte) {
     AUTHENTICATOR_CONFIGURATION(0x20u),
 }
 
+/**
+ * Represents a CTAP-level error.
+ *
+ * This means an Authenticator was successfully reached, but it returned an error code
+ * instead of a success. This could be due to an invalid request, a problem with the
+ * Authenticator itself, or a user action.
+ *
+ * @property code The CTAP error code, from [CTAPResponse]. Should not be [CTAPResponse.OK]
+ * @property message A human-readable description of the error if one is known. If set to
+ *                   null when creating the object, will be derived from the `code`
+ */
 open class CTAPError(val code: UByte, message: String? = null) : RuntimeException(
     message ?: "CTAP error: ${CTAPResponse.entries.find { it.value == code } ?: "unknown ($code)"}",
 )
 
+/**
+ * A special case of [CTAPError] representing a permission denial.
+ *
+ * This may be sent by the Platform itself, instead of just the Authenticator.
+ *
+ * @property message A human-readable description of the reason permission was denied
+ */
 class PermissionDeniedError(message: String) : CTAPError(CTAPResponse.OPERATION_DENIED.value, message)
 
 class InvalidAttestationError : IncorrectDataException(

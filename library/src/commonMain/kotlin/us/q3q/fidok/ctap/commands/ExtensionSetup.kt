@@ -21,6 +21,8 @@ interface Extension {
 
 class ExtensionSetup(private val appliedExtensions: List<Extension>) {
 
+    constructor(appliedExtension: Extension) : this(listOf(appliedExtension))
+
     companion object {
         private val registeredCreationExtensions = hashMapOf<ExtensionName, DeserializationStrategy<ExtensionParameters>>()
         private val registeredAssertionExtensions = hashMapOf<ExtensionName, DeserializationStrategy<ExtensionParameters>>()

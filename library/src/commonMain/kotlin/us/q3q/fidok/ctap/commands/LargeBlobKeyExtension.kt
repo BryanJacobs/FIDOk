@@ -60,7 +60,7 @@ class LargeBlobKeyExtension : Extension {
     }
 }
 
-fun largeBlobKeyExample() {
+internal fun largeBlobKeyExample() {
     val client = Examples.getCTAPClient()
 
     val largeBlobKeyExtension = LargeBlobKeyExtension()

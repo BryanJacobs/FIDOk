@@ -3,6 +3,13 @@ package us.q3q.fidok.ctap.commands
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
 import us.q3q.fidok.crypto.PinUVProtocol
 
+/**
+ * When an Authenticator supports the [setMinPinLength][us.q3q.fidok.ctap.CTAPOption.SET_MIN_PIN_LENGTH]
+ * option, this extension may be used by particular Relying Parties to retrieve the configured minimum
+ * PIN length on credential creation.
+ *
+ * @sample minPinLengthUsage
+ */
 class MinPinLengthExtension : Extension {
 
     private val NAME = "minPinLength"
@@ -29,4 +36,16 @@ class MinPinLengthExtension : Extension {
         val gotten = response.authData.extensions?.get(getName())
         gottenLength = (gotten as IntExtensionParameter).v.toUInt()
     }
+}
+
+internal fun minPinLengthUsage() {
+    val client = Examples.getCTAPClient()
+
+    val minPinLengthExtension = MinPinLengthExtension()
+    val credential = client.makeCredential(
+        rpId = "some.good.example",
+        extensions = ExtensionSetup(listOf(minPinLengthExtension)),
+    )
+
+    val gottenMinPinLength = minPinLengthExtension.getLength()
 }

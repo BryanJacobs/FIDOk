@@ -99,7 +99,7 @@ fun credBlobExtensionStore() {
     }
 }
 
-fun credBlobExtensionRetrieve() {
+internal fun credBlobExtensionRetrieve() {
     val client = Examples.getCTAPClient()
 
     val credBlobExtension = CredBlobExtension()
