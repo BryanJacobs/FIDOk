@@ -9,6 +9,11 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * A response to a [ClientPinCommand.getPinToken] request of some variety
+ *
+ * @property pinUvAuthToken A PIN/UV token, valid until the Authenticator says it no longer is
+ */
 @Serializable(with = ClientPinGetTokenResponseSerializer::class)
 data class ClientPinGetTokenResponse(val pinUvAuthToken: ByteArray) {
     init {
@@ -29,6 +34,9 @@ data class ClientPinGetTokenResponse(val pinUvAuthToken: ByteArray) {
     }
 }
 
+/**
+ * Deserializes a [ClientPinGetTokenResponse]
+ */
 class ClientPinGetTokenResponseSerializer : KSerializer<ClientPinGetTokenResponse> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("ClientPinGetTokenResponse") {

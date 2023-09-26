@@ -9,9 +9,20 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Response to a [ClientPinCommand.getPINRetries] request
+ *
+ * @property pinRetries The number of times the current PIN may be tried before locking the Authenticator;
+ *                      could be zero
+ * @property powerCycleState If true, the Authenticator must be turned off and on again before the current
+ *                           PIN will be accepted (or the retry count decremented)
+ */
 @Serializable(with = ClientPinGetRetriesResponseSerializer::class)
 data class ClientPinGetRetriesResponse(val pinRetries: UInt, val powerCycleState: Boolean?)
 
+/**
+ * Deserializes a [ClientPinUvRetriesResponse]
+ */
 class ClientPinGetRetriesResponseSerializer : KSerializer<ClientPinGetRetriesResponse> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("ClientPinGetRetriesResponse") {

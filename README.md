@@ -2,12 +2,12 @@ FIDO-k
 ======
 
 This repository contains an early-stage implementation of a FIDO Platform, implementing the
-WebAuthN-2 and CTAP2.1 standards ("FIDO2"). It also includes some CTAP2.2 and 
-WebAuthN-3 functionality.
+WebAuthn-2 and CTAP2.1 standards ("FIDO2"). It also includes some CTAP2.2 and 
+WebAuthn-3 functionality.
 
 A FIDO2 Platform sits between an Authenticator and a Relying Party; it runs on a client
 device (such as a laptop or smartphone) and allows the user to communicate with
-authenticators.
+Authenticators.
 
 This software can be linked into an application to add FIDO2 authentication capabilities
 to that application. But it's not an implementation of a Relying Party; this is the
@@ -20,7 +20,7 @@ This particular Platform implementation has a few special properties:
   to set minimum PIN lengths, view and manage stored credentials, etc
 - It is a Kotlin Multiplatform project, and is capable of running as either a native
   application (Windows/Mac/Linux/Android/iOS) or on a Java Virtual Machine
-- It supports a wide range of different authenticator types, not just USB-HID
+- It supports a wide range of different Authenticator types, not just USB-HID
 
 Note this means that, despite being a Kotlin project, C code can use this
 implementation as a replacement for e.g. `libfido2`!

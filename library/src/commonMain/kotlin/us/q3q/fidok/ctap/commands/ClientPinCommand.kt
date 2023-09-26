@@ -9,7 +9,15 @@ import kotlin.jvm.JvmStatic
  * Represents a CTAP `clientPin` subcommand.
  *
  * This class is difficult to create directly, and is best built through the static
- * methods here.
+ * methods here, or used from a [CTAPClient][us.q3q.fidok.ctap.CTAPClient].
+ *
+ * @property subCommand The CTAP number representing *which* `clientPin` command is being invoked
+ * @property pinUvAuthProtocol The CTAP number for the PIN/UV auth protocol in use, if any
+ * @property keyAgreement The Platform's public key, to be used for ECDH-secured communication
+ * @property newPinEnc A new PIN, encrypted using the Authenticator-Platform secret
+ * @property pinHashEnc (part of) the hash of an existing PIN, encrypted using the Authenticator-Platform secret
+ * @property permissions A bitfield of the permissions being requested for a new PIN/UV token
+ * @property rpId The identifier of a FIDO Relying Party, for requesting a PIN/UV token for that RP only
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
@@ -27,16 +35,43 @@ class ClientPinCommand private constructor(
 
     companion object {
 
+        /**
+         * Get a command for knowing how many times a PIN can be retried before locking the Authenticator
+         *
+         * @return A [CtapCommand] object representing a request for PIN retries
+         *
+         * @see ClientPinGetRetriesResponse
+         */
         @JvmStatic
-        fun getPINRetries(pinUvAuthProtocol: UByte): ClientPinCommand {
-            return ClientPinCommand(subCommand = 0x01u, pinUvAuthProtocol = pinUvAuthProtocol)
+        fun getPINRetries(): ClientPinCommand {
+            return ClientPinCommand(subCommand = 0x01u)
         }
 
+        /**
+         * Get a command to retrieve the Authenticator's public key for an ECDH exchange
+         *
+         * @param pinUvAuthProtocol See [ClientPinCommand.pinUvAuthProtocol]
+         * @return A [CtapCommand] object representing a Key Agreement request
+         *
+         * @see ClientPinGetKeyAgreementResponse
+         */
         @JvmStatic
         fun getKeyAgreement(pinUvAuthProtocol: UByte): ClientPinCommand {
             return ClientPinCommand(subCommand = 0x02u, pinUvAuthProtocol = pinUvAuthProtocol)
         }
 
+        /**
+         * Get a command to set a PIN.
+         *
+         * This may only be used when there is *not* already a PIN set on the Authenticator.
+         * This doesn't usually return anything (other than, potentially, an error)
+         *
+         * @param pinUvAuthProtocol See [ClientPinCommand.pinUvAuthProtocol]
+         * @param keyAgreement See [ClientPinCommand.keyAgreement]
+         * @param newPinEnc See [ClientPinCommand.newPinEnc]
+         * @param pinUvAuthParam See [ClientPinCommand.pinUvAuthParam]
+         * @return A [CtapCommand] object representing a set-PIN request
+         */
         @JvmStatic
         fun setPIN(
             pinUvAuthProtocol: UByte,
@@ -53,6 +88,19 @@ class ClientPinCommand private constructor(
             )
         }
 
+        /**
+         * Get a command to change an existing PIN.
+         *
+         * This may only be used where the Authenticator already has a PIN set.
+         * This doesn't usually return anything (other than, potentially, an error)
+         *
+         * @param pinUvAuthProtocol See [ClientPinCommand.pinUvAuthProtocol]
+         * @param keyAgreement See [ClientPinCommand.keyAgreement]
+         * @param pinHashEnc See [ClientPinCommand.pinHashEnc]
+         * @param newPinEnc See [ClientPinCommand.newPinEnc]
+         * @param pinUvAuthParam See [ClientPinCommand.pinUvAuthParam]
+         * @return A [CtapCommand] object representing a change-PIN request
+         */
         @JvmStatic
         fun changePIN(
             pinUvAuthProtocol: UByte,
@@ -71,6 +119,18 @@ class ClientPinCommand private constructor(
             )
         }
 
+        /**
+         * Gets the CTAP2.0 command to get a PIN/UV token (although in CTAP2.0 it was just a PIN token!). You
+         * should use [getPinUvAuthTokenUsingPinWithPermissions] instead for more recent, safer Authenticators.
+         *
+         * @param pinUvAuthProtocol See [ClientPinCommand.pinUvAuthProtocol]
+         * @param keyAgreement See [ClientPinCommand.keyAgreement]
+         * @param pinHashEnc See [ClientPinCommand.pinHashEnc]
+         *
+         * @return A [CtapCommand] object representing a legacy get-PIN-token request
+         *
+         * @see [ClientPinGetTokenResponse]
+         */
         @JvmStatic
         fun getPinToken(pinUvAuthProtocol: UByte, keyAgreement: COSEKey, pinHashEnc: ByteArray): ClientPinCommand {
             return ClientPinCommand(
@@ -81,6 +141,18 @@ class ClientPinCommand private constructor(
             )
         }
 
+        /**
+         * Gets a command to get a PIN/UV token via an Authenticator's onboard User Verification method.
+         *
+         * @param pinUvAuthProtocol See [ClientPinCommand.pinUvAuthProtocol]
+         * @param keyAgreement See [ClientPinCommand.keyAgreement]
+         * @param permissions See [ClientPinCommand.permissions]
+         * @param rpId See [ClientPinCommand.rpId]
+         *
+         * @return A [CtapCommand] object representing a get-PIN-token request
+         *
+         * @see [ClientPinGetTokenResponse]
+         */
         @JvmStatic
         fun getPinUvAuthTokenUsingUvWithPermissions(
             pinUvAuthProtocol: UByte,
@@ -97,11 +169,33 @@ class ClientPinCommand private constructor(
             )
         }
 
+        /**
+         * Get a command for knowing how many times an Authenticator's onboard UV can be retried
+         * before disabling itself, potentially restricting the Authenticator to only allowing
+         * PINs or even locking it entirely.
+         *
+         * @return A [CtapCommand] object representing a request for UV retries
+         *
+         * @see ClientPinUvRetriesResponse
+         */
         @JvmStatic
         fun getUVRetries(): ClientPinCommand {
             return ClientPinCommand(subCommand = 0x07u)
         }
 
+        /**
+         * Gets a command to get a PIN/UV token using a user's PIN.
+         *
+         * @param pinUvAuthProtocol See [ClientPinCommand.pinUvAuthProtocol]
+         * @param keyAgreement See [ClientPinCommand.keyAgreement]
+         * @param pinHashEnc See [ClientPinCommand.pinHashEnc]
+         * @param permissions See [ClientPinCommand.permissions]
+         * @param rpId See [ClientPinCommand.rpId]
+         *
+         * @return A [CtapCommand] object representing a get-PIN-token request
+         *
+         * @see [ClientPinGetTokenResponse]
+         */
         @JvmStatic
         fun getPinUvAuthTokenUsingPinWithPermissions(
             pinUvAuthProtocol: UByte,

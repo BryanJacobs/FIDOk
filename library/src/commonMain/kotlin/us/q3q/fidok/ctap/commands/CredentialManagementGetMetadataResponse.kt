@@ -9,16 +9,26 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Represents the response to a [getCredsMetadata][CredentialManagementCommand.getCredsMetadata] operation.
+ *
+ * @property existingDiscoverableCredentialsCount The number of discoverable credentials present on the device
+ * @property maxPossibleRemainingCredentialsCount The APPROXIMATE number of discoverable credentials that could
+ *                                                be created, assuming each one uses maximal storage space
+ */
 @Serializable(with = CredentialManagementGetMetadataResponseSerializer::class)
 data class CredentialManagementGetMetadataResponse(
-    val existingResidentCredentialsCount: UInt,
+    val existingDiscoverableCredentialsCount: UInt,
     val maxPossibleRemainingCredentialsCount: UInt,
 )
 
+/**
+ * Deserializes a [CredentialManagementGetMetadataResponse]
+ */
 class CredentialManagementGetMetadataResponseSerializer : KSerializer<CredentialManagementGetMetadataResponse> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("CredentialManagementGetMetadataResponse") {
-            element("existingResidentCredentialsCount", UInt.serializer().descriptor)
+            element("existingDiscoverableCredentialsCount", UInt.serializer().descriptor)
             element("maxPossibleRemainingCredentialsCount", UInt.serializer().descriptor)
         }
 
@@ -32,7 +42,7 @@ class CredentialManagementGetMetadataResponseSerializer : KSerializer<Credential
         if (param != 0x01) {
             throw SerializationException("CredentialManagementGetMetadataResponse had param $param instead of 0x01")
         }
-        val existingResidentCredentialsCount = composite.decodeIntElement(descriptor, 0).toUInt()
+        val existingDiscoverableCredentialsCount = composite.decodeIntElement(descriptor, 0).toUInt()
         val nextParam = composite.decodeIntElement(descriptor, 1)
         if (nextParam != 0x02) {
             throw SerializationException("CredentialManagementGetMetadataResponse had param $nextParam instead of 0x02")
@@ -41,7 +51,7 @@ class CredentialManagementGetMetadataResponseSerializer : KSerializer<Credential
 
         composite.endStructure(descriptor)
         return CredentialManagementGetMetadataResponse(
-            existingResidentCredentialsCount = existingResidentCredentialsCount,
+            existingDiscoverableCredentialsCount = existingDiscoverableCredentialsCount,
             maxPossibleRemainingCredentialsCount = maxPossibleRemainingCredentialsCount,
         )
     }

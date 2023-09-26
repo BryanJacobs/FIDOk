@@ -3,6 +3,14 @@ package us.q3q.fidok.ctap.commands
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
 import us.q3q.fidok.crypto.PinUVProtocol
 
+/**
+ * An extension to store arbitrary data alongside a credential.
+ *
+ * After creating a credential, check [wasCreated] - if it returns true, the blob was stored.
+ * After getting an assertion, call [getBlob] to retrieve a previously-stored blob.
+ *
+ * @param blobToStore Blob to associated with newly created credentials
+ */
 class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension {
 
     private val NAME = "credBlob"

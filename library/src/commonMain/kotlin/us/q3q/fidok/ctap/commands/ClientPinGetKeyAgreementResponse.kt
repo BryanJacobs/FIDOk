@@ -8,9 +8,17 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * The response to a CTAP [ClientPinCommand.getKeyAgreement] invocation.
+ *
+ * @property key The Authenticator's public ECDH key, to create a Platform-Authenticator shared secret
+ */
 @Serializable(with = ClientPinGetKeyAgreementResponseSerializer::class)
 data class ClientPinGetKeyAgreementResponse(val key: COSEKey)
 
+/**
+ * Deserializes a [ClientPinGetKeyAgreementResponse]
+ */
 class ClientPinGetKeyAgreementResponseSerializer : KSerializer<ClientPinGetKeyAgreementResponse> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("ClientPinGetKeyAgreementResponse") {

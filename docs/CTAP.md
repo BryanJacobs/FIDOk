@@ -76,7 +76,6 @@ val credProtect = CredProtectExtension(3u)
 
 ctap.makeCredential(
     rpId = "my.cool.rpid.example",
-    userId = myThirtyTwoByteLongUserId,
     userDisplayName = "Bob Mcbobson",
     extensions = ExtensionSetup(
         listOf(credProtect)

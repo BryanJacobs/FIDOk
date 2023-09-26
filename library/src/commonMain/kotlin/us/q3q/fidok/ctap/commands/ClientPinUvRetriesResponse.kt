@@ -9,9 +9,18 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Response to a [ClientPinCommand.getUVRetries] request
+ *
+ * @property uvRetries The number of times onboard UV may be tried before the Authenticator will require a PIN
+ *                      (or lock): could be zero
+ */
 @Serializable(with = ClientPinUvRetriesResponseSerializer::class)
 data class ClientPinUvRetriesResponse(val uvRetries: UInt)
 
+/**
+ * Deserializes a [ClientPinUvRetriesResponse]
+ */
 class ClientPinUvRetriesResponseSerializer : KSerializer<ClientPinUvRetriesResponse> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("ClientPinUvRetriesResponse") {

@@ -14,6 +14,17 @@ import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * An encoding of a key that represents its mathemtical parameters.
+ *
+ * Currently, only holds ECDSA keys on NIST P-256.
+ *
+ * @property kty The "key type", loosely describing the algorithm used for this key
+ * @property alg The signature algorithm with which the key is used
+ * @property crv For an EC key, the curve number on which points reside
+ * @property x The X-coordinate of the EC point, as a 32-byte array
+ * @property y The Y-coordinate of the EC point, as a 32-byte array
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = COSEKeySerializer::class)
 data class COSEKey(val kty: Int, val alg: Int, val crv: Int, @ByteString val x: ByteArray, @ByteString val y: ByteArray) {
@@ -49,6 +60,9 @@ data class COSEKey(val kty: Int, val alg: Int, val crv: Int, @ByteString val x: 
     }
 }
 
+/**
+ * Serializes and deserializes [COSEKey] instances
+ */
 @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 class COSEKeySerializer : KSerializer<COSEKey> {
     override val descriptor: SerialDescriptor
