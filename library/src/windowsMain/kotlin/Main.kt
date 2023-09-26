@@ -1,7 +1,7 @@
 import co.touchlab.kermit.Logger
 import us.q3q.fidok.BotanCryptoProvider
 import us.q3q.fidok.LibHIDDevice
-import us.q3q.fidok.ctap.CTAPPinPermissions
+import us.q3q.fidok.ctap.CTAPPinPermission
 import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.commands.CredProtectExtension
 import us.q3q.fidok.ctap.commands.ExtensionSetup
@@ -56,20 +56,20 @@ fun main() {
 
     var pinToken = client.getPinTokenWithPermissions(
         pin,
-        permissions = CTAPPinPermissions.CREDENTIAL_MANAGEMENT.value,
+        permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
     )
     val meta = client.credentialManagement().getCredsMetadata(pinUVToken = pinToken)
     Logger.i { "Creds meta: $meta" }
 
     pinToken = client.getPinTokenWithPermissions(
         pin,
-        permissions = CTAPPinPermissions.CREDENTIAL_MANAGEMENT.value,
+        permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
     )
     client.credentialManagement().deleteCredential(credentialID = PublicKeyCredentialDescriptor(cred), pinUVToken = pinToken)
 
     pinToken = client.getPinTokenWithPermissions(
         pin,
-        permissions = CTAPPinPermissions.CREDENTIAL_MANAGEMENT.value,
+        permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
     )
 
     val rps = client.credentialManagement().enumerateRPs(pinUVToken = pinToken)
@@ -78,7 +78,7 @@ fun main() {
     for (rp in rps) {
         pinToken = client.getPinTokenWithPermissions(
             pin,
-            permissions = CTAPPinPermissions.CREDENTIAL_MANAGEMENT.value,
+            permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
         )
 
         val creds = client.credentialManagement().enumerateCredentials(rpIDHash = rp.rpIDHash, pinUVToken = pinToken)

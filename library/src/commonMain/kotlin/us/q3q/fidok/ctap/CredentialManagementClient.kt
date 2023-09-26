@@ -15,7 +15,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         val pp = client.getPinProtocol(pinProtocol)
 
         val pinUvAuthParam = pp.authenticate(pinUVToken, byteArrayOf(0x01))
-        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOptions.CREDENTIALS_MANAGEMENT.value) == true
+        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
 
         val command = CredentialManagementCommand.getCredsMetadata(
             pinUvAuthProtocol = pp.getVersion(),
@@ -30,7 +30,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         val pp = client.getPinProtocol(pinProtocol)
 
         val pinUvAuthParam = pp.authenticate(pinUVToken, byteArrayOf(0x02))
-        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOptions.CREDENTIALS_MANAGEMENT.value) == true
+        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
 
         val command = CredentialManagementCommand.enumerateRPsBegin(
             pinUvAuthProtocol = pp.getVersion(),
@@ -58,7 +58,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
 
     fun enumerateCredentials(rpIDHash: ByteArray, pinProtocol: UByte? = null, pinUVToken: PinUVToken): List<StoredCredentialData> {
         val pp = client.getPinProtocol(pinProtocol)
-        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOptions.CREDENTIALS_MANAGEMENT.value) == true
+        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
 
         val command = CredentialManagementCommand.enumerateCredentialsBegin(
             pinUvAuthProtocol = pp.getVersion(),
@@ -92,7 +92,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
     fun deleteCredential(credentialID: PublicKeyCredentialDescriptor, pinProtocol: UByte? = null, pinUVToken: PinUVToken) {
         val pp = client.getPinProtocol(pinProtocol)
 
-        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOptions.CREDENTIALS_MANAGEMENT.value) == true
+        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
 
         val command = CredentialManagementCommand.deleteCredential(
             pinUvAuthProtocol = pp.getVersion(),
@@ -113,7 +113,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
     ) {
         val pp = client.getPinProtocol(pinProtocol)
 
-        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOptions.CREDENTIALS_MANAGEMENT.value) == true
+        val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
 
         val command = CredentialManagementCommand.updateUserInformation(
             pinUvAuthProtocol = pp.getVersion(),

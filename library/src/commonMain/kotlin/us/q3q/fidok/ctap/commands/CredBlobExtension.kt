@@ -10,6 +10,9 @@ import us.q3q.fidok.crypto.PinUVProtocol
  * After getting an assertion, call [getBlob] to retrieve a previously-stored blob.
  *
  * @param blobToStore Blob to associated with newly created credentials
+ *
+ * @sample credBlobExtensionStore
+ * @sample credBlobExtensionRetrieve
  */
 class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension {
 
@@ -24,11 +27,20 @@ class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension 
     }
 
     private var created: Boolean = false
-    private var credBlob: ByteArray? = null
+    private var credBlobs: ArrayDeque<ByteArray?> = ArrayDeque()
 
+    /**
+     * After a [makeCredential][us.q3q.fidok.ctap.CTAPClient.makeCredential] call, this will return true if
+     * the `credBlob` was stored by the Authenticator.
+     *
+     * @return true if `credBlob` persisted
+     */
     fun wasCreated(): Boolean = created
 
-    fun getBlob(): ByteArray? = credBlob
+    /**
+     * Returns (and removes) the next `credBlob` from a [getAssertion][us.q3q.fidok.ctap.CTAPClient.getAssertions]
+     */
+    fun getBlob(): ByteArray? = credBlobs.removeFirst()
 
     override fun getName(): ExtensionName {
         return NAME
@@ -52,7 +64,7 @@ class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension 
 
     override fun getAssertionResponse(response: GetAssertionResponse) {
         val gotten = response.authData.extensions?.get(getName())
-        credBlob = (gotten as ByteArrayExtensionParameter).v
+        credBlobs.addLast((gotten as ByteArrayExtensionParameter).v)
     }
 
     override fun checkSupport(info: GetInfoResponse): Boolean {
@@ -70,5 +82,33 @@ class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension 
             return false
         }
         return true
+    }
+}
+
+fun credBlobExtensionStore() {
+    val client = Examples.getCTAPClient()
+
+    val credBlobExtension = CredBlobExtension(byteArrayOf(0x34, 0x12))
+    val credential = client.makeCredential(
+        rpId = "some.cool.example",
+        extensions = ExtensionSetup(listOf(credBlobExtension)),
+    )
+
+    if (credBlobExtension.wasCreated()) {
+        println("And there was much rejoicing.")
+    }
+}
+
+fun credBlobExtensionRetrieve() {
+    val client = Examples.getCTAPClient()
+
+    val credBlobExtension = CredBlobExtension()
+    val assertions = client.getAssertions(
+        rpId = "some.cool.example",
+        extensions = ExtensionSetup(listOf(credBlobExtension)),
+    )
+
+    for (assertion in assertions) {
+        val gottenBlob = credBlobExtension.getBlob()
     }
 }

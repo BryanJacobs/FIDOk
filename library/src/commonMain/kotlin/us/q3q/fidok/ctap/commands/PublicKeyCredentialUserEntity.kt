@@ -18,6 +18,7 @@ import kotlinx.serialization.encoding.Encoder
 @Serializable(with = PublicKeyCredentialUserEntitySerializer::class)
 data class PublicKeyCredentialUserEntity(
     @ByteString val id: ByteArray,
+    val name: String? = null,
     val displayName: String? = null,
     val icon: String? = null,
 ) {
@@ -33,6 +34,7 @@ data class PublicKeyCredentialUserEntity(
         other as PublicKeyCredentialUserEntity
 
         if (!id.contentEquals(other.id)) return false
+        if (name != other.name) return false
         if (displayName != other.displayName) return false
         if (icon != other.icon) return false
 
@@ -41,6 +43,7 @@ data class PublicKeyCredentialUserEntity(
 
     override fun hashCode(): Int {
         var result = id.contentHashCode()
+        result = 31 * result + (name?.hashCode() ?: 0)
         result = 31 * result + (displayName?.hashCode() ?: 0)
         result = 31 * result + (icon?.hashCode() ?: 0)
         return result
@@ -59,6 +62,8 @@ class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialU
             element("id", ByteArraySerializer().descriptor)
             element("icon_key", String.serializer().descriptor, isOptional = true)
             element("icon", String.serializer().descriptor, isOptional = true)
+            element("name_key", String.serializer().descriptor, isOptional = true)
+            element("name", String.serializer().descriptor, isOptional = true)
             element("displayName_key", String.serializer().descriptor, isOptional = true)
             element("displayName", String.serializer().descriptor, isOptional = true)
         }
@@ -70,6 +75,7 @@ class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialU
         var id: ByteArray? = null
         var displayName: String? = null
         var icon: String? = null
+        var name: String? = null
 
         for (i in 1..numElements) {
             when (val key = composite.decodeStringElement(descriptor, i)) {
@@ -77,8 +83,10 @@ class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialU
                     id = composite.decodeSerializableElement(descriptor, 2, ByteArraySerializer())
                 "icon" ->
                     icon = composite.decodeStringElement(descriptor, 4)
+                "name" ->
+                    name = composite.decodeStringElement(descriptor, 6)
                 "displayName" ->
-                    displayName = composite.decodeStringElement(descriptor, 6)
+                    displayName = composite.decodeStringElement(descriptor, 8)
                 else ->
                     throw SerializationException("Unknown key in PublicKeyCredentialsUserEntity: $key")
             }
@@ -88,14 +96,17 @@ class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialU
             throw SerializationException("PublicKeyCredentialsUserEntity missing id")
         }
 
-        return PublicKeyCredentialUserEntity(id = id, displayName = displayName, icon = icon)
+        return PublicKeyCredentialUserEntity(id = id, displayName = displayName, icon = icon, name = name)
     }
 
     override fun serialize(encoder: Encoder, value: PublicKeyCredentialUserEntity) {
-        if (value.displayName == null) {
-            throw SerializationException("Cannot serialize a PublicKeyCredentialsUserEntity without a displayName")
+        var size = 1
+        if (value.displayName != null) {
+            size++
         }
-        var size = 2
+        if (value.name != null) {
+            size++
+        }
         if (value.icon != null) {
             size++
         }
@@ -106,8 +117,14 @@ class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialU
             subEncoder.encodeStringElement(descriptor, 3, "icon")
             subEncoder.encodeStringElement(descriptor, 4, value.icon)
         }
-        subEncoder.encodeStringElement(descriptor, 5, "displayName")
-        subEncoder.encodeStringElement(descriptor, 6, value.displayName)
+        if (value.name != null) {
+            subEncoder.encodeStringElement(descriptor, 5, "name")
+            subEncoder.encodeStringElement(descriptor, 6, value.name)
+        }
+        if (value.displayName != null) {
+            subEncoder.encodeStringElement(descriptor, 7, "displayName")
+            subEncoder.encodeStringElement(descriptor, 8, value.displayName)
+        }
         subEncoder.endStructure(descriptor)
     }
 }

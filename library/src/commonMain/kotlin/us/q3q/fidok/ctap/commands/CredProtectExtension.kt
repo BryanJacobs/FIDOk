@@ -20,6 +20,8 @@ import us.q3q.fidok.crypto.PinUVProtocol
  * level than the one requested - lower, or even higher!
  *
  * @param requestedLevel The requested credential protection level
+ *
+ * @sample credProtectExtensionUse
  */
 class CredProtectExtension(private val requestedLevel: UByte) : Extension {
 
@@ -47,4 +49,16 @@ class CredProtectExtension(private val requestedLevel: UByte) : Extension {
         val gotten = response.authData.extensions?.get(getName())
         gottenLevel = (gotten as IntExtensionParameter).v.toUByte()
     }
+}
+
+fun credProtectExtensionUse() {
+    val client = Examples.getCTAPClient()
+
+    val credProtectExtension = CredProtectExtension(3u)
+    val credential = client.makeCredential(
+        rpId = "some.rpid.example",
+        extensions = ExtensionSetup(listOf(credProtectExtension)),
+    )
+
+    val credProtectLevel = credProtectExtension.getLevel()
 }

@@ -22,6 +22,8 @@ val customSerializers = SerializersModule {
 
 /**
  * An extremely horrible class that turns CTAP objects into canonical CBOR byte arrays
+ *
+ * @sample ctapCBOREncoderExample
  */
 @OptIn(ExperimentalSerializationApi::class)
 open class CTAPCBOREncoder : AbstractEncoder() {
@@ -326,4 +328,10 @@ class MapEncoder(parentEncoder: CTAPCBOREncoder, private val numElements: Int) :
 
         super.endStructure(descriptor)
     }
+}
+
+fun ctapCBOREncoderExample() {
+    val encoder = CTAPCBOREncoder()
+    encoder.encodeSerializableValue(GetInfoCommand.serializer(), GetInfoCommand())
+    val bytes = encoder.getBytes()
 }

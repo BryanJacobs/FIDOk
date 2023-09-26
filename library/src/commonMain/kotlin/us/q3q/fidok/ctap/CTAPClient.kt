@@ -35,6 +35,11 @@ import us.q3q.fidok.ctap.commands.ResetCommand
 import kotlin.math.min
 import kotlin.random.Random
 
+/**
+ * Possible responses to a [CtapCommand] - one success, and many types of error
+ *
+ * @property value The CTAP assigned integer representing the response
+ */
 enum class CTAPResponse(val value: UByte) {
     OK(0x00u),
     INVALID_COMMAND(0x01u),
@@ -89,7 +94,12 @@ enum class CTAPResponse(val value: UByte) {
     VENDOR_LAST(0xFFu),
 }
 
-enum class CTAPOptions(val value: String) {
+/**
+ * Different options that may occur in a [CTAP GetInfo response][GetInfoResponse.options]
+ *
+ * @property value The string representing the option in the underlying CTAP exchange
+ */
+enum class CTAPOption(val value: String) {
     PLATFORM_AUTHENTICATOR("plat"),
     DISCOVERABLE_CREDENTIALS("rk"),
     CLIENT_PIN("clientPin"),
@@ -111,7 +121,13 @@ enum class CTAPOptions(val value: String) {
     ALWAYS_UV("alwaysUv"),
 }
 
-enum class CTAPPinPermissions(val value: UByte) {
+/**
+ * The different permissions that [may be requested][CTAPClient.getPinUVTokenUsingAppropriateMethod] from an
+ * Authenticator
+ *
+ * @property value The bitfield encoding of the permissions
+ */
+enum class CTAPPinPermission(val value: UByte) {
     MAKE_CREDENTIAL(0x01u),
     GET_ASSERTION(0x02u),
     CREDENTIAL_MANAGEMENT(0x04u),
@@ -133,9 +149,6 @@ class InvalidAttestationError : IncorrectDataException(
 class InvalidSignatureError : IncorrectDataException(
     "Assertion signature failed to validate",
 )
-
-private const val FIDO_2_1 = "FIDO_2_1"
-private const val FIDO_2_0 = "FIDO_2_0"
 
 @OptIn(ExperimentalStdlibApi::class)
 class CTAPClient(
@@ -205,10 +218,11 @@ class CTAPClient(
     }
 
     fun makeCredential(
-        clientDataHash: ByteArray? = null,
         rpId: String,
+        clientDataHash: ByteArray? = null,
         userId: ByteArray? = null,
-        userDisplayName: String,
+        userName: String? = null,
+        userDisplayName: String? = null,
         discoverableCredential: Boolean = false,
         userVerification: Boolean = false,
         pubKeyCredParams: List<PublicKeyCredentialParameters> = DEFAULT_CREDENTIAL_ALGORITHMS,
@@ -274,6 +288,7 @@ class CTAPClient(
             user = PublicKeyCredentialUserEntity(
                 id = effectiveUserId,
                 displayName = userDisplayName,
+                name = userName,
             ),
             pubKeyCredParams = pubKeyCredParams,
             options = options,
@@ -392,19 +407,20 @@ class CTAPClient(
     }
 
     fun getAssertions(
-        clientDataHash: ByteArray,
         rpId: String,
+        clientDataHash: ByteArray? = null,
         allowList: List<PublicKeyCredentialDescriptor>? = null,
         extensions: ExtensionSetup? = null,
         userPresence: Boolean? = null,
         pinUvProtocol: UByte? = null,
         pinUvToken: PinUVToken? = null,
     ): List<GetAssertionResponse> {
-        require(clientDataHash.size == 32)
+        require(clientDataHash == null || clientDataHash.size == 32)
         require(
             (pinUvToken == null && pinUvProtocol == null) ||
                 pinUvToken != null,
         )
+        val effectiveClientDataHash = clientDataHash ?: Random.nextBytes(32)
 
         val info = getInfoIfUnset()
         if (extensions?.checkSupport(info) == false) {
@@ -415,7 +431,7 @@ class CTAPClient(
         val pinUvAuthParam = if (pinUvToken != null) {
             val pp = getPinProtocol(pinUvProtocol)
             pinUvProtocolVersion = pp.getVersion()
-            pp.authenticate(pinUvToken, clientDataHash)
+            pp.authenticate(pinUvToken, effectiveClientDataHash)
         } else {
             null
         }
@@ -443,7 +459,7 @@ class CTAPClient(
                 allowList?.subList(allowListSent, min(allowListSent + numAllowListEntriesPerBatch, allowList.size))
 
             val request = GetAssertionCommand(
-                clientDataHash = clientDataHash,
+                clientDataHash = effectiveClientDataHash,
                 rpId = rpId,
                 allowList = thisRequestAllowList,
                 extensions = extensions?.getAssertion(keyAgreement = ka, pinUVProtocol = pp),
@@ -623,10 +639,10 @@ class CTAPClient(
         pinUvProtocol: UByte? = null,
     ): PinUVToken {
         val info = getInfoIfUnset()
-        if (info.options?.get(CTAPOptions.PIN_UV_AUTH_TOKEN.value) == true) {
+        if (info.options?.get(CTAPOption.PIN_UV_AUTH_TOKEN.value) == true) {
             // supports permissions
 
-            if (info.options[CTAPOptions.INTERNAL_USER_VERIFICATION.value] == true) {
+            if (info.options[CTAPOption.INTERNAL_USER_VERIFICATION.value] == true) {
                 // try UV first (with permissions)
 
                 val remainingTries = getUvRetries().uvRetries
@@ -668,19 +684,19 @@ class CTAPClient(
                 }
             }
 
-            if (info.options[CTAPOptions.CLIENT_PIN.value] != true) {
+            if (info.options[CTAPOption.CLIENT_PIN.value] != true) {
                 // we want to try a PIN, but it's not set :-(
                 throw PinNotAvailableException()
             }
 
             if (desiredPermissions.toUInt() and
                 (
-                    CTAPPinPermissions.MAKE_CREDENTIAL.value.toUInt()
-                        or CTAPPinPermissions.GET_ASSERTION.value.toUInt()
+                    CTAPPinPermission.MAKE_CREDENTIAL.value.toUInt()
+                        or CTAPPinPermission.GET_ASSERTION.value.toUInt()
                     ) != 0u
             ) {
                 // we're asking for MC or GA, but the authenticator doesn't allow those to work
-                if (info.options[CTAPOptions.NO_MC_GA_PERMISSIONS_WITH_CLIENT_PIN.value] == true) {
+                if (info.options[CTAPOption.NO_MC_GA_PERMISSIONS_WITH_CLIENT_PIN.value] == true) {
                     // but the authenticator says that's not allowed with a PIN, only with UV
                     throw PermissionDeniedError(
                         "Using a PIN for making credentials or getting assertions" +
@@ -801,7 +817,7 @@ class CTAPClient(
 
     fun authenticatorConfig(): AuthenticatorConfigClient {
         val info = getInfoIfUnset()
-        if (info.options?.get(CTAPOptions.AUTHENTICATOR_CONFIG.value) != true) {
+        if (info.options?.get(CTAPOption.AUTHENTICATOR_CONFIG.value) != true) {
             throw IllegalStateException("Authenticator config commands not supported on $device")
         }
         return AuthenticatorConfigClient(this)
@@ -809,8 +825,8 @@ class CTAPClient(
 
     fun credentialManagement(): CredentialManagementClient {
         val info = getInfoIfUnset()
-        val fullySupported = info.options?.get(CTAPOptions.CREDENTIALS_MANAGEMENT.value) == true
-        val prototypeSupported = info.options?.get(CTAPOptions.CREDENTIALS_MANAGEMENT_PREVIEW.value) == true
+        val fullySupported = info.options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
+        val prototypeSupported = info.options?.get(CTAPOption.CREDENTIALS_MANAGEMENT_PREVIEW.value) == true
         if (!fullySupported && !prototypeSupported) {
             throw IllegalStateException("Credential management commands not supported on $device")
         }

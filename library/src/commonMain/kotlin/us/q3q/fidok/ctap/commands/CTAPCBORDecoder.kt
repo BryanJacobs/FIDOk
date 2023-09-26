@@ -16,6 +16,7 @@ import kotlinx.serialization.modules.SerializersModule
  * A rather horrible class that transforms CTAP canonical CBOR into relevant objects.
  *
  * @param input A byte array holding the serialized representation of some CTAP object(s)
+ * @sample ctapCBORDecoderExample
  */
 @OptIn(ExperimentalSerializationApi::class, ExperimentalStdlibApi::class)
 open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
@@ -192,4 +193,11 @@ class AdvancingDecoder(bytes: ByteArray, val parent: CTAPCBORArrayDecoder) : CTA
         super.endStructure(descriptor)
         parent.advance(this.offset)
     }
+}
+
+@OptIn(ExperimentalStdlibApi::class)
+fun ctapCBORDecoderExample() {
+    val response_bytes = "A10503".hexToByteArray()
+    val decoder = CTAPCBORDecoder(response_bytes)
+    val decodedObject = decoder.decodeSerializableValue(ClientPinUvRetriesResponse.serializer())
 }
