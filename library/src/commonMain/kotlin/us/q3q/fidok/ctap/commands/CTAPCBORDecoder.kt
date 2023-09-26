@@ -12,6 +12,11 @@ import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
 
+/**
+ * A rather horrible class that transforms CTAP canonical CBOR into relevant objects.
+ *
+ * @param input A byte array holding the serialized representation of some CTAP object(s)
+ */
 @OptIn(ExperimentalSerializationApi::class, ExperimentalStdlibApi::class)
 open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
 
@@ -118,7 +123,7 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
             StructureKind.MAP, StructureKind.CLASS -> {
                 val byte = input[soffset++]
                 if (byte == (0xB8).toByte()) {
-                    val num = input[soffset++]
+                    val num = input[soffset++].toUByte()
                     num.toInt()
                 } else if (byte >= (0xA0).toByte() && byte <= (0xB7).toByte()) {
                     byte - (0xA0).toByte()
@@ -159,6 +164,9 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
     }
 }
 
+/**
+ * Decodes a CTAP byte array at a particular position - by just returning the bytes
+ */
 class CTAPCBORArrayDecoder(bytes: ByteArray) : CTAPCBORDecoder(bytes) {
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
@@ -176,6 +184,9 @@ class CTAPCBORArrayDecoder(bytes: ByteArray) : CTAPCBORDecoder(bytes) {
     }
 }
 
+/**
+ * Causes the parent decoder to skip a byte array's contents, avoiding having it be decoded twice
+ */
 class AdvancingDecoder(bytes: ByteArray, val parent: CTAPCBORArrayDecoder) : CTAPCBORDecoder(bytes) {
     override fun endStructure(descriptor: SerialDescriptor) {
         super.endStructure(descriptor)

@@ -20,6 +20,9 @@ val customSerializers = SerializersModule {
     include(extensionSerializers)
 }
 
+/**
+ * An extremely horrible class that turns CTAP objects into canonical CBOR byte arrays
+ */
 @OptIn(ExperimentalSerializationApi::class)
 open class CTAPCBOREncoder : AbstractEncoder() {
     protected val accumulatedBytes = arrayListOf<Byte>()

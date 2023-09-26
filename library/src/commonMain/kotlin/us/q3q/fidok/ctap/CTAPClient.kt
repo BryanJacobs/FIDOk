@@ -794,9 +794,8 @@ class CTAPClient(
         return PinUVToken(pp.decrypt(pk, ret.pinUvAuthToken))
     }
 
-    fun getPINRetries(pinUvProtocol: UByte? = null): ClientPinGetRetriesResponse {
-        val pp = getPinProtocol(pinUvProtocol)
-        val command = ClientPinCommand.getPINRetries(pinUvAuthProtocol = pp.getVersion())
+    fun getPINRetries(): ClientPinGetRetriesResponse {
+        val command = ClientPinCommand.getPINRetries()
         return xmit(command, ClientPinGetRetriesResponse.serializer())
     }
 
