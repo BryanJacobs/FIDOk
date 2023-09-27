@@ -22,9 +22,9 @@ class MakeCredential : SimulationTest() {
         val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName)
 
         assertEquals(0u, res.authData.signCount)
-        assertTrue(res.authData.hasFlag(FLAGS.UP))
-        assertTrue(res.authData.hasFlag(FLAGS.AT))
-        assertFalse(res.authData.hasFlag(FLAGS.UV))
+        assertTrue(res.authData.hasFlag(FLAGS.USER_PRESENCE))
+        assertTrue(res.authData.hasFlag(FLAGS.ATTESTED))
+        assertFalse(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
         assertEquals(65u, res.authData.flags)
         assertEquals(64, res.getCredentialID().size)
         assertNull(res.authData.extensions)
@@ -42,7 +42,7 @@ class MakeCredential : SimulationTest() {
 
         val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinUvToken = token, pinUvProtocol = 1u)
 
-        assertTrue(res.authData.hasFlag(FLAGS.UV))
+        assertTrue(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
     }
 
     @Test
@@ -55,7 +55,7 @@ class MakeCredential : SimulationTest() {
 
         val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinUvToken = token, pinUvProtocol = 2u)
 
-        assertTrue(res.authData.hasFlag(FLAGS.UV))
+        assertTrue(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
     }
 
     @Test

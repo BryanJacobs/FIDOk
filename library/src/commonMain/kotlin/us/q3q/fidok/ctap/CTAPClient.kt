@@ -18,6 +18,7 @@ import us.q3q.fidok.ctap.commands.ClientPinGetTokenResponse
 import us.q3q.fidok.ctap.commands.ClientPinUvRetriesResponse
 import us.q3q.fidok.ctap.commands.CredentialCreationOption
 import us.q3q.fidok.ctap.commands.CtapCommand
+import us.q3q.fidok.ctap.commands.Examples
 import us.q3q.fidok.ctap.commands.ExtensionSetup
 import us.q3q.fidok.ctap.commands.GetAssertionCommand
 import us.q3q.fidok.ctap.commands.GetAssertionOption
@@ -137,6 +138,16 @@ enum class CTAPPinPermission(val value: UByte) {
 }
 
 /**
+ * The known "levels" of enterprise attestation.
+ *
+ * @property value The CTAP value passed as [MakeCredentialCommand.enterpriseAttestation]
+ */
+enum class EnterpriseAttestationLevel(val value: UByte) {
+    VENDOR_FACILITATED(1u),
+    PLATFORM_MANAGED(2u),
+}
+
+/**
  * Represents a CTAP-level error.
  *
  * This means an Authenticator was successfully reached, but it returned an error code
@@ -160,14 +171,45 @@ open class CTAPError(val code: UByte, message: String? = null) : RuntimeExceptio
  */
 class PermissionDeniedError(message: String) : CTAPError(CTAPResponse.OPERATION_DENIED.value, message)
 
+/**
+ * Thrown when an attestation from the Authenticator doesn't match the content it's attesting
+ * (usually a newly created credential), or when the attestation itself can't be validated
+ */
 class InvalidAttestationError : IncorrectDataException(
     "Attestation failed to validate",
 )
 
+/**
+ * Thrown when the signature on an assertion cannot tbe validated
+ */
 class InvalidSignatureError : IncorrectDataException(
     "Assertion signature failed to validate",
 )
 
+/**
+ * Thrown when a credential is not created due to a given [excludeList][MakeCredentialCommand.excludeList]
+ */
+class CredentialExcludedError : CTAPError(
+    CTAPResponse.CREDENTIAL_EXCLUDED.value,
+    "Credential was present on the exclude list",
+)
+
+/**
+ * Core class for accessing the FIDOk CTAP layer.
+ *
+ * A CTAP client provides the ability to interact with a particular [AuthenticatorDevice],
+ * and abstracts away the transport layer.
+ *
+ * A client is stateful, and only one should be used for a given device.
+ *
+ * To obtain a client, call [FIDOkLibrary.ctapClient].
+ *
+ * @param library Initialized FIDOk library instance
+ * @param device The authenticator with which to communicate
+ * @param collectPinFromUser A function for retrieving a PIN from the user when necessary
+ *
+ * @sample ctapClientExample
+ */
 @OptIn(ExperimentalStdlibApi::class)
 class CTAPClient(
     private val library: FIDOkLibrary,
@@ -223,6 +265,14 @@ class CTAPClient(
         return getInfo()
     }
 
+    /**
+     * Sends a [GetInfoCommand] to the Authenticator and returns a [GetInfoResponse].
+     *
+     * Used to read all sorts of useful state and meta-information from the Authenticator.
+     *
+     * @return The Authenticator info object
+     */
+    @Throws(DeviceCommunicationException::class)
     fun getInfo(): GetInfoResponse {
         val ret = xmit(GetInfoCommand(), GetInfoResponse.serializer())
         info = ret
@@ -230,11 +280,58 @@ class CTAPClient(
         return ret
     }
 
+    /**
+     * Sends a [ResetCommand] to the Authenticator, fully clearing its state. Returns nothing.
+     */
+    @Throws(DeviceCommunicationException::class)
     fun authenticatorReset() {
         val ret = device.sendBytes(ResetCommand().getCBOR())
         checkResponseStatus(ret)
     }
 
+    /**
+     * Creates a new CTAP credential via a [MakeCredentialCommand], returning a [MakeCredentialResponse].
+     *
+     * This is the way to create a new key usable for later calls to [getAssertions]. The easiest way to
+     * get the credential itself is to call [MakeCredentialResponse.getCredentialID]
+     * and [MakeCredentialResponse.getCredentialPublicKey].
+     *
+     * @param rpId The unique identifier of the Relying Party to which the new credential pertains. In CTAP
+     *             this can be any string, but in practice it's usually a domain name (no URI schema or port number).
+     * @param clientDataHash A 32-byte-long identifier for the credential request. This is intended to be the
+     *                       SHA-256 hash of a "client data object", but in practice can be any non-colliding 32 bytes.
+     *                       If not set, this will be generated randomly
+     * @param userId A 32-byte long user ID. This determines whether two different credentials will be created by the
+     *               Authenticator for the same `rpId`, or whether the previous credential will be replaced. If not
+     *               provided, this will be generated randomly
+     * @param userName The "username" to associate with the credential being created. This might be displayed to the
+     *                 Authenticator's user to help them select a credential, but is more likely unused.
+     * @param userDisplayName The "display" name of the user to associate with the credential being created. This might
+     *                 be displayed to the Authenticator's user to help them select a credential, but is more likely
+     *                 irrelevant.
+     * @param discoverableCredential If true, try to create a "discoverable" credential - one that can later be used
+     *                               by providing the same `rpId` to the Authenticator even without the credential ID.
+     * @param userVerification DEPRECATED field. If true, request the Authenticator "verify" the user. How this happens
+     *                         depends on the device. If you're think about using this, you probably wanted to pass
+     *                         a `pinUvToken` instead
+     * @param pubKeyCredParams The cryptographic algorithms and parameters that the caller can handle. The Authenticator
+     *                         will choose one that it supports, and reply with a credential of that type
+     * @param excludeList A list of previously-created credentials. If any of them are valid for this Authenticator,
+     *                    a `CredentialExcludedError` will be raised.
+     * @param pinUvProtocol The CTAP number of the PIN/UV protocol to use. If not set, will be none or version 1,
+     *                      depending on whether a `pinUvToken` is supplied
+     * @param pinUvToken A token obtained from [getPinUVTokenUsingAppropriateMethod] or similar method
+     * @param enterpriseAttestation If set, the [enterprise attestation "level"][EnterpriseAttestationLevel] to request
+     * @param extensions An [ExtensionSetup] indicating any extension(s) active for the makeCredential call.
+     *                   Each extension has a change to alter the request going to the Authenticator, and to collect
+     *                   data from the response
+     * @param validateAttestation If true, throw an [InvalidAttestationError] in the event the attestation from the
+     *                            Authenticator doesn't validate
+     * @return The newly created credential, attestation, extension responses, etc
+     *
+     * @sample ctapClientExample
+     */
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun makeCredential(
         rpId: String,
         clientDataHash: ByteArray? = null,
@@ -247,18 +344,18 @@ class CTAPClient(
         excludeList: List<PublicKeyCredentialDescriptor>? = null,
         pinUvProtocol: UByte? = null,
         pinUvToken: PinUVToken? = null,
-        enterpiseAttestation: UInt? = null,
+        enterpriseAttestation: UInt? = null,
         extensions: ExtensionSetup? = null,
         validateAttestation: Boolean = true,
     ): MakeCredentialResponse {
         require(clientDataHash == null || clientDataHash.size == 32)
-        require(enterpiseAttestation == null || enterpiseAttestation == 1u || enterpiseAttestation == 2u)
+        require(enterpriseAttestation == null || enterpriseAttestation == 1u || enterpriseAttestation == 2u)
         require(
             (pinUvToken == null && pinUvProtocol == null) ||
                 pinUvToken != null,
         )
         val info = getInfoIfUnset()
-        if (enterpiseAttestation != null && info.options?.get("ep") != true) {
+        if (enterpriseAttestation != null && info.options?.get("ep") != true) {
             throw IllegalArgumentException("Authenticator enterprise attestation isn't enabled")
         }
         if (extensions?.checkSupport(info) == false) {
@@ -313,10 +410,18 @@ class CTAPClient(
             excludeList = excludeList,
             pinUvAuthProtocol = pinUvProtocolVersion,
             pinUvAuthParam = pinUvAuthParam,
-            enterpriseAttestation = enterpiseAttestation,
+            enterpriseAttestation = enterpriseAttestation,
             extensions = extensions?.makeCredential(ka, pp),
         )
-        val ret = xmit(request, MakeCredentialResponse.serializer())
+
+        val ret = try {
+            xmit(request, MakeCredentialResponse.serializer())
+        } catch (e: CTAPError) {
+            if (e.code == CTAPResponse.CREDENTIAL_EXCLUDED.value) {
+                throw CredentialExcludedError()
+            }
+            throw e
+        }
 
         if (validateAttestation) {
             validateCredentialAttestation(ret, effectiveClientDataHash)
@@ -348,6 +453,15 @@ class CTAPClient(
         }
     }
 
+    /**
+     * Validates a "self" attestation - a credential signed with its own private key.
+     *
+     * @param makeCredentialResponse The response from the Authenticator to a [makeCredential]
+     * @param clientDataHash The [MakeCredentialCommand.clientDataHash] given to the Authenticator
+     * @param alg The [COSEAlgorithmIdentifier] used for the signature
+     * @param sig The signature to validate
+     */
+    @Throws(InvalidAttestationError::class)
     fun validateSelfAttestation(
         makeCredentialResponse: MakeCredentialResponse,
         clientDataHash: ByteArray,
@@ -383,6 +497,13 @@ class CTAPClient(
         validateES256UsingPubKey(makeCredentialResponse, clientDataHash, x509Info.publicX, x509Info.publicY, sig)
     }
 
+    /**
+     * Checks the attestation of a given freshly-created credential
+     *
+     * @param makeCredentialResponse The result of a [makeCredential] operation
+     * @param clientDataHash The 32 bytes given to a [makeCredential] operation
+     */
+    @Throws(InvalidAttestationError::class)
     fun validateCredentialAttestation(makeCredentialResponse: MakeCredentialResponse, clientDataHash: ByteArray) {
         when (makeCredentialResponse.fmt) {
             AttestationTypes.PACKED.value -> {
@@ -405,6 +526,15 @@ class CTAPClient(
         }
     }
 
+    /**
+     * Checks that an assertion is signed with the private key corresponding to the given public key
+     *
+     * @param getAssertionResponse A response to a [getAssertions] invocation
+     * @param clientDataHash The 32 bytes given as [GetAssertionCommand.clientDataHash] to the Authenticator
+     * @param publicKey The public key, such as from [MakeCredentialResponse.getCredentialPublicKey], to use in
+     *                  validating the assertion's signature
+     */
+    @Throws(InvalidSignatureError::class)
     fun validateAssertionSignature(getAssertionResponse: GetAssertionResponse, clientDataHash: ByteArray, publicKey: COSEKey) {
         if (publicKey.alg != COSEAlgorithmIdentifier.ES256.value) {
             throw NotImplementedError("Only ES256 signatures are currently implemented")
@@ -424,6 +554,35 @@ class CTAPClient(
         }
     }
 
+    /**
+     * Core call to get assertion(s) from the Authenticator
+     *
+     * This will use the [allowList] (or, for discoverable credentials, the credentials stored on the
+     * Authenticator itself) to generate a list of assertions. Each assertion is signed by the Authenticator.
+     *
+     * Note that the number of responses might not match the length of the [allowList]: only credentials
+     * that are still valid, allowed to be used, etc will generate assertions.
+     *
+     * To use discoverable credentials, the [allowList] must be empty.
+     *
+     * @param rpId The unique identifier of the Relying Party to assert. Should match the value used for the
+     *             `makeCredential` invocation, whether that happened here or elsewhere
+     * @param clientDataHash A 32-byte-long value that is signed by the assertion. In some senses, this is really
+     *                       what is being verified. Designed to be a SHA-256 hash of some client data object, but
+     *                       at the CTAP level can be any 32 bytes, ideally unpredictable
+     * @param allowList Optional list of descriptors of previously-created credentials. If not set, discoverable
+     *                  credentials will be used instead; if set, discoverable credentials are ignored
+     * @param extensions Any assertion-time extensions to use
+     * @param userPresence If true, request the Authenticator check user presence
+     * @param pinUvProtocol PIN/UV protocol number to use, if any
+     * @param pinUvToken A user verification token obtained from [getPinUVTokenUsingAppropriateMethod] or similar method
+     *
+     * @return A list of [GetAssertionResponse] objects, each one representing a separate assertion. The
+     *         assertion signature(s) are unvalidated; it's the responsibility of the calling code to check them
+     *
+     * @sample getAssertionsExample
+     */
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getAssertions(
         rpId: String,
         clientDataHash: ByteArray? = null,
@@ -507,6 +666,17 @@ class CTAPClient(
         return ret
     }
 
+    /**
+     * Obtain the Platform-Authenticator shared secret
+     *
+     * This method will create a new Platform key, retrieve the Authenticator key, and perform an ECDH agreement.
+     * It will also build the various cryptographic objects necessary for the CTAP protocol.
+     *
+     * @param pinUvProtocol The PIN/UV protocol number to use; this must match the version used for later commands
+     *
+     * @return An initialized key agreement object
+     */
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getKeyAgreement(pinUvProtocol: UByte = 2u): KeyAgreementPlatformKey {
         require(pinUvProtocol == 1u.toUByte() || pinUvProtocol == 2u.toUByte())
 
@@ -566,6 +736,10 @@ class CTAPClient(
         return pinByteList.toByteArray()
     }
 
+    /**
+     * Sets a new PIN for the Authenticator, which must not already have on set
+     */
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun setPIN(newPinUnicode: String, pinUvProtocol: UByte? = null) {
         val pp = getPinProtocol(pinUvProtocol)
         val pk = ensurePlatformKey(pp)
@@ -749,6 +923,7 @@ class CTAPClient(
         )
     }
 
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getPinTokenUsingUv(
         pinUvProtocol: UByte? = null,
         permissions: UByte,
@@ -771,6 +946,7 @@ class CTAPClient(
         return PinUVToken(pp.decrypt(pk, ret.pinUvAuthToken))
     }
 
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getUvRetries(): ClientPinUvRetriesResponse {
         val command = ClientPinCommand.getUVRetries()
 
@@ -781,6 +957,7 @@ class CTAPClient(
         return ret
     }
 
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getPinToken(currentPinUnicode: String, pinUvProtocol: UByte? = null): PinUVToken {
         val pp = getPinProtocol(pinUvProtocol)
         val pk = ensurePlatformKey(pp)
@@ -801,6 +978,7 @@ class CTAPClient(
         return PinUVToken(pp.decrypt(pk, ret.pinUvAuthToken))
     }
 
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getPinTokenWithPermissions(
         currentPinUnicode: String,
         pinUvProtocol: UByte? = null,
@@ -828,6 +1006,7 @@ class CTAPClient(
         return PinUVToken(pp.decrypt(pk, ret.pinUvAuthToken))
     }
 
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getPINRetries(): ClientPinGetRetriesResponse {
         val command = ClientPinCommand.getPINRetries()
         return xmit(command, ClientPinGetRetriesResponse.serializer())
@@ -870,5 +1049,30 @@ data class PinUVToken(val token: ByteArray) {
 
     override fun hashCode(): Int {
         return token.contentHashCode()
+    }
+}
+
+internal fun ctapClientExample() {
+    val library = Examples.getLibrary()
+
+    val devices = library.listDevices()
+    val client = library.ctapClient(devices.first())
+
+    val credential = client.makeCredential(
+        rpId = "my.great.example",
+    )
+}
+
+@OptIn(ExperimentalStdlibApi::class)
+internal fun getAssertionsExample() {
+    val client = Examples.getCTAPClient()
+
+    val assertions = client.getAssertions(
+        rpId = "my.assertion.example",
+    )
+
+    for (assertion in assertions) {
+        println("Credential ID ${assertion.credential.id.toHexString()}")
+        println("Got back username ${assertion.user?.name}")
     }
 }

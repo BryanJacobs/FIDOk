@@ -6,8 +6,12 @@ import us.q3q.fidok.ctap.FIDOkLibrary
 
 class Examples {
     companion object {
-        fun getCTAPClient(): CTAPClient {
-            val library = FIDOkLibrary.init(NullCryptoProvider())
+        internal fun getLibrary(): FIDOkLibrary {
+            return FIDOkLibrary.init(NullCryptoProvider())
+        }
+
+        internal fun getCTAPClient(): CTAPClient {
+            val library = getLibrary()
             return library.ctapClient(library.listDevices().first())
         }
     }

@@ -45,9 +45,9 @@ class GetAssertion : SimulationTest() {
         assertEquals(cred.toHexString(), assertion.credential.id.toHexString())
         assertNull(assertion.authData.attestedCredentialData)
         assertEquals(1u, assertion.authData.signCount)
-        assertTrue(assertion.authData.hasFlag(FLAGS.UP))
-        assertFalse(assertion.authData.hasFlag(FLAGS.AT))
-        assertFalse(assertion.authData.hasFlag(FLAGS.UV))
+        assertTrue(assertion.authData.hasFlag(FLAGS.USER_PRESENCE))
+        assertFalse(assertion.authData.hasFlag(FLAGS.ATTESTED))
+        assertFalse(assertion.authData.hasFlag(FLAGS.USER_VERIFICATION))
 
         client.validateAssertionSignature(assertion, challenge, publicKey)
     }

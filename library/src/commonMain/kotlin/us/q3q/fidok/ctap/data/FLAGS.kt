@@ -1,10 +1,10 @@
 package us.q3q.fidok.ctap.data
 
 enum class FLAGS(val value: UByte) {
-    UP(0x01u),
-    UV(0x04u),
-    BE(0x08u),
-    BS(0x10u),
-    AT(0x40u),
-    ED(0x80u),
+    USER_PRESENCE(0x01u),
+    USER_VERIFICATION(0x04u),
+    BACKUP_ELIGIBLE(0x08u),
+    BACKUP_STATE(0x10u),
+    ATTESTED(0x40u),
+    EXTENSION_DATA(0x80u),
 }

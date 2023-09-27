@@ -112,11 +112,11 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
             (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 8) +
             nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt()
         var attestedCredentialData: AttestedCredentialData? = null
-        if ((flags and FLAGS.AT.value) != 0.toUByte()) {
+        if ((flags and FLAGS.ATTESTED.value) != 0.toUByte()) {
             attestedCredentialData = nestedDeserializer.decodeSerializableElement(descriptor, 3, AttestedCredentialData.serializer())
         }
         var extensions: Map<ExtensionName, ExtensionParameters>? = null
-        if ((flags and FLAGS.ED.value) != 0.toUByte()) {
+        if ((flags and FLAGS.EXTENSION_DATA.value) != 0.toUByte()) {
             val results = nestedDeserializer.decodeSerializableElement(
                 descriptor,
                 4,
