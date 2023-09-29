@@ -43,7 +43,7 @@ class FIDOkLibrary private constructor(
         return CaBLESupport(this)
     }
 
-    fun ctapClient(device: AuthenticatorDevice, collectPinFromUser: () -> String? = { null }): CTAPClient {
+    fun ctapClient(device: AuthenticatorDevice, collectPinFromUser: suspend () -> String? = { null }): CTAPClient {
         return CTAPClient(this, device, collectPinFromUser)
     }
 }

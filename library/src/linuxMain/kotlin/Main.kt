@@ -50,7 +50,6 @@ fun main() {
     println("uvm: ${uvm.getUVMEntries()}")
 
     val assertions = client.getAssertions(
-        Random.nextBytes(32),
         rpId = RPID,
         allowList = listOf(
             PublicKeyCredentialDescriptor(id = res.authData.attestedCredentialData!!.credentialId),

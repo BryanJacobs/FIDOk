@@ -148,7 +148,7 @@ class PCSCDevice(private val readerName: String) : AuthenticatorDevice {
             recvLength.value = recvBufferLength.convert()
             val recvBuffer = nativeHeap.allocArray<BYTEVar>(recvBufferLength)
 
-            Logger.v("Sending $sendLength bytes to PC/SC")
+            Logger.v { "Sending $sendLength bytes to PC/SC: ${bytes.toHexString()}" }
 
             checkOp("xmit") {
                 SCardTransmit(
@@ -157,7 +157,7 @@ class PCSCDevice(private val readerName: String) : AuthenticatorDevice {
                 )
             } ?: return null
 
-            Logger.v("Received ${recvLength.value} response bytes")
+            Logger.v { "Received ${recvLength.value} response bytes" }
 
             var received = recvLength.value.toInt()
 

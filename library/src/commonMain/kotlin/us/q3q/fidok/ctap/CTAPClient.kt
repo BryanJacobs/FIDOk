@@ -33,6 +33,7 @@ import us.q3q.fidok.ctap.commands.PublicKeyCredentialParameters
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialRpEntity
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
 import us.q3q.fidok.ctap.commands.ResetCommand
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -214,7 +215,7 @@ class CredentialExcludedError : CTAPError(
 class CTAPClient(
     private val library: FIDOkLibrary,
     private val device: AuthenticatorDevice,
-    private val collectPinFromUser: () -> String? = { null },
+    private val collectPinFromUser: suspend () -> String? = { null },
 ) {
 
     private val PP_2_AES_INFO = "CTAP2 AES key".encodeToByteArray()
@@ -257,6 +258,12 @@ class CTAPClient(
         )
     }
 
+    /**
+     * Get info from the Authenticator, potentially using a cached copy.
+     *
+     * @see [getInfo].
+     * @return A [GetInfoResponse], which might be stale.
+     */
     internal fun getInfoIfUnset(): GetInfoResponse {
         val info = info
         if (info != null) {
@@ -737,7 +744,10 @@ class CTAPClient(
     }
 
     /**
-     * Sets a new PIN for the Authenticator, which must not already have on set
+     * Sets a new PIN for the Authenticator, which must not already have one set
+     *
+     * @param newPinUnicode New user PIN, as a UTF-8 valid string
+     * @param pinUvProtocol PIN/UV protocol version number to use
      */
     @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun setPIN(newPinUnicode: String, pinUvProtocol: UByte? = null) {
@@ -758,6 +768,7 @@ class CTAPClient(
         val res = device.sendBytes(command.getCBOR())
         checkResponseStatus(res)
 
+        cachedPin = newPinUnicode
         platformKey = null // After setting the PIN, re-get the PIN token etc
     }
 
@@ -786,15 +797,52 @@ class CTAPClient(
         }
     }
 
-    @Throws(CTAPError::class, DeviceCommunicationException::class)
-    fun changePIN(currentPinUnicode: String, newPinUnicode: String, pinUvProtocol: UByte? = null) {
+    /**
+     * Call the appropriate one of [setPIN] or [changePIN], depending on the Authenticator state.
+     */
+    @Throws(
+        CTAPError::class,
+        DeviceCommunicationException::class,
+        PinNotAvailableException::class,
+        CancellationException::class,
+    )
+    suspend fun setOrChangePIN(newPinUnicode: String, pinUvProtocol: UByte? = null) {
+        Logger.v { "Changing/setting PIN to new ${newPinUnicode.length} character value" }
+
+        val info = getInfoIfUnset()
+        val cpOption = info.options?.get(CTAPOption.CLIENT_PIN.value)
+            ?: throw IllegalStateException("Authenticator does not support PINs!")
+
+        if (cpOption) {
+            changePIN(newPinUnicode, pinUvProtocol)
+        } else {
+            setPIN(newPinUnicode, pinUvProtocol)
+        }
+    }
+
+    /**
+     * Changes the authenticator's existing PIN
+     *
+     * @param newPinUnicode New user PIN, as a UTF-8 valid string
+     * @param pinUvProtocol PIN/UV protocol version number to use
+     */
+    @Throws(
+        CTAPError::class,
+        DeviceCommunicationException::class,
+        PinNotAvailableException::class,
+        CancellationException::class,
+    )
+    suspend fun changePIN(newPinUnicode: String, pinUvProtocol: UByte? = null) {
         val pp = getPinProtocol(pinUvProtocol)
         val pk = ensurePlatformKey(pp)
+
+        val pin = (if (cachedPin != null) cachedPin else collectPinFromUser())
+            ?: throw PinNotAvailableException()
 
         val newPINBytes = checkAndPadPIN(newPinUnicode)
         val newPinEnc = pp.encrypt(pk, newPINBytes)
 
-        val left16 = library.cryptoProvider.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
+        val left16 = library.cryptoProvider.sha256(pin.encodeToByteArray()).hash.copyOfRange(0, 16)
         val pinHashEnc = pp.encrypt(pk, left16)
 
         val authBlob = (newPinEnc.toList() + pinHashEnc.toList()).toByteArray()
@@ -812,6 +860,7 @@ class CTAPClient(
         val res = device.sendBytes(command.getCBOR())
         checkResponseStatus(res)
 
+        cachedPin = newPinUnicode
         platformKey = null // After changing the PIN, re-get the PIN token etc
     }
 
@@ -824,8 +873,25 @@ class CTAPClient(
         return pk
     }
 
-    @Throws(PinNotAvailableException::class, CTAPError::class, DeviceCommunicationException::class)
-    fun getPinUVTokenUsingAppropriateMethod(
+    /**
+     * Gets a PIN/UV token using the best available method for the underlying Authenticator
+     *
+     * @param desiredPermissions A bitfield of [CTAPPinPermission]s to request. May be ignored,
+     *                           depending on Authenticator support, but should include the operation(s)
+     *                           for which the token will be used
+     * @param desiredRpId The Relying Party ID to which the gotten token should be bound. May be ignored,
+     *                    depending on Authenticator support
+     * @param pinUvProtocol The number of the PIN/UV protocol to use
+     *
+     * @return A token that may be passed to methods requiring User Verification
+     */
+    @Throws(
+        PinNotAvailableException::class,
+        CTAPError::class,
+        DeviceCommunicationException::class,
+        CancellationException::class,
+    )
+    suspend fun getPinUVTokenUsingAppropriateMethod(
         desiredPermissions: UByte,
         desiredRpId: String? = null,
         pinUvProtocol: UByte? = null,
@@ -923,6 +989,14 @@ class CTAPClient(
         )
     }
 
+    /**
+     * Get a PIN/UV token using an Authenticator's built-in User Verification method(s)
+     *
+     * @param pinUvProtocol The CTAP PIN/UV protcol version number
+     * @param permissions Any [permissions][CTAPPinPermission] desired
+     * @param rpId An optional Relying Party ID to which the fetched token will be bound
+     * @return 32-byte PIN/UV token, valid until the Authenticator decides it's not
+     */
     @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getPinTokenUsingUv(
         pinUvProtocol: UByte? = null,
@@ -1031,11 +1105,11 @@ class CTAPClient(
     }
 }
 
-class PinNotAvailableException : Exception()
+class PinNotAvailableException : Exception("A PIN was required, but not available")
 
 data class PinUVToken(val token: ByteArray) {
     init {
-        require(token.size == 32)
+        require(token.size == 16 || token.size == 32)
     }
 
     override fun equals(other: Any?): Boolean {

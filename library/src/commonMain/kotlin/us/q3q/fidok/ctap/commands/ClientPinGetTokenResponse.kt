@@ -17,7 +17,7 @@ import kotlinx.serialization.encoding.Encoder
 @Serializable(with = ClientPinGetTokenResponseSerializer::class)
 data class ClientPinGetTokenResponse(val pinUvAuthToken: ByteArray) {
     init {
-        require(pinUvAuthToken.size == 32 || pinUvAuthToken.size == 48)
+        require(pinUvAuthToken.size == 16 || pinUvAuthToken.size == 32 || pinUvAuthToken.size == 48)
     }
 
     override fun equals(other: Any?): Boolean {

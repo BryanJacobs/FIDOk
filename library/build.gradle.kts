@@ -160,7 +160,7 @@ kotlin {
             }
         }
     }
-    js {
+    /*js {
         browser {
             commonWebpackConfig(
                 Action {
@@ -170,7 +170,7 @@ kotlin {
                 },
             )
         }
-    }
+    }*/
 
     sourceSets {
         val commonMain by getting {
@@ -199,8 +199,8 @@ kotlin {
                 implementation(tasks.getByName("buildEmbeddedAuthenticatorJar").outputs.files)
             }
         }
-        val jsMain by getting
-        val jsTest by getting
+        /*val jsMain by getting
+        val jsTest by getting*/
         val nativeMain by creating {
             dependsOn(commonMain)
         }

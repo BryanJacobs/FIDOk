@@ -1,5 +1,6 @@
 package us.q3q.fidok.ctap.commands
 
+import co.touchlab.kermit.Logger
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -15,8 +16,8 @@ import kotlinx.serialization.encoding.Encoder
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = EnumerateRPsResponseSerializer::class)
 data class EnumerateRPsResponse(
-    val rp: PublicKeyCredentialRpEntity,
-    @ByteString val rpIDHash: ByteArray,
+    val rp: PublicKeyCredentialRpEntity?,
+    @ByteString val rpIDHash: ByteArray?,
     val totalRPs: UInt? = null,
 )
 
@@ -31,7 +32,7 @@ class EnumerateRPsResponseSerializer : KSerializer<EnumerateRPsResponse> {
     override fun deserialize(decoder: Decoder): EnumerateRPsResponse {
         val composite = decoder.beginStructure(descriptor)
         val numElements = composite.decodeCollectionSize(descriptor)
-        if (numElements != 2 && numElements != 3) {
+        if (numElements == 0 || numElements > 3) {
             throw SerializationException("Incorrect element count in EnumerateRPsResponse: $numElements")
         }
 
@@ -39,7 +40,7 @@ class EnumerateRPsResponseSerializer : KSerializer<EnumerateRPsResponse> {
         var rpIDHash: ByteArray? = null
         var totalRPs: UInt? = null
 
-        for (i in 1..3) {
+        for (i in 1..numElements) {
             when (val idx = composite.decodeElementIndex(descriptor)) {
                 0x03 ->
                     rp = composite.decodeSerializableElement(descriptor, 0, PublicKeyCredentialRpEntity.serializer())
@@ -54,7 +55,9 @@ class EnumerateRPsResponseSerializer : KSerializer<EnumerateRPsResponse> {
 
         composite.endStructure(descriptor)
 
-        if (rp == null || rpIDHash == null) {
+        if (totalRPs == 0u) {
+            Logger.w { "Misbehaving authenticator: returned zero RPs instead of NO_CREDENTIALS" }
+        } else if (rp == null || rpIDHash == null) {
             throw SerializationException("Missing attribute in EnumerateRPsResponse")
         }
 

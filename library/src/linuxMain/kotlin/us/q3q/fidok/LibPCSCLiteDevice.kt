@@ -147,7 +147,7 @@ class LibPCSCLiteDevice(private val readerName: String, private val useExtendedM
             recvLength.value = recvBufferLength.convert()
             val recvBuffer = nativeHeap.allocArray<BYTEVar>(recvBufferLength)
 
-            Logger.v("Sending $sendLength bytes to PC/SC")
+            Logger.v { "Sending $sendLength bytes to PC/SC: ${bytes.toHexString()}" }
 
             checkOp("xmit") {
                 SCardTransmit(
@@ -156,7 +156,7 @@ class LibPCSCLiteDevice(private val readerName: String, private val useExtendedM
                 )
             } ?: return null
 
-            Logger.v("Received ${recvLength.value} response bytes")
+            Logger.v { "Received ${recvLength.value} response bytes" }
 
             var received = recvLength.value.toInt()
 

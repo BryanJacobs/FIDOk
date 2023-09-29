@@ -6,7 +6,7 @@ plugins {
     // kotlin("android")
     // id("com.android.application") version "8.1.0"
     // id("com.android.library") version "8.1.0"
-    id("org.jetbrains.compose") version "1.5.0"
+    id("org.jetbrains.compose") version "1.5.2"
 }
 
 kotlin {
@@ -51,9 +51,9 @@ tasks.register<Copy>("copyNativeLibrariesIntoResources") {
     doFirst {
         mkdir(layout.buildDirectory.dir("natives/common"))
     }
-    dependsOn(":library:linkFidokDebugSharedNative")
+    dependsOn(":library:linkFidokDebugSharedLinux")
 
-    from(project(":library").layout.buildDirectory.file("bin/native/fidokDebugShared/libfidok.so"))
+    from(project(":library").layout.buildDirectory.file("bin/linux/fidokDebugShared/libfidok.so"))
     into(layout.buildDirectory.dir("natives/common"))
 }
 

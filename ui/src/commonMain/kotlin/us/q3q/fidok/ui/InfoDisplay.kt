@@ -236,7 +236,7 @@ fun InfoDisplay(info: GetInfoResponse?) {
 
 @Preview
 @Composable
-fun previewInfo() {
+internal fun previewInfo() {
     MaterialTheme {
         InfoDisplay(
             GetInfoResponse(

@@ -11,10 +11,13 @@ import us.q3q.fidok.ctap.commands.PublicKeyCredentialRpEntity
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
 
 class CredentialManagementClient internal constructor(private val client: CTAPClient) {
-    fun getCredsMetadata(pinProtocol: UByte? = null, pinUVToken: PinUVToken): CredentialManagementGetMetadataResponse {
+    suspend fun getCredsMetadata(pinProtocol: UByte? = null, pinUVToken: PinUVToken? = null): CredentialManagementGetMetadataResponse {
         val pp = client.getPinProtocol(pinProtocol)
+        val effectiveUVToken = pinUVToken ?: client.getPinUVTokenUsingAppropriateMethod(
+            desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+        )
 
-        val pinUvAuthParam = pp.authenticate(pinUVToken, byteArrayOf(0x01))
+        val pinUvAuthParam = pp.authenticate(effectiveUVToken, byteArrayOf(0x01))
         val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
 
         val command = CredentialManagementCommand.getCredsMetadata(
@@ -26,10 +29,13 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         return client.xmit(command, CredentialManagementGetMetadataResponse.serializer())
     }
 
-    fun enumerateRPs(pinProtocol: UByte? = null, pinUVToken: PinUVToken): List<RPWithHash> {
+    suspend fun enumerateRPs(pinProtocol: UByte? = null, pinUVToken: PinUVToken? = null): List<RPWithHash> {
         val pp = client.getPinProtocol(pinProtocol)
+        val effectiveUVToken = pinUVToken ?: client.getPinUVTokenUsingAppropriateMethod(
+            desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+        )
 
-        val pinUvAuthParam = pp.authenticate(pinUVToken, byteArrayOf(0x02))
+        val pinUvAuthParam = pp.authenticate(effectiveUVToken, byteArrayOf(0x02))
         val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
 
         val command = CredentialManagementCommand.enumerateRPsBegin(
@@ -42,7 +48,11 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
 
         val totalRPs = initialRes.totalRPs?.toInt() ?: 1
 
-        val allRPs = arrayListOf(RPWithHash(initialRes.rpIDHash, initialRes.rp))
+        val allRPs = arrayListOf<RPWithHash>()
+
+        if (initialRes.rp != null && initialRes.rpIDHash != null) {
+            allRPs.add(RPWithHash(initialRes.rpIDHash, initialRes.rp))
+        }
 
         val enumerateCommand = CredentialManagementCommand.enumerateRPsGetNextRP(ctap21Implementation = fullySupported)
         for (i in 1..<totalRPs) {
@@ -50,15 +60,21 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
             if (res.totalRPs != null) {
                 throw IllegalStateException("Present totalRPs on enumerate-RPs follow-up")
             }
+            if (res.rp == null || res.rpIDHash == null) {
+                throw IllegalStateException("Null RP fields found in RP enumeration")
+            }
             allRPs.add(RPWithHash(res.rpIDHash, res.rp))
         }
 
         return allRPs
     }
 
-    fun enumerateCredentials(rpIDHash: ByteArray, pinProtocol: UByte? = null, pinUVToken: PinUVToken): List<StoredCredentialData> {
+    suspend fun enumerateCredentials(rpIDHash: ByteArray, pinProtocol: UByte? = null, pinUVToken: PinUVToken? = null): List<StoredCredentialData> {
         val pp = client.getPinProtocol(pinProtocol)
         val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
+        val effectiveUVToken = pinUVToken ?: client.getPinUVTokenUsingAppropriateMethod(
+            desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+        )
 
         val command = CredentialManagementCommand.enumerateCredentialsBegin(
             pinUvAuthProtocol = pp.getVersion(),
@@ -66,7 +82,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
             ctap21Implementation = fullySupported,
         )
 
-        command.pinUvAuthParam = pp.authenticate(pinUVToken, command.getUvParamData())
+        command.pinUvAuthParam = pp.authenticate(effectiveUVToken, command.getUvParamData())
         command.params = command.generateParams()
 
         val initialRes = client.xmit(command, EnumerateCredentialsResponse.serializer())
@@ -89,7 +105,15 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         return allRPs
     }
 
-    fun deleteCredential(credentialID: PublicKeyCredentialDescriptor, pinProtocol: UByte? = null, pinUVToken: PinUVToken) {
+    suspend fun deleteCredential(
+        credentialID: PublicKeyCredentialDescriptor,
+        pinProtocol: UByte? = null,
+        pinUVToken: PinUVToken? = null,
+    ) {
+        val effectiveUVToken = pinUVToken ?: client.getPinUVTokenUsingAppropriateMethod(
+            desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+        )
+
         val pp = client.getPinProtocol(pinProtocol)
 
         val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
@@ -99,19 +123,22 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
             credentialId = credentialID,
             ctap21Implementation = fullySupported,
         )
-        command.pinUvAuthParam = pp.authenticate(pinUVToken, command.getUvParamData())
+        command.pinUvAuthParam = pp.authenticate(effectiveUVToken, command.getUvParamData())
         command.params = command.generateParams()
 
         client.xmit(command)
     }
 
-    fun updateUserInformation(
+    suspend fun updateUserInformation(
         credentialID: PublicKeyCredentialDescriptor,
         user: PublicKeyCredentialUserEntity,
         pinProtocol: UByte? = null,
-        pinUVToken: PinUVToken,
+        pinUVToken: PinUVToken? = null,
     ) {
         val pp = client.getPinProtocol(pinProtocol)
+        val effectiveUVToken = pinUVToken ?: client.getPinUVTokenUsingAppropriateMethod(
+            desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+        )
 
         val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
 
@@ -121,7 +148,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
             user = user,
             ctap21Implementation = fullySupported,
         )
-        command.pinUvAuthParam = pp.authenticate(pinUVToken, command.getUvParamData())
+        command.pinUvAuthParam = pp.authenticate(effectiveUVToken, command.getUvParamData())
         command.params = command.generateParams()
 
         client.xmit(command)
@@ -152,8 +179,8 @@ data class StoredCredentialData(
     val user: PublicKeyCredentialUserEntity,
     val credentialID: PublicKeyCredentialDescriptor,
     val publicKey: COSEKey,
-    val credProtect: UByte?,
-    val largeBlobKey: ByteArray?,
+    val credProtect: UByte? = null,
+    val largeBlobKey: ByteArray? = null,
 ) {
     constructor(res: EnumerateCredentialsResponse) : this(
         user = res.user,

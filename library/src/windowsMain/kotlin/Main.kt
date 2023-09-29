@@ -1,4 +1,5 @@
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.BotanCryptoProvider
 import us.q3q.fidok.LibHIDDevice
 import us.q3q.fidok.ctap.CTAPPinPermission
@@ -58,39 +59,41 @@ fun main() {
         pin,
         permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
     )
-    val meta = client.credentialManagement().getCredsMetadata(pinUVToken = pinToken)
-    Logger.i { "Creds meta: $meta" }
+    runBlocking {
+        val meta = client.credentialManagement().getCredsMetadata(pinUVToken = pinToken)
+        Logger.i { "Creds meta: $meta" }
 
-    pinToken = client.getPinTokenWithPermissions(
-        pin,
-        permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
-    )
-    client.credentialManagement().deleteCredential(credentialID = PublicKeyCredentialDescriptor(cred), pinUVToken = pinToken)
+        pinToken = client.getPinTokenWithPermissions(
+            pin,
+            permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+        )
+        client.credentialManagement().deleteCredential(credentialID = PublicKeyCredentialDescriptor(cred), pinUVToken = pinToken)
 
-    pinToken = client.getPinTokenWithPermissions(
-        pin,
-        permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
-    )
-
-    val rps = client.credentialManagement().enumerateRPs(pinUVToken = pinToken)
-    Logger.i { "RPs: $rps" }
-
-    for (rp in rps) {
         pinToken = client.getPinTokenWithPermissions(
             pin,
             permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
         )
 
-        val creds = client.credentialManagement().enumerateCredentials(rpIDHash = rp.rpIDHash, pinUVToken = pinToken)
-        Logger.i { "Creds for ${rp.rpIDHash.toHexString()}: $creds" }
+        val rps = client.credentialManagement().enumerateRPs(pinUVToken = pinToken)
+        Logger.i { "RPs: $rps" }
+
+        for (rp in rps) {
+            pinToken = client.getPinTokenWithPermissions(
+                pin,
+                permissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+            )
+
+            val creds = client.credentialManagement().enumerateCredentials(rpIDHash = rp.rpIDHash, pinUVToken = pinToken)
+            Logger.i { "Creds for ${rp.rpIDHash.toHexString()}: $creds" }
+        }
+
+        /*val newPinToken = client.getPinTokenUsingPin(
+            "foobar",
+            permissions = CTAPPinPermissions.AUTHENTICATOR_CONFIGURATION.value,
+        )
+
+        client.authenticatorConfig().setMinPINLength(pinToken = newPinToken, newMinPINLength = 8u)
+
+        Logger.i { "Retry info: ${client.getPINRetries()}" }*/
     }
-
-    /*val newPinToken = client.getPinTokenUsingPin(
-        "foobar",
-        permissions = CTAPPinPermissions.AUTHENTICATOR_CONFIGURATION.value,
-    )
-
-    client.authenticatorConfig().setMinPINLength(pinToken = newPinToken, newMinPINLength = 8u)
-
-    Logger.i { "Retry info: ${client.getPINRetries()}" }*/
 }

@@ -36,13 +36,13 @@ fun QRCodeView(data: String, size: Int = 1) {
 
 @Preview
 @Composable
-fun QRCodeTextPreview() {
+internal fun QRCodeTextPreview() {
     QRCodeView("SOMETHING1WICKED", size = 5)
 }
 
 @Preview
 @Composable
-fun QRCodeCaBLEPreview() {
+internal fun QRCodeCaBLEPreview() {
     val code = CaBLECode(
         publicKey = Random.nextBytes(33),
         secret = Random.nextBytes(16),
