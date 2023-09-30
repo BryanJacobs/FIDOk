@@ -4,10 +4,7 @@ import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardActionScope
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.Button
-import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
@@ -19,9 +16,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import us.q3q.fidok.crypto.NullCryptoProvider
@@ -206,46 +200,15 @@ fun CredsMetadataDisplay(meta: CredentialManagementGetMetadataResponse) {
 
 @Composable
 fun PINTab(client: CTAPClient) {
-    var newPin by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
-    val doSetPin: () -> Unit = {
+    SubmittableText(placeholder = {
+        Text("New PIN")
+    }, buttonContent = {
+        Text("Set/Change PIN")
+    }) {
         coroutineScope.launch {
-            client.setOrChangePIN(newPin)
-            newPin = ""
-        }
-    }
-
-    val doSetPinKbd: KeyboardActionScope.() -> Unit = {
-        doSetPin()
-    }
-
-    Column {
-        OutlinedTextField(
-            value = newPin,
-            placeholder = {
-                Text("New PIN")
-            },
-            onValueChange = {
-                newPin = it
-            },
-            singleLine = true,
-            keyboardActions = KeyboardActions(
-                onDone = doSetPinKbd,
-                onSend = doSetPinKbd,
-                onGo = doSetPinKbd,
-            ),
-            modifier = Modifier.onKeyEvent {
-                if (it.key == Key.Enter) {
-                    doSetPin()
-                    true
-                } else {
-                    false
-                }
-            }.padding(16.dp),
-        )
-        Button(onClick = doSetPin) {
-            Text("Set/Change PIN")
+            client.setOrChangePIN(it)
         }
     }
 }
