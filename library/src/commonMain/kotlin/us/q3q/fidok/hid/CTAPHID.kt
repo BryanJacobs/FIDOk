@@ -91,7 +91,7 @@ class CTAPHID {
             while (sent < bytes.size) {
                 val bytesForNextPacket = bytes.copyOfRange(sent, min(bytes.size, sent + packetSize - 5))
                 Logger.v { "Continuation packet: ${bytesForNextPacket.size} bytes" }
-                val nextPacket = continuationPacket(channel, ++seq, bytesForNextPacket, packetSize)
+                val nextPacket = continuationPacket(channel, seq++, bytesForNextPacket, packetSize)
                 packets.add(nextPacket)
                 sent += bytesForNextPacket.size
             }
@@ -164,6 +164,7 @@ class CTAPHID {
             return accumulated.toUByteArray()
         }
 
+        @OptIn(ExperimentalStdlibApi::class)
         fun openChannel(packetSize: Int, sender: (bytes: UByteArray) -> Unit, receiver: () -> UByteArray): UInt {
             Logger.d { "Opening new channel with HID device" }
             val nonce = Random.nextUBytes(8)
@@ -182,7 +183,7 @@ class CTAPHID {
                 (response[10].toUInt() shl 8) +
                 response[11]
 
-            Logger.d { "HID channel opened" }
+            Logger.d { "HID channel opened: ${ret.toHexString()}" }
             return ret
         }
 

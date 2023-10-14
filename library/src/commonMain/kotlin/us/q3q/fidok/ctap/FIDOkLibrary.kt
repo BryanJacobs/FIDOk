@@ -2,17 +2,29 @@ package us.q3q.fidok.ctap
 
 import us.q3q.fidok.cable.CaBLESupport
 import us.q3q.fidok.crypto.CryptoProvider
+import us.q3q.fidok.webauthn.WebauthnClient
+import kotlin.jvm.JvmOverloads
 import kotlin.jvm.JvmStatic
 
 class FIDOkLibrary private constructor(
     val cryptoProvider: CryptoProvider,
     private val authenticatorAccessors: List<AuthenticatorListing>,
+    private val defaultPinCollectionFromUser: suspend() -> String? = { null },
 ) {
 
     companion object {
         @JvmStatic
-        fun init(cryptoProvider: CryptoProvider, authenticatorAccessors: List<AuthenticatorListing> = listOf()): FIDOkLibrary {
-            return FIDOkLibrary(cryptoProvider, authenticatorAccessors)
+        @JvmOverloads
+        fun init(
+            cryptoProvider: CryptoProvider,
+            authenticatorAccessors: List<AuthenticatorListing> = listOf(),
+            pinCollection: suspend () -> String? = { null },
+        ): FIDOkLibrary {
+            return FIDOkLibrary(
+                cryptoProvider,
+                authenticatorAccessors,
+                defaultPinCollectionFromUser = pinCollection,
+            )
         }
     }
 
@@ -43,7 +55,11 @@ class FIDOkLibrary private constructor(
         return CaBLESupport(this)
     }
 
-    fun ctapClient(device: AuthenticatorDevice, collectPinFromUser: suspend () -> String? = { null }): CTAPClient {
+    fun ctapClient(device: AuthenticatorDevice, collectPinFromUser: suspend () -> String? = defaultPinCollectionFromUser): CTAPClient {
         return CTAPClient(this, device, collectPinFromUser)
+    }
+
+    fun webauthn(): WebauthnClient {
+        return WebauthnClient(this)
     }
 }

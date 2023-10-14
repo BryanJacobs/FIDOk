@@ -38,6 +38,7 @@ class MinPinLengthExtension : Extension {
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 internal fun minPinLengthUsage() {
     val client = Examples.getCTAPClient()
 

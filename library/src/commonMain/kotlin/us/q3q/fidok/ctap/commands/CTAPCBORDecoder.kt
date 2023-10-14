@@ -195,6 +195,7 @@ class AdvancingDecoder(bytes: ByteArray, val parent: CTAPCBORArrayDecoder) : CTA
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 @OptIn(ExperimentalStdlibApi::class)
 fun ctapCBORDecoderExample() {
     val response_bytes = "A10503".hexToByteArray()

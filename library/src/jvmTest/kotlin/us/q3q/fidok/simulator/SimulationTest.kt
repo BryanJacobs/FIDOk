@@ -14,6 +14,7 @@ open class SimulationTest {
     lateinit var client: CTAPClient
     lateinit var rpId: String
     lateinit var userDisplayName: String
+    lateinit var userName: String
 
     companion object {
 
@@ -34,5 +35,6 @@ open class SimulationTest {
 
         rpId = Random.nextBytes(Random.nextInt(1, 64)).toHexString()
         userDisplayName = Random.nextBytes(Random.nextInt(1, 64)).toHexString()
+        userName = Random.nextBytes(Random.nextInt(1, 64)).toHexString()
     }
 }

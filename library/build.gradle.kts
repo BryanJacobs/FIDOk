@@ -176,11 +176,13 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.6.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
                 implementation("co.touchlab:kermit:2.0.0-RC5") {
                     // conflicts with junit5
                     exclude(group = "org.jetbrains.kotlin", module = "kotlin-test-junit")
                 }
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+                implementation("com.github.ajalt.clikt:clikt:4.2.0")
             }
         }
         val commonTest by getting {

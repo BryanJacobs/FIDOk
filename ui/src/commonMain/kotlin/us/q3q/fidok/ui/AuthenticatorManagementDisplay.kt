@@ -150,7 +150,7 @@ fun CredentialsManagementTab(client: CTAPClient) {
             for (rpWithHash in rps) {
                 OneRPManagementView(rpWithHash, onListCreds = {
                     coroutineScope.launch {
-                        val pinToken = client.getPinUVTokenUsingAppropriateMethod(
+                        val pinToken = client.getPinUvTokenUsingAppropriateMethod(
                             desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
                             desiredRpId = rpWithHash.rp.id,
                         )
@@ -171,7 +171,7 @@ fun CredentialsManagementTab(client: CTAPClient) {
             for (cred in creds) {
                 OneCredView(cred, onDelete = {
                     coroutineScope.launch {
-                        val pinToken = client.getPinUVTokenUsingAppropriateMethod(
+                        val pinToken = client.getPinUvTokenUsingAppropriateMethod(
                             desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
                             desiredRpId = chosenRP?.rp?.id,
                         )

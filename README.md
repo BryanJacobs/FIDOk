@@ -81,10 +81,10 @@ provided by native implementations specific to each platform.
 | Testing                           | Incomplete    |
 | Well-documented APIs              | No            |
 | Well-documented Build/Integration | No            |
-| Webauthn Layer                    | Unimplemented |
+| Webauthn Layer                    | Incomplete    |
 | Easy Task-Specific APIs           | Unimplemented |
-| Command Line                      | Unimplemented |
-| User Interface                    | Incomplete    |
+| Command Line                      | Incomplete    |
+| Graphical User Interface          | Incomplete    |
 | Authenticator Proxying            | Unimplemented |
 
 ## Platforms

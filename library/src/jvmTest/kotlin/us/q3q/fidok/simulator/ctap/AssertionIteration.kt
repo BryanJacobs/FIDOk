@@ -12,8 +12,8 @@ class AssertionIteration : SimulationTest() {
 
     @Test
     fun iterateDiscoverable() {
-        val cred1 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, discoverableCredential = true)
-        val cred2 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, discoverableCredential = true)
+        val cred1 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName, discoverableCredential = true)
+        val cred2 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName, discoverableCredential = true)
 
         val challenge = Random.nextBytes(32)
 
@@ -35,8 +35,8 @@ class AssertionIteration : SimulationTest() {
 
     @Test
     fun iterateAllowList() {
-        val cred1 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName)
-        val cred2 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName)
+        val cred1 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName)
+        val cred2 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName)
 
         val challenge = Random.nextBytes(32)
 

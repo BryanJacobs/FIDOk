@@ -17,18 +17,27 @@ import kotlinx.serialization.modules.polymorphic
 
 typealias ExtensionName = String
 
+/**
+ * Base class representing the parameters for extensions being sent along with a
+ * [GetAssertionCommand] or [MakeCredentialCommand].
+ *
+ * @property v A map with keys being extension names and values being whatever types the extension expects.
+ */
 @Serializable(with = ExtensionParameterValueSerializer::class)
-data class ExtensionParameterValue(override val v: Map<ExtensionName, @Polymorphic ExtensionParameters>) : ParameterValue()
+data class ExtensionParameterValues(override val v: Map<ExtensionName, @Polymorphic ExtensionParameters>) : ParameterValue()
 
-class ExtensionParameterValueSerializer : KSerializer<ExtensionParameterValue> {
+/**
+ * Serializes [ExtensionParameterValues] for dispatch along with a CTAP request.
+ */
+class ExtensionParameterValueSerializer : KSerializer<ExtensionParameterValues> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("ExtensionParameter")
 
-    override fun deserialize(decoder: Decoder): ExtensionParameterValue {
+    override fun deserialize(decoder: Decoder): ExtensionParameterValues {
         TODO("Not yet implemented")
     }
 
-    override fun serialize(encoder: Encoder, value: ExtensionParameterValue) {
+    override fun serialize(encoder: Encoder, value: ExtensionParameterValues) {
         encoder.encodeSerializableValue(
             MapSerializer(
                 ExtensionName.serializer(),
@@ -39,6 +48,9 @@ class ExtensionParameterValueSerializer : KSerializer<ExtensionParameterValue> {
     }
 }
 
+/**
+ * Registry of different serializers available for the different types of [ExtensionParameters].
+ */
 val extensionSerializers = SerializersModule {
     polymorphic(ExtensionParameters::class) {
         subclass(BooleanExtensionParameter::class, BooleanExtensionParameter.serializer())

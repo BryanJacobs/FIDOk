@@ -28,7 +28,7 @@ class GetAssertionCommand(
             this[0x03u] = PublicKeyCredentialListParameter(allowList)
         }
         if (extensions != null) {
-            this[0x04u] = ExtensionParameterValue(extensions)
+            this[0x04u] = ExtensionParameterValues(extensions)
         }
         if (options != null) {
             val m = hashMapOf<String, Boolean>()

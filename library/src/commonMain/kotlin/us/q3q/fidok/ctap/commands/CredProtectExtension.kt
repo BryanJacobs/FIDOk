@@ -51,6 +51,7 @@ class CredProtectExtension(private val requestedLevel: UByte) : Extension {
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 internal fun credProtectExtensionUse() {
     val client = Examples.getCTAPClient()
 

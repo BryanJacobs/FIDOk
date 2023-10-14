@@ -44,14 +44,18 @@ open class CTAPCBOREncoder : AbstractEncoder() {
         return true
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun <T> encodeSerializableElement(
         descriptor: SerialDescriptor,
         index: Int,
         serializer: SerializationStrategy<T>,
         value: T,
     ) {
-        Logger.v { "Encoding SerializableElement $index ${descriptor.getElementDescriptor(index)} = $value" }
         val element = descriptor.getElementDescriptor(index)
+        Logger.v {
+            "Encoding SerializableElement $index $element = " +
+                "${if (element.serialName == "kotlin.ByteArray") (value as ByteArray?)?.toHexString() else value.toString()}"
+        }
         if (element.kind == StructureKind.LIST && element.getElementDescriptor(0).kind == PrimitiveKind.BYTE) {
             val ba = ByteArrayEncoder(this)
             ba.encodeValue(value as Any)
@@ -262,6 +266,12 @@ class MapEncoder(parentEncoder: CTAPCBOREncoder, private val numElements: Int) :
         }
     }
 
+    override fun encodeLong(value: Long) {
+        stashResult {
+            super.encodeLong(value)
+        }
+    }
+
     override fun encodeValue(value: Any) {
         stashResult {
             super.encodeValue(value)
@@ -330,6 +340,7 @@ class MapEncoder(parentEncoder: CTAPCBOREncoder, private val numElements: Int) :
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 fun ctapCBOREncoderExample() {
     val encoder = CTAPCBOREncoder()
     encoder.encodeSerializableValue(GetInfoCommand.serializer(), GetInfoCommand())

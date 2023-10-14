@@ -117,10 +117,11 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
         }
         var extensions: Map<ExtensionName, ExtensionParameters>? = null
         if ((flags and FLAGS.EXTENSION_DATA.value) != 0.toUByte()) {
+            val serializer = if (attestedCredentialData != null) CreationExtensionResultsSerializer() else AssertionExtensionResultsSerializer()
             val results = nestedDeserializer.decodeSerializableElement(
                 descriptor,
                 4,
-                CreationExtensionResultsSerializer(),
+                serializer,
             )
             extensions = results.v
         }

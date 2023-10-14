@@ -14,6 +14,40 @@ import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Represents the response to a [GetInfoCommand], describing the status and capabilities of an Authenticator.
+ *
+ * @property versions The CTAP specification version(s) supported by the Authenticator
+ * @property extensions Any CTAP/Webauthn extension(s) supported
+ * @property aaguid A unique identifier for the Authenticator MODEL - not the individual physical Authenticator.
+ *                  May be all zeroes if Basic attestation is unsupported
+ * @property options A map, with keys being a [option identifiers][us.q3q.fidok.ctap.CTAPOption] and values being
+ *                   whether that option is supported/enabled or not
+ * @property maxMsgSize The size, in bytes, of the longest allowable single command to the Authenticator
+ * @property pinUvAuthProtocols Which PIN/UV authentication protocol(s) the Authenticator supports
+ * @property maxCredentialCountInList How many Credential IDs may be passed to the Authenticator in a single allowList
+ * @property maxCredentialIdLength The length, in bytes, of the longest Credential this Authenticator will produce
+ *                                 (and thus the longest one it will successfully use as well)
+ * @property transports The different [transports][us.q3q.fidok.ctap.AuthenticatorTransport] by which the
+ *                      Authenticator may be connected to the Platform
+ * @property algorithms Which cryptographic algorithm(s) the Authenticator can use in generating Credentials
+ * @property maxSerializedLargeBlobArray How long the large-blob store for the Authenticator can be, in bytes
+ * @property forcePINChange If true, the user's PIN must be changed prior to creating or using Credentials
+ * @property minPINLength How long, in UTF-8 code points, the user's PIN must be at minimum
+ * @property firmwareVersion A vendor-specific version number for the Authenticator
+ * @property maxCredBlobLength How long a single [credBlob][CredBlobExtension] may be.
+ * @property maxRPIDsForSetMinPINLength How many Relying Party identifiers may be passed to the Authenticator for
+ * [the setMinPINLength extension][us.q3q.fidok.ctap.AuthenticatorConfigClient.setMinPINLength]
+ * @property preferredPlatformUvAttempts How many times the Authenticator would prefer the Platform attempt on-board
+ * User Verification before falling back to trying a PIN (or failing user verification entirely)
+ * @property certifications Any certifications the Authenticator has obtained, such as FIDO Alliance or CC-EAL. Keys in
+ * the map are certification types, and values are certification-type-specific integers denoting levels
+ * @property remainingDiscoverableCredentials APPROXIMATELY how many Discoverable Credentials can be created in the
+ * remaining space of the Authenticator. May be an underestimate. If circumstances change, may end up being an
+ * overestimate.
+ * @property vendorPrototypeConfigCommands Any vendor-specific [config commands][AuthenticatorConfigCommand.subCommand]
+ * supported by the Authenticator
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = GetInfoResponseSerializer::class)
 data class GetInfoResponse(
@@ -111,6 +145,9 @@ data class GetInfoResponse(
     }
 }
 
+/**
+ * Deserializes a [GetInfoResponse]
+ */
 @OptIn(ExperimentalSerializationApi::class)
 class GetInfoResponseSerializer : KSerializer<GetInfoResponse> {
     override val descriptor: SerialDescriptor

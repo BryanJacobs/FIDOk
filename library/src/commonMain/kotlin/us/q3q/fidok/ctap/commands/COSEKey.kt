@@ -15,7 +15,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * An encoding of a key that represents its mathemtical parameters.
+ * An encoding of a key that represents its mathematical parameters.
  *
  * Currently, only holds ECDSA keys on NIST P-256.
  *
@@ -27,14 +27,15 @@ import kotlinx.serialization.encoding.Encoder
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = COSEKeySerializer::class)
-data class COSEKey(val kty: Int, val alg: Int, val crv: Int, @ByteString val x: ByteArray, @ByteString val y: ByteArray) {
+data class COSEKey(val kty: Int, val alg: Long, val crv: Int, @ByteString val x: ByteArray, @ByteString val y: ByteArray) {
     init {
         require(kty == 2)
-        require(alg == -7 || alg == -25)
+        require(alg == -7L || alg == -25L)
         require(crv == 1)
         require(x.size == 32)
         require(y.size == 32)
     }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -52,7 +53,7 @@ data class COSEKey(val kty: Int, val alg: Int, val crv: Int, @ByteString val x: 
 
     override fun hashCode(): Int {
         var result = kty
-        result = 31 * result + alg
+        result = 31 * result + alg.hashCode()
         result = 31 * result + crv
         result = 31 * result + x.contentHashCode()
         result = 31 * result + y.contentHashCode()
@@ -83,7 +84,7 @@ class COSEKeySerializer : KSerializer<COSEKey> {
         }
 
         var kty: Int? = null
-        var alg: Int? = null
+        var alg: Long? = null
         var crv: Int? = null
         var x: ByteArray? = null
         var y: ByteArray? = null
@@ -94,7 +95,7 @@ class COSEKeySerializer : KSerializer<COSEKey> {
                 1 ->
                     kty = composite.decodeIntElement(descriptor, 0)
                 3 ->
-                    alg = composite.decodeIntElement(descriptor, 1)
+                    alg = composite.decodeLongElement(descriptor, 1)
                 -1 ->
                     crv = composite.decodeIntElement(descriptor, 2)
                 -2 ->
@@ -122,7 +123,7 @@ class COSEKeySerializer : KSerializer<COSEKey> {
         composite.encodeIntElement(descriptor, 0, 1)
         composite.encodeIntElement(descriptor, 0, value.kty)
         composite.encodeIntElement(descriptor, 1, 3)
-        composite.encodeIntElement(descriptor, 1, value.alg)
+        composite.encodeLongElement(descriptor, 1, value.alg)
         composite.encodeIntElement(descriptor, 2, -1)
         composite.encodeIntElement(descriptor, 2, value.crv)
         composite.encodeIntElement(descriptor, 3, -2)

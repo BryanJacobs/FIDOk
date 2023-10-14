@@ -12,9 +12,10 @@ import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
-enum class COSEAlgorithmIdentifier(val value: Int) {
+enum class COSEAlgorithmIdentifier(val value: Long) {
     ES256(-7),
     EdDSA(-8),
+    RS256(-257),
 }
 
 enum class PublicKeyCredentialType(val value: String) {
@@ -24,14 +25,14 @@ enum class PublicKeyCredentialType(val value: String) {
 @Serializable(with = PublicKeyCredentialsParametersSerializer::class)
 data class PublicKeyCredentialParameters(
     val type: String,
-    val alg: Int,
+    val alg: Long,
 ) {
     constructor(alg: COSEAlgorithmIdentifier) : this(PublicKeyCredentialType.PUBLIC_KEY, alg)
     constructor(type: PublicKeyCredentialType, alg: COSEAlgorithmIdentifier) : this(type.value, alg.value)
 
     constructor(type: String, alg: COSEAlgorithmIdentifier) : this(type, alg.value)
 
-    constructor(type: PublicKeyCredentialType, alg: Int) : this(type.value, alg)
+    constructor(type: PublicKeyCredentialType, alg: Long) : this(type.value, alg)
 
     override fun toString(): String {
         if (type != PublicKeyCredentialType.PUBLIC_KEY.value) {
@@ -63,7 +64,7 @@ class PublicKeyCredentialsParametersSerializer : KSerializer<PublicKeyCredential
         if (algKey != "alg") {
             throw SerializationException("Did not find alg element in PublicKeyCredentialParameters")
         }
-        val alg = composite.decodeIntElement(descriptor, 2)
+        val alg = composite.decodeLongElement(descriptor, 2)
         val typeKey = composite.decodeStringElement(descriptor, 3)
         if (typeKey != "type") {
             throw SerializationException("Did not find type element in PublicKeyCredentialParameters")
@@ -76,7 +77,7 @@ class PublicKeyCredentialsParametersSerializer : KSerializer<PublicKeyCredential
     override fun serialize(encoder: Encoder, value: PublicKeyCredentialParameters) {
         val subEncoder = encoder.beginCollection(descriptor, 2)
         subEncoder.encodeStringElement(descriptor, 1, "alg")
-        subEncoder.encodeIntElement(descriptor, 2, value.alg)
+        subEncoder.encodeLongElement(descriptor, 2, value.alg)
         subEncoder.encodeStringElement(descriptor, 3, "type")
         subEncoder.encodeStringElement(descriptor, 4, value.type)
         subEncoder.endStructure(descriptor)

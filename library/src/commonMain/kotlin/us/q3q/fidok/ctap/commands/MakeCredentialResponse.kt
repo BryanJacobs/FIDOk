@@ -12,6 +12,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import us.q3q.fidok.webauthn.NoneAttestation
 import kotlin.reflect.KClass
 
 enum class AttestationTypes(val value: String, val klass: KClass<out Any>? = null) {
@@ -33,6 +34,7 @@ enum class AttestationTypes(val value: String, val klass: KClass<out Any>? = nul
 data class MakeCredentialResponse(
     val fmt: String,
     @ByteString val authData: AuthenticatorData,
+    val rawAttStmt: AttestatationStatement,
     val attStmt: Map<Any, Any>,
     val epAtt: Boolean?,
     @ByteString val largeBlobKey: ByteArray?,
@@ -53,13 +55,7 @@ data class MakeCredentialResponse(
             throw IllegalStateException("Not using packed attestation")
         }
 
-        val arrUncast = attStmt["x5c"] as Array<*>?
-
-        return PackedAttestationStatement(
-            alg = attStmt["alg"] as Int,
-            sig = attStmt["sig"] as ByteArray,
-            x5c = arrUncast?.map { it as ByteArray }?.toTypedArray(),
-        )
+        return rawAttStmt as PackedAttestationStatement
     }
 
     override fun equals(other: Any?): Boolean {
@@ -70,6 +66,7 @@ data class MakeCredentialResponse(
 
         if (fmt != other.fmt) return false
         if (authData != other.authData) return false
+        if (rawAttStmt != other.rawAttStmt) return false
         if (attStmt != other.attStmt) return false
         if (epAtt != other.epAtt) return false
         if (largeBlobKey != null) {
@@ -83,6 +80,7 @@ data class MakeCredentialResponse(
     override fun hashCode(): Int {
         var result = fmt.hashCode()
         result = 31 * result + authData.hashCode()
+        result = 31 * result + rawAttStmt.hashCode()
         result = 31 * result + attStmt.hashCode()
         result = 31 * result + (epAtt?.hashCode() ?: 0)
         result = 31 * result + (largeBlobKey?.contentHashCode() ?: 0)
@@ -107,6 +105,7 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
         var fmt: String? = null
         var authData: AuthenticatorData? = null
         var attStmt: Map<Any, Any>? = null
+        var rawAttStmt: AttestatationStatement? = null
         var epAtt: Boolean? = null
         var largeBlobKey: ByteArray? = null
 
@@ -139,6 +138,7 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
                                 idx - 1,
                                 PackedAttestationStatement.serializer(),
                             )
+                            rawAttStmt = att
                             attStmt = if (att.x5c != null) {
                                 hashMapOf(
                                     "alg" to att.alg,
@@ -153,18 +153,19 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
                             }
                         }
                         AttestationTypes.NONE -> {
+                            rawAttStmt = NoneAttestation()
                             val gottenMap = composite.decodeSerializableElement(
                                 descriptor,
                                 idx - 1,
                                 MapSerializer(String.serializer(), String.serializer()),
                             )
                             if (gottenMap.isNotEmpty()) {
-                                throw SerializationException("None attestationtype has non-empty data")
+                                throw SerializationException("None attestation type has non-empty data")
                             }
                             attStmt = hashMapOf()
                         }
                         else -> {
-                            TODO("handle as byte array")
+                            TODO("handle as byte array?")
                         }
                     }
                 }
@@ -186,13 +187,14 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
         }
         composite.endStructure(descriptor)
 
-        if (fmt == null || authData == null || attStmt == null) {
+        if (fmt == null || authData == null || attStmt == null || rawAttStmt == null) {
             throw SerializationException("MakeCredentialsResponse missing required properties")
         }
 
         return MakeCredentialResponse(
             fmt = fmt,
             authData = authData,
+            rawAttStmt = rawAttStmt,
             attStmt = attStmt,
             epAtt = epAtt,
             largeBlobKey = largeBlobKey,

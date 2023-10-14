@@ -27,7 +27,6 @@ import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.InvalidDeviceException
 import us.q3q.fidok.hid.CTAPHID.Companion.sendAndReceive
 import us.q3q.fidok.hid.CTAPHIDCommand
-import us.q3q.fidok.hid.PACKET_SIZE
 
 const val FIDO_USAGE_PAGE = 0xF1D0u
 const val FIDO_USAGE = 0x0001u
@@ -35,7 +34,7 @@ const val FIDO_USAGE = 0x0001u
 const val TIMEOUT = 5000
 
 @OptIn(ExperimentalForeignApi::class)
-class LibHIDDevice(private val path: String) : AuthenticatorDevice {
+class LibHIDDevice(private val path: String, private val packetSize: Int) : AuthenticatorDevice {
     companion object : AuthenticatorListing {
         init {
             hid_init()
@@ -53,7 +52,7 @@ class LibHIDDevice(private val path: String) : AuthenticatorDevice {
                     ) {
                         val path = iterationHandle.pointed.path?.toKString() ?: throw InvalidDeviceException("Path to device is null")
                         Logger.i("Found device $path")
-                        foundDevices.add(LibHIDDevice(path))
+                        foundDevices.add(LibHIDDevice(path, 64))
                     }
                     iterationHandle = iterationHandle.pointed.next
                 }
@@ -74,8 +73,8 @@ class LibHIDDevice(private val path: String) : AuthenticatorDevice {
     private fun readOnePacket(handle: CPointer<hid_device>): UByteArray {
         Logger.d("Attempting to read from device $path")
         memScoped {
-            val packet = allocArray<UByteVar>(PACKET_SIZE)
-            val read = hid_read_timeout(handle, packet, PACKET_SIZE.convert(), TIMEOUT)
+            val packet = allocArray<UByteVar>(packetSize)
+            val read = hid_read_timeout(handle, packet, packetSize.convert(), TIMEOUT)
             if (read == 0) {
                 throw DeviceCommunicationException("Timed out reading from HID device $path")
             }
@@ -90,20 +89,21 @@ class LibHIDDevice(private val path: String) : AuthenticatorDevice {
         }
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     private fun sendOnePacket(handle: CPointer<hid_device>, bytes: UByteArray) {
-        if (bytes.size != PACKET_SIZE + 1) {
-            throw IllegalArgumentException("Requested byte length: ${bytes.size} is not equal to packet size $PACKET_SIZE")
+        if (bytes.size != packetSize) {
+            throw IllegalArgumentException("Requested byte length: ${bytes.size} is not equal to packet size $packetSize")
         }
+
         memScoped {
-            val packet = this.allocArray<UByteVar>(PACKET_SIZE + 1)
+            val packet = this.allocArray<UByteVar>(packetSize + 1)
+            packet[0] = 0x00u // LibHID wants the descriptor number here
             for (i in bytes.indices) {
-                packet[i] = bytes[i]
+                packet[i + 1] = bytes[i]
             }
-            Logger.v(bytes.toHexString())
-            val written = hid_write(handle, packet, bytes.size.convert())
-            if (written != bytes.size) {
-                throw DeviceCommunicationException("Failed to write to HID device $path: $written bytes written")
+            // Logger.v(bytes.toHexString())
+            val written = hid_write(handle, packet, (packetSize + 1).convert())
+            if (written != packetSize + 1) {
+                throw DeviceCommunicationException("Failed to write to HID device $path: $written bytes written of ${packetSize + 1}")
             }
         }
     }
@@ -116,9 +116,14 @@ class LibHIDDevice(private val path: String) : AuthenticatorDevice {
                 { readOnePacket(handle) },
                 CTAPHIDCommand.CBOR,
                 bytes.toUByteArray(),
+                packetSize = packetSize,
             ).toByteArray()
         } finally {
             hid_close(handle)
         }
+    }
+
+    override fun toString(): String {
+        return "libhid:$path"
     }
 }

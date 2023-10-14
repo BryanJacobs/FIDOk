@@ -10,9 +10,26 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Represents the results returned by extensions in either a CTAP
+ * [MakeCredentialResponse] or [GetAssertionResponse].
+ *
+ * @property v A map, with key being the extension name, and value being some data
+ *             type depending on the extension.
+ */
 data class ExtensionResults(val v: Map<ExtensionName, ExtensionParameters>)
 
+/**
+ * Base class for deserializing [ExtensionResults].
+ */
 abstract class ExtensionResultsSerializer : KSerializer<ExtensionResults> {
+
+    /**
+     * Function looking up the correct parameter-type deserializer to use.
+     *
+     * @param extensionName The name of the extension in question
+     * @return A deserializer that can process the extension's results
+     */
     abstract fun getApplicableSerializer(extensionName: ExtensionName): DeserializationStrategy<ExtensionParameters>
 
     override val descriptor: SerialDescriptor
@@ -46,6 +63,11 @@ abstract class ExtensionResultsSerializer : KSerializer<ExtensionResults> {
     }
 }
 
+/**
+ * Decoding for extensions in [MakeCredentialResponse].
+ *
+ * Uses [ExtensionSetup] to determine which extensions use which deserializers.
+ */
 class CreationExtensionResultsSerializer : ExtensionResultsSerializer() {
     override fun getApplicableSerializer(extensionName: ExtensionName): DeserializationStrategy<ExtensionParameters> {
         return ExtensionSetup.getCreationRegistration(extensionName)
@@ -53,6 +75,11 @@ class CreationExtensionResultsSerializer : ExtensionResultsSerializer() {
     }
 }
 
+/**
+ * Decoding for extensions in [GetAssertionResponse].
+ *
+ * Uses [ExtensionSetup] to determine which extensions use which deserializers.
+ */
 class AssertionExtensionResultsSerializer : ExtensionResultsSerializer() {
     override fun getApplicableSerializer(extensionName: ExtensionName): DeserializationStrategy<ExtensionParameters> {
         return ExtensionSetup.getAssertionRegistration(extensionName)

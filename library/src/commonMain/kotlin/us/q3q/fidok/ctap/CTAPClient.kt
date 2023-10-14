@@ -8,6 +8,7 @@ import us.q3q.fidok.crypto.PinUVProtocol
 import us.q3q.fidok.crypto.PinUVProtocolV1
 import us.q3q.fidok.crypto.PinUVProtocolV2
 import us.q3q.fidok.ctap.commands.AttestationTypes
+import us.q3q.fidok.ctap.commands.AuthenticatorSelectionCommand
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
 import us.q3q.fidok.ctap.commands.COSEKey
 import us.q3q.fidok.ctap.commands.CTAPCBORDecoder
@@ -124,7 +125,7 @@ enum class CTAPOption(val value: String) {
 }
 
 /**
- * The different permissions that [may be requested][CTAPClient.getPinUVTokenUsingAppropriateMethod] from an
+ * The different permissions that [may be requested][CTAPClient.getPinUvTokenUsingAppropriateMethod] from an
  * Authenticator
  *
  * @property value The bitfield encoding of the permissions
@@ -279,12 +280,38 @@ class CTAPClient(
      *
      * @return The Authenticator info object
      */
-    @Throws(DeviceCommunicationException::class)
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getInfo(): GetInfoResponse {
         val ret = xmit(GetInfoCommand(), GetInfoResponse.serializer())
         info = ret
         Logger.d { "Device info: $ret" }
         return ret
+    }
+
+    /**
+     * Sends an [AuthenticatorSelectionCommand] to the Authenticator.
+     *
+     * @return true if the authenticator accepts the selection; false if the
+     *         authenticator EXPLICITLY rejects the selection; null if the
+     *         authenticator didn't affirmatively deny the selection,
+     *         but didn't accept it either
+     */
+    @Throws(CTAPError::class)
+    fun select(): Boolean? {
+        try {
+            xmit(AuthenticatorSelectionCommand())
+            return true
+        } catch (_: DeviceCommunicationException) {
+        } catch (e: CTAPError) {
+            if (e.code == CTAPResponse.OPERATION_DENIED.value) {
+                return false
+            }
+            if (e.code == CTAPResponse.USER_ACTION_TIMEOUT.value) {
+                return null
+            }
+            throw e
+        }
+        return null
     }
 
     /**
@@ -297,6 +324,108 @@ class CTAPClient(
     }
 
     /**
+     * As [makeCredential], but returns raw CTAP bytes instead of a parsed object.
+     *
+     * @return CTAP bytes representing a [MakeCredentialResponse]
+     */
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
+    internal fun makeCredentialRaw(
+        rpId: String,
+        clientDataHash: ByteArray,
+        rpName: String? = null,
+        userId: ByteArray? = null,
+        userName: String? = null,
+        userDisplayName: String? = null,
+        discoverableCredential: Boolean = false,
+        userVerification: Boolean = false,
+        pubKeyCredParams: List<PublicKeyCredentialParameters> = DEFAULT_CREDENTIAL_ALGORITHMS,
+        excludeList: List<PublicKeyCredentialDescriptor>? = null,
+        pinUvProtocol: UByte? = null,
+        pinUvToken: PinUVToken? = null,
+        enterpriseAttestation: UInt? = null,
+        extensions: ExtensionSetup? = null,
+    ): ByteArray {
+        require(enterpriseAttestation == null || enterpriseAttestation == 1u || enterpriseAttestation == 2u)
+        require(
+            (pinUvToken == null && pinUvProtocol == null) ||
+                pinUvToken != null,
+        )
+        val info = getInfoIfUnset()
+        if (enterpriseAttestation != null && info.options?.get("ep") != true) {
+            throw IllegalArgumentException("Authenticator enterprise attestation isn't enabled")
+        }
+        if (extensions?.checkSupport(info) == false) {
+            throw IllegalArgumentException("Authenticator does not support requested extension(s)")
+        }
+        val effectiveRpName = rpName ?: rpId
+
+        val effectiveUserId = userId ?: Random.nextBytes(32)
+
+        val options = hashMapOf<CredentialCreationOption, Boolean>()
+        if (discoverableCredential) {
+            if (info.options?.containsKey("rk") != true) {
+                throw IllegalArgumentException("Authenticator does not support discoverable credentials")
+            }
+            options[CredentialCreationOption.RK] = true
+        }
+        if (userVerification) {
+            options[CredentialCreationOption.UV] = true
+        }
+
+        Logger.d { "Making credential with effective client data hash ${clientDataHash.toHexString()}" }
+
+        var pinUvProtocolVersion: UByte? = null
+        val pinUvAuthParam = if (pinUvToken != null) {
+            val pp = getPinProtocol(pinUvProtocol)
+            pinUvProtocolVersion = pp.getVersion()
+
+            Logger.d { "Authenticating request using PIN protocol $pinUvProtocolVersion" }
+
+            pp.authenticate(pinUvToken, clientDataHash)
+        } else {
+            null
+        }
+
+        var ka: KeyAgreementPlatformKey? = null
+        var pp: PinUVProtocol? = null
+        if (extensions?.isKeyAgreementRequired() == true) {
+            pp = getPinProtocol(pinUvProtocol)
+            ka = getKeyAgreement(pp.getVersion())
+        }
+
+        val request = MakeCredentialCommand(
+            clientDataHash,
+            PublicKeyCredentialRpEntity(
+                id = rpId,
+                name = effectiveRpName,
+            ),
+            user = PublicKeyCredentialUserEntity(
+                id = effectiveUserId,
+                displayName = userDisplayName,
+                name = userName,
+            ),
+            pubKeyCredParams = pubKeyCredParams,
+            options = options,
+            excludeList = excludeList,
+            pinUvAuthProtocol = pinUvProtocolVersion,
+            pinUvAuthParam = pinUvAuthParam,
+            enterpriseAttestation = enterpriseAttestation,
+            extensions = extensions?.makeCredential(ka, pp),
+        )
+
+        val ret = try {
+            xmit(request)
+        } catch (e: CTAPError) {
+            if (e.code == CTAPResponse.CREDENTIAL_EXCLUDED.value) {
+                throw CredentialExcludedError()
+            }
+            throw e
+        }
+
+        return ret
+    }
+
+    /**
      * Creates a new CTAP credential via a [MakeCredentialCommand], returning a [MakeCredentialResponse].
      *
      * This is the way to create a new key usable for later calls to [getAssertions]. The easiest way to
@@ -305,6 +434,7 @@ class CTAPClient(
      *
      * @param rpId The unique identifier of the Relying Party to which the new credential pertains. In CTAP
      *             this can be any string, but in practice it's usually a domain name (no URI schema or port number).
+     * @param rpName The human-readable name of the Relying Party - defaults to the [rpId]
      * @param clientDataHash A 32-byte-long identifier for the credential request. This is intended to be the
      *                       SHA-256 hash of a "client data object", but in practice can be any non-colliding 32 bytes.
      *                       If not set, this will be generated randomly
@@ -327,7 +457,7 @@ class CTAPClient(
      *                    a `CredentialExcludedError` will be raised.
      * @param pinUvProtocol The CTAP number of the PIN/UV protocol to use. If not set, will be none or version 1,
      *                      depending on whether a `pinUvToken` is supplied
-     * @param pinUvToken A token obtained from [getPinUVTokenUsingAppropriateMethod] or similar method
+     * @param pinUvToken A token obtained from [getPinUvTokenUsingAppropriateMethod] or similar method
      * @param enterpriseAttestation If set, the [enterprise attestation "level"][EnterpriseAttestationLevel] to request
      * @param extensions An [ExtensionSetup] indicating any extension(s) active for the makeCredential call.
      *                   Each extension has a change to alter the request going to the Authenticator, and to collect
@@ -341,6 +471,7 @@ class CTAPClient(
     @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun makeCredential(
         rpId: String,
+        rpName: String? = null,
         clientDataHash: ByteArray? = null,
         userId: ByteArray? = null,
         userName: String? = null,
@@ -356,79 +487,29 @@ class CTAPClient(
         validateAttestation: Boolean = true,
     ): MakeCredentialResponse {
         require(clientDataHash == null || clientDataHash.size == 32)
-        require(enterpriseAttestation == null || enterpriseAttestation == 1u || enterpriseAttestation == 2u)
-        require(
-            (pinUvToken == null && pinUvProtocol == null) ||
-                pinUvToken != null,
-        )
-        val info = getInfoIfUnset()
-        if (enterpriseAttestation != null && info.options?.get("ep") != true) {
-            throw IllegalArgumentException("Authenticator enterprise attestation isn't enabled")
-        }
-        if (extensions?.checkSupport(info) == false) {
-            throw IllegalArgumentException("Authenticator does not support requested extension(s)")
-        }
 
-        val effectiveUserId = userId ?: Random.nextBytes(32)
         val effectiveClientDataHash = clientDataHash ?: Random.nextBytes(32)
 
-        val options = hashMapOf<CredentialCreationOption, Boolean>()
-        if (discoverableCredential) {
-            if (info.options?.containsKey("rk") != true) {
-                throw IllegalArgumentException("Authenticator does not support discoverable credentials")
-            }
-            options[CredentialCreationOption.RK] = true
-        }
-        if (userVerification) {
-            options[CredentialCreationOption.UV] = true
-        }
-
-        Logger.d { "Making credential with effective client data hash ${effectiveClientDataHash.toHexString()}" }
-
-        var pinUvProtocolVersion: UByte? = null
-        val pinUvAuthParam = if (pinUvToken != null) {
-            val pp = getPinProtocol(pinUvProtocol)
-            pinUvProtocolVersion = pp.getVersion()
-
-            Logger.d { "Authenticating request using PIN protocol $pinUvProtocolVersion" }
-
-            pp.authenticate(pinUvToken, effectiveClientDataHash)
-        } else {
-            null
-        }
-
-        var ka: KeyAgreementPlatformKey? = null
-        var pp: PinUVProtocol? = null
-        if (extensions?.isKeyAgreementRequired() == true) {
-            pp = getPinProtocol(pinUvProtocol)
-            ka = getKeyAgreement(pp.getVersion())
-        }
-
-        val request = MakeCredentialCommand(
+        val rawResult = makeCredentialRaw(
+            rpId,
             effectiveClientDataHash,
-            PublicKeyCredentialRpEntity(rpId),
-            user = PublicKeyCredentialUserEntity(
-                id = effectiveUserId,
-                displayName = userDisplayName,
-                name = userName,
-            ),
-            pubKeyCredParams = pubKeyCredParams,
-            options = options,
-            excludeList = excludeList,
-            pinUvAuthProtocol = pinUvProtocolVersion,
-            pinUvAuthParam = pinUvAuthParam,
-            enterpriseAttestation = enterpriseAttestation,
-            extensions = extensions?.makeCredential(ka, pp),
+            rpName,
+            userId,
+            userName,
+            userDisplayName,
+            discoverableCredential,
+            userVerification,
+            pubKeyCredParams,
+            excludeList,
+            pinUvProtocol,
+            pinUvToken,
+            enterpriseAttestation,
+            extensions,
         )
 
-        val ret = try {
-            xmit(request, MakeCredentialResponse.serializer())
-        } catch (e: CTAPError) {
-            if (e.code == CTAPResponse.CREDENTIAL_EXCLUDED.value) {
-                throw CredentialExcludedError()
-            }
-            throw e
-        }
+        val ret = CTAPCBORDecoder(rawResult).decodeSerializableValue(
+            MakeCredentialResponse.serializer(),
+        )
 
         if (validateAttestation) {
             validateCredentialAttestation(ret, effectiveClientDataHash)
@@ -472,7 +553,7 @@ class CTAPClient(
     fun validateSelfAttestation(
         makeCredentialResponse: MakeCredentialResponse,
         clientDataHash: ByteArray,
-        alg: Int,
+        alg: Long,
         sig: ByteArray,
     ) {
         if (alg != COSEAlgorithmIdentifier.ES256.value) {
@@ -489,7 +570,7 @@ class CTAPClient(
     private fun validateBasicAttestation(
         makeCredentialResponse: MakeCredentialResponse,
         clientDataHash: ByteArray,
-        alg: Int,
+        alg: Long,
         sig: ByteArray,
         caCert: ByteArray,
     ) {
@@ -514,7 +595,7 @@ class CTAPClient(
     fun validateCredentialAttestation(makeCredentialResponse: MakeCredentialResponse, clientDataHash: ByteArray) {
         when (makeCredentialResponse.fmt) {
             AttestationTypes.PACKED.value -> {
-                val alg = makeCredentialResponse.attStmt["alg"] as Int
+                val alg = makeCredentialResponse.attStmt["alg"] as Long
                 val sig = makeCredentialResponse.attStmt["sig"] as ByteArray
                 val x5c = makeCredentialResponse.attStmt["x5c"] as Array<*>?
                 if (x5c == null) {
@@ -562,6 +643,87 @@ class CTAPClient(
     }
 
     /**
+     * Like [getAssertions], but returns a single assertion as raw CTAP bytes.
+     *
+     * @return Bytes representing an encoded [GetAssertionResponse]
+     */
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
+    internal fun getAssertionRaw(
+        rpId: String,
+        clientDataHash: ByteArray,
+        allowList: List<PublicKeyCredentialDescriptor>? = null,
+        extensions: ExtensionSetup? = null,
+        userPresence: Boolean? = null,
+        pinUvProtocol: UByte? = null,
+        pinUvToken: PinUVToken? = null,
+    ): ByteArray {
+        require(
+            (pinUvToken == null && pinUvProtocol == null) ||
+                pinUvToken != null,
+        )
+
+        val info = getInfoIfUnset()
+        if (extensions?.checkSupport(info) == false) {
+            throw IllegalArgumentException("Authenticator does not support requested extension(s)")
+        }
+
+        var pinUvProtocolVersion: UByte? = null
+        val pinUvAuthParam = if (pinUvToken != null) {
+            val pp = getPinProtocol(pinUvProtocol)
+            pinUvProtocolVersion = pp.getVersion()
+            pp.authenticate(pinUvToken, clientDataHash)
+        } else {
+            null
+        }
+
+        var ka: KeyAgreementPlatformKey? = null
+        var pp: PinUVProtocol? = null
+        if (extensions?.isKeyAgreementRequired() == true) {
+            pp = getPinProtocol(pinUvProtocol)
+            ka = getKeyAgreement(pp.getVersion())
+        }
+
+        var options: HashMap<GetAssertionOption, Boolean>? = null
+        if (userPresence == false) {
+            options = hashMapOf(
+                GetAssertionOption.UP to false,
+            )
+        }
+
+        val numAllowListEntriesPerBatch = info.maxCredentialCountInList?.toInt() ?: 10000
+        var allowListSent = 0
+        while (allowListSent < (allowList?.size ?: 1)) {
+            val thisRequestAllowList =
+                allowList?.subList(allowListSent, min(allowListSent + numAllowListEntriesPerBatch, allowList.size))
+
+            val request = GetAssertionCommand(
+                clientDataHash = clientDataHash,
+                rpId = rpId,
+                allowList = thisRequestAllowList,
+                extensions = extensions?.getAssertion(keyAgreement = ka, pinUVProtocol = pp),
+                options = options,
+                pinUvAuthParam = pinUvAuthParam,
+                pinUvAuthProtocol = pinUvProtocolVersion,
+            )
+
+            val rawFirstResponse = try {
+                xmit(request)
+            } catch (e: CTAPError) {
+                if (e.code == CTAPResponse.NO_CREDENTIALS.value) {
+                    // OK, fine, try some other creds
+                    allowListSent += thisRequestAllowList?.size ?: 1
+                    continue
+                }
+                throw e
+            }
+
+            return rawFirstResponse
+        }
+
+        throw CTAPError(CTAPResponse.NO_CREDENTIALS.value)
+    }
+
+    /**
      * Core call to get assertion(s) from the Authenticator
      *
      * This will use the [allowList] (or, for discoverable credentials, the credentials stored on the
@@ -582,7 +744,7 @@ class CTAPClient(
      * @param extensions Any assertion-time extensions to use
      * @param userPresence If true, request the Authenticator check user presence
      * @param pinUvProtocol PIN/UV protocol number to use, if any
-     * @param pinUvToken A user verification token obtained from [getPinUVTokenUsingAppropriateMethod] or similar method
+     * @param pinUvToken A user verification token obtained from [getPinUvTokenUsingAppropriateMethod] or similar method
      *
      * @return A list of [GetAssertionResponse] objects, each one representing a separate assertion. The
      *         assertion signature(s) are unvalidated; it's the responsibility of the calling code to check them
@@ -600,41 +762,14 @@ class CTAPClient(
         pinUvToken: PinUVToken? = null,
     ): List<GetAssertionResponse> {
         require(clientDataHash == null || clientDataHash.size == 32)
-        require(
-            (pinUvToken == null && pinUvProtocol == null) ||
-                pinUvToken != null,
-        )
         val effectiveClientDataHash = clientDataHash ?: Random.nextBytes(32)
+
+        val ret: ArrayList<GetAssertionResponse> = arrayListOf()
 
         val info = getInfoIfUnset()
         if (extensions?.checkSupport(info) == false) {
             throw IllegalArgumentException("Authenticator does not support requested extension(s)")
         }
-
-        var pinUvProtocolVersion: UByte? = null
-        val pinUvAuthParam = if (pinUvToken != null) {
-            val pp = getPinProtocol(pinUvProtocol)
-            pinUvProtocolVersion = pp.getVersion()
-            pp.authenticate(pinUvToken, effectiveClientDataHash)
-        } else {
-            null
-        }
-
-        var ka: KeyAgreementPlatformKey? = null
-        var pp: PinUVProtocol? = null
-        if (extensions?.isKeyAgreementRequired() == true) {
-            pp = getPinProtocol(pinUvProtocol)
-            ka = getKeyAgreement(pp.getVersion())
-        }
-
-        var options: HashMap<GetAssertionOption, Boolean>? = null
-        if (userPresence == false) {
-            options = hashMapOf(
-                GetAssertionOption.UP to false,
-            )
-        }
-
-        val ret = arrayListOf<GetAssertionResponse>()
 
         val numAllowListEntriesPerBatch = info.maxCredentialCountInList?.toInt() ?: 10000
         var allowListSent = 0
@@ -642,17 +777,27 @@ class CTAPClient(
             val thisRequestAllowList =
                 allowList?.subList(allowListSent, min(allowListSent + numAllowListEntriesPerBatch, allowList.size))
 
-            val request = GetAssertionCommand(
-                clientDataHash = effectiveClientDataHash,
-                rpId = rpId,
-                allowList = thisRequestAllowList,
-                extensions = extensions?.getAssertion(keyAgreement = ka, pinUVProtocol = pp),
-                options = options,
-                pinUvAuthParam = pinUvAuthParam,
-                pinUvAuthProtocol = pinUvProtocolVersion,
-            )
+            val rawFirstResponse = try {
+                getAssertionRaw(
+                    rpId = rpId,
+                    clientDataHash = effectiveClientDataHash,
+                    allowList = thisRequestAllowList,
+                    extensions = extensions,
+                    userPresence = userPresence,
+                    pinUvProtocol = pinUvProtocol,
+                    pinUvToken = pinUvToken,
+                )
+            } catch (e: CTAPError) {
+                if (e.code == CTAPResponse.NO_CREDENTIALS.value) {
+                    // OK, fine, try some other creds
+                    allowListSent += thisRequestAllowList?.size ?: 1
+                    continue
+                }
+                throw e
+            }
 
-            val firstResponse = xmit(request, GetAssertionResponse.serializer())
+            val firstResponse = CTAPCBORDecoder(rawFirstResponse)
+                .decodeSerializableValue(GetAssertionResponse.serializer())
 
             extensions?.getAssertionResponse(firstResponse)
 
@@ -668,6 +813,10 @@ class CTAPClient(
             }
 
             allowListSent += thisRequestAllowList?.size ?: 1
+        }
+
+        if (ret.isEmpty()) {
+            throw CTAPError(CTAPResponse.NO_CREDENTIALS.value)
         }
 
         return ret
@@ -891,7 +1040,7 @@ class CTAPClient(
         DeviceCommunicationException::class,
         CancellationException::class,
     )
-    suspend fun getPinUVTokenUsingAppropriateMethod(
+    suspend fun getPinUvTokenUsingAppropriateMethod(
         desiredPermissions: UByte,
         desiredRpId: String? = null,
         pinUvProtocol: UByte? = null,
@@ -953,7 +1102,7 @@ class CTAPClient(
                         or CTAPPinPermission.GET_ASSERTION.value.toUInt()
                     ) != 0u
             ) {
-                // we're asking for MC or GA, but the authenticator doesn't allow those to work
+                // we're asking for MC or GA...
                 if (info.options[CTAPOption.NO_MC_GA_PERMISSIONS_WITH_CLIENT_PIN.value] == true) {
                     // but the authenticator says that's not allowed with a PIN, only with UV
                     throw PermissionDeniedError(
@@ -1103,6 +1252,10 @@ class CTAPClient(
         }
         return CredentialManagementClient(this)
     }
+
+    override fun toString(): String {
+        return "CTAPClient($device)"
+    }
 }
 
 class PinNotAvailableException : Exception("A PIN was required, but not available")
@@ -1126,6 +1279,7 @@ data class PinUVToken(val token: ByteArray) {
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 internal fun ctapClientExample() {
     val library = Examples.getLibrary()
 

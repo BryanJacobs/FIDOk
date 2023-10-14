@@ -187,6 +187,7 @@ class HMACSecretInputSerializer : KSerializer<HMACSecretExtensionParameter> {
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 internal fun hmacSecretExtensionCreation() {
     val client = Examples.getCTAPClient()
 
@@ -201,6 +202,7 @@ internal fun hmacSecretExtensionCreation() {
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 internal fun hmacSecretExtensionUse() {
     val client = Examples.getCTAPClient()
 

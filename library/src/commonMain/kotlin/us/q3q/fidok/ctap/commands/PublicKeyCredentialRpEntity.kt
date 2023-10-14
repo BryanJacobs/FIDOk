@@ -16,7 +16,7 @@ import kotlinx.serialization.encoding.Encoder
 data class PublicKeyCredentialRpEntity(
     val id: String? = null,
     val name: String? = null,
-    val icon: String? = null,
+    @Deprecated("webauthn-3 does not handle icons for RPs") val icon: String? = null,
 )
 
 @Serializable
@@ -58,19 +58,21 @@ class PKCredentialRpEntitySerializer : KSerializer<PublicKeyCredentialRpEntity> 
         if (value.name != null) {
             size++
         }
+        @Suppress("DEPRECATION")
         if (value.icon != null) {
             size++
         }
         val subEncoder = encoder.beginCollection(descriptor, size)
         subEncoder.encodeStringElement(descriptor, 1, "id")
         subEncoder.encodeStringElement(descriptor, 2, value.id)
+        @Suppress("DEPRECATION")
         if (value.icon != null) {
-            subEncoder.encodeStringElement(descriptor, 5, "icon")
-            subEncoder.encodeStringElement(descriptor, 6, value.icon)
+            subEncoder.encodeStringElement(descriptor, 3, "icon")
+            subEncoder.encodeStringElement(descriptor, 4, value.icon)
         }
         if (value.name != null) {
-            subEncoder.encodeStringElement(descriptor, 3, "name")
-            subEncoder.encodeStringElement(descriptor, 4, value.name)
+            subEncoder.encodeStringElement(descriptor, 5, "name")
+            subEncoder.encodeStringElement(descriptor, 6, value.name)
         }
         subEncoder.endStructure(descriptor)
     }

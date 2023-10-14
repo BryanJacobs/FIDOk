@@ -12,6 +12,21 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * One response to a credential enumeration request - represents a single credential.
+ *
+ * Could be returned by [beginning][CredentialManagementCommand.enumerateCredentialsBegin] or
+ * [continuing][CredentialManagementCommand.enumerateCredentialsGetNextCredential] CTAP
+ * credentials enumeration.
+ *
+ * @property user The user associated with this particular credential
+ * @property credentialID The credential's handle for use in [getting assertions][us.q3q.fidok.ctap.CTAPClient.getAssertions]
+ * @property publicKey The public key associated with the credential, for verifying assertions
+ * @property totalCredentials The number of credentials to be returned by one round of iteration.
+ *                            Will only be set on the first response, not on GetNextCredential calls.
+ * @property credProtect The credential protection level associated with this credential
+ * @property largeBlobKey A key used for accessing the [large blob array][LargeBlobKeyExtension]
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = EnumerateCredentialsResponseSerializer::class)
 data class EnumerateCredentialsResponse(
@@ -21,8 +36,44 @@ data class EnumerateCredentialsResponse(
     val totalCredentials: UInt? = null,
     val credProtect: UByte? = null,
     @ByteString val largeBlobKey: ByteArray? = null,
-)
+) {
+    init {
+        require(largeBlobKey == null || largeBlobKey.size == 32)
+    }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as EnumerateCredentialsResponse
+
+        if (user != other.user) return false
+        if (credentialID != other.credentialID) return false
+        if (publicKey != other.publicKey) return false
+        if (totalCredentials != other.totalCredentials) return false
+        if (credProtect != other.credProtect) return false
+        if (largeBlobKey != null) {
+            if (other.largeBlobKey == null) return false
+            if (!largeBlobKey.contentEquals(other.largeBlobKey)) return false
+        } else if (other.largeBlobKey != null) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = user.hashCode()
+        result = 31 * result + credentialID.hashCode()
+        result = 31 * result + publicKey.hashCode()
+        result = 31 * result + (totalCredentials?.hashCode() ?: 0)
+        result = 31 * result + (credProtect?.hashCode() ?: 0)
+        result = 31 * result + (largeBlobKey?.contentHashCode() ?: 0)
+        return result
+    }
+}
+
+/**
+ * Deserializes an [EnumerateCredentialsResponse]
+ */
 class EnumerateCredentialsResponseSerializer : KSerializer<EnumerateCredentialsResponse> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("EnumerateRPsResponse") {

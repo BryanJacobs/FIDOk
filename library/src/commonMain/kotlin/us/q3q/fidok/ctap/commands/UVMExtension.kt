@@ -137,6 +137,7 @@ class UVMExtensionResultSerializer : KSerializer<UVMExtensionResultParameter> {
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 internal fun uvmExtensionUsage(): String {
     val client = Examples.getCTAPClient()
 

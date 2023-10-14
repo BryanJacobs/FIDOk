@@ -60,6 +60,7 @@ class LargeBlobKeyExtension : Extension {
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 internal fun largeBlobKeyExample() {
     val client = Examples.getCTAPClient()
 

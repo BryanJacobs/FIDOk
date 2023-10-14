@@ -13,7 +13,7 @@ class Reset : SimulationTest() {
 
     @Test
     fun resetInvalidatesCredential() {
-        val credRes = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName)
+        val credRes = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName)
 
         client.authenticatorReset()
 

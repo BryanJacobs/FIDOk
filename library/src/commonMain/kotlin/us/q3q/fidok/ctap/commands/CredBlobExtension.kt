@@ -85,6 +85,7 @@ class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension 
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 fun credBlobExtensionStore() {
     val client = Examples.getCTAPClient()
 
@@ -99,6 +100,7 @@ fun credBlobExtensionStore() {
     }
 }
 
+@Suppress("UNUSED_VARIABLE")
 internal fun credBlobExtensionRetrieve() {
     val client = Examples.getCTAPClient()
 

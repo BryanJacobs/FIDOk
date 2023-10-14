@@ -15,8 +15,46 @@ import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Base CTAP command class: pairs a command type byte with optional parameters.
+ */
+@Serializable(with = CtapCommandSerializer::class)
+@SerialName("CtapCommand")
+sealed class CtapCommand {
+    /**
+     * CTAP command number
+     */
+    abstract val cmdByte: Byte
+
+    /**
+     * Any and all parameters for this command.
+     *
+     * In CTAP, parameters always use positive integers as keys.
+     */
+    abstract val params: Map<UByte, @Polymorphic ParameterValue>?
+
+    /**
+     * Serialize the command to CTAP CBOR.
+     *
+     * @return A byte array representing the serialized command, suitable for delivery
+     *         to an Authenticator
+     */
+    fun getCBOR(): ByteArray {
+        val encoder = CTAPCBOREncoder()
+        encoder.encodeSerializableValue(serializer(), this)
+        return encoder.getBytes()
+    }
+
+    override fun toString(): String {
+        return this::class.simpleName ?: super.toString()
+    }
+}
+
+/**
+ * Serializes [CtapCommand] instances
+ */
 @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
-class CtapCommandEncoder : KSerializer<CtapCommand> {
+class CtapCommandSerializer : KSerializer<CtapCommand> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("CtapCommand") {
             element("cmdByte", Byte.serializer().descriptor)
@@ -47,22 +85,5 @@ class CtapCommandEncoder : KSerializer<CtapCommand> {
             )
         }
         subEncoder.endStructure(descriptor)
-    }
-}
-
-@Serializable(with = CtapCommandEncoder::class)
-@SerialName("CtapCommand")
-sealed class CtapCommand {
-    abstract val cmdByte: Byte
-    abstract val params: Map<UByte, @Polymorphic ParameterValue>?
-
-    fun getCBOR(): ByteArray {
-        val encoder = CTAPCBOREncoder()
-        encoder.encodeSerializableValue(serializer(), this)
-        return encoder.getBytes()
-    }
-
-    override fun toString(): String {
-        return this::class.simpleName ?: super.toString()
     }
 }

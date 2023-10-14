@@ -4,6 +4,9 @@ import us.q3q.fidok.crypto.NullCryptoProvider
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.FIDOkLibrary
 
+/**
+ * Helper code for documentation examples.
+ */
 class Examples {
     companion object {
         internal fun getLibrary(): FIDOkLibrary {

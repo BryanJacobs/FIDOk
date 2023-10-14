@@ -18,7 +18,11 @@ import kotlinx.serialization.encoding.Encoder
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = PackedAttestationSerializer::class)
-data class PackedAttestationStatement(val alg: Int, @ByteString val sig: ByteArray, val x5c: Array<ByteArray>? = null) {
+data class PackedAttestationStatement(
+    val alg: Long,
+    @ByteString val sig: ByteArray,
+    val x5c: Array<ByteArray>? = null,
+) : AttestatationStatement() {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -36,7 +40,7 @@ data class PackedAttestationStatement(val alg: Int, @ByteString val sig: ByteArr
     }
 
     override fun hashCode(): Int {
-        var result = alg
+        var result = alg.hashCode()
         result = 31 * result + sig.contentHashCode()
         result = 31 * result + (x5c?.contentDeepHashCode() ?: 0)
         return result
@@ -48,7 +52,7 @@ class PackedAttestationSerializer : KSerializer<PackedAttestationStatement> {
     override val descriptor: SerialDescriptor
         get() = buildSerialDescriptor("PackedAttestationStatement", StructureKind.MAP) {
             element("alg_key", String.serializer().descriptor)
-            element("alg", Int.serializer().descriptor)
+            element("alg", Long.serializer().descriptor)
             element("sig_key", String.serializer().descriptor)
             element("sig", ByteArraySerializer().descriptor)
             element("x5c_key", String.serializer().descriptor, isOptional = true)
@@ -62,7 +66,7 @@ class PackedAttestationSerializer : KSerializer<PackedAttestationStatement> {
             throw SerializationException("Incorrect number of items in Packed attestation statement")
         }
         composite.decodeStringElement(descriptor, 0)
-        val alg = composite.decodeIntElement(descriptor, 1)
+        val alg = composite.decodeLongElement(descriptor, 1)
         composite.decodeStringElement(descriptor, 2)
         val sig = composite.decodeSerializableElement(descriptor, 3, ByteArraySerializer())
 
@@ -77,7 +81,7 @@ class PackedAttestationSerializer : KSerializer<PackedAttestationStatement> {
     override fun serialize(encoder: Encoder, value: PackedAttestationStatement) {
         val composite = encoder.beginCollection(descriptor, if (value.x5c == null) 2 else 3)
         composite.encodeStringElement(descriptor, 0, "alg")
-        composite.encodeIntElement(descriptor, 1, value.alg)
+        composite.encodeLongElement(descriptor, 1, value.alg)
         composite.encodeStringElement(descriptor, 2, "sig")
         composite.encodeSerializableElement(descriptor, 3, ByteArraySerializer(), value.sig)
         val x5c = value.x5c

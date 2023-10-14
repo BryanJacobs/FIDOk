@@ -30,13 +30,13 @@ class MakeCredentialCommand(
         this[0x02u] = PublicKeyCredentialRpEntityParameter(rp)
         this[0x03u] = PublicKeyCredentialUserEntityParameter(user)
         this[0x04u] = PublicKeyCredentialsParametersParameter(pubKeyCredParams)
-        if (excludeList != null) {
+        if (!excludeList.isNullOrEmpty()) {
             this[0x05u] = PublicKeyCredentialListParameter(excludeList)
         }
-        if (extensions != null) {
-            this[0x06u] = ExtensionParameterValue(extensions)
+        if (!extensions.isNullOrEmpty()) {
+            this[0x06u] = ExtensionParameterValues(extensions)
         }
-        if (options?.isNotEmpty() == true) {
+        if (!options.isNullOrEmpty()) {
             val m = hashMapOf<String, Boolean>()
             options.keys.forEach {
                 m[it.value] = options[it]!!

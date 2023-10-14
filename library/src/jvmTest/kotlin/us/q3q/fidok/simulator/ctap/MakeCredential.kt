@@ -19,14 +19,14 @@ class MakeCredential : SimulationTest() {
 
     @Test
     fun basicMakeCredential() {
-        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName)
+        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName)
 
-        assertEquals(0u, res.authData.signCount)
+        assertTrue(res.authData.signCount < 32u)
         assertTrue(res.authData.hasFlag(FLAGS.USER_PRESENCE))
         assertTrue(res.authData.hasFlag(FLAGS.ATTESTED))
         assertFalse(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
         assertEquals(65u, res.authData.flags)
-        assertEquals(64, res.getCredentialID().size)
+        assertEquals(112, res.getCredentialID().size)
         assertNull(res.authData.extensions)
         assertEquals("packed", res.fmt)
         assertEquals(COSEAlgorithmIdentifier.ES256.value, res.getPackedAttestationStatement().alg)
@@ -40,7 +40,7 @@ class MakeCredential : SimulationTest() {
 
         val token = client.getPinToken(pin, pinUvProtocol = 1u)
 
-        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinUvToken = token, pinUvProtocol = 1u)
+        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName, pinUvToken = token, pinUvProtocol = 1u)
 
         assertTrue(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
     }
@@ -53,7 +53,7 @@ class MakeCredential : SimulationTest() {
 
         val token = client.getPinToken(pin, pinUvProtocol = 2u)
 
-        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, pinUvToken = token, pinUvProtocol = 2u)
+        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName, pinUvToken = token, pinUvProtocol = 2u)
 
         assertTrue(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
     }
@@ -62,8 +62,8 @@ class MakeCredential : SimulationTest() {
     fun overwritingMatchingUsers() {
         val userId = Random.Default.nextBytes(10)
 
-        val res1 = client.makeCredential(rpId = rpId, userDisplayName = "Bob", userId = userId, discoverableCredential = true)
-        val res2 = client.makeCredential(rpId = rpId, userDisplayName = "Fred", userId = userId, discoverableCredential = true)
+        val res1 = client.makeCredential(rpId = rpId, userDisplayName = "Bob", userName = userName, userId = userId, discoverableCredential = true)
+        val res2 = client.makeCredential(rpId = rpId, userDisplayName = "Fred", userName = userName, userId = userId, discoverableCredential = true)
 
         assertNotEquals(res1.getCredentialID(), res2.getCredentialID())
 

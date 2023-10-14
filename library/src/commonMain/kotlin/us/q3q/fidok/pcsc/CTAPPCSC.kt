@@ -81,15 +81,17 @@ class CTAPPCSC {
                     throw IncorrectDataException("Short response from card: <2 bytes")
                 }
                 status = (resp[resp.size - 2].toUByte().toInt() shl 8) + resp[resp.size - 1].toUByte().toInt()
+                Logger.v { "Raw status: ${status.toHexString()}" }
             }
 
             var finalResult = resp.copyOfRange(0, resp.size - 2)
-            while (status in 0x6101..0x61FF) {
+            while (status in 0x6100..0x61FF) {
                 // val expected = status - 0x6100
 
                 resp = xmit(byteArrayOf(0x00, 0xC0.toByte(), 0x00, 0x00, 0x00))
                 status = (resp[resp.size - 2].toUByte().toInt() shl 8) + resp[resp.size - 1].toUByte().toInt()
-                if (status != 0x9000 && status !in 0x6101..0x61FF) {
+                Logger.v { "Raw status: ${status.toHexString()}" }
+                if (status != 0x9000 && status !in 0x6100..0x61FF) {
                     throw IncorrectDataException("Failure response from card: 0x${status.toHexString()}")
                 }
                 finalResult = (finalResult.toList() + resp.toList().subList(0, resp.size - 2)).toByteArray()

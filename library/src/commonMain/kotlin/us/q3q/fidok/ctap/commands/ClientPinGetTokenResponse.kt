@@ -10,7 +10,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * A response to a [ClientPinCommand.getPinToken] request of some variety
+ * Response to a [ClientPinCommand.getPinToken] request of some variety
  *
  * @property pinUvAuthToken A PIN/UV token, valid until the Authenticator says it no longer is
  */

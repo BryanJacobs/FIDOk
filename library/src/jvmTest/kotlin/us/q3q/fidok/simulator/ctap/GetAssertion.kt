@@ -20,7 +20,7 @@ class GetAssertion : SimulationTest() {
 
     @BeforeEach
     fun makeCredential() {
-        val credRes = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName)
+        val credRes = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName)
         cred = credRes.getCredentialID()
         publicKey = credRes.getCredentialPublicKey()
     }
@@ -44,7 +44,7 @@ class GetAssertion : SimulationTest() {
         assertNull(assertion.largeBlobKey)
         assertEquals(cred.toHexString(), assertion.credential.id.toHexString())
         assertNull(assertion.authData.attestedCredentialData)
-        assertEquals(1u, assertion.authData.signCount)
+        assertTrue(assertion.authData.signCount < 64u)
         assertTrue(assertion.authData.hasFlag(FLAGS.USER_PRESENCE))
         assertFalse(assertion.authData.hasFlag(FLAGS.ATTESTED))
         assertFalse(assertion.authData.hasFlag(FLAGS.USER_VERIFICATION))

@@ -20,7 +20,7 @@ data class PublicKeyCredentialUserEntity(
     @ByteString val id: ByteArray,
     val name: String? = null,
     val displayName: String? = null,
-    val icon: String? = null,
+    @Deprecated("webauthn-3 does not handle icons for users") val icon: String? = null,
 ) {
     init {
         require(id.isNotEmpty())
@@ -36,6 +36,7 @@ data class PublicKeyCredentialUserEntity(
         if (!id.contentEquals(other.id)) return false
         if (name != other.name) return false
         if (displayName != other.displayName) return false
+        @Suppress("DEPRECATION")
         if (icon != other.icon) return false
 
         return true
@@ -45,8 +46,18 @@ data class PublicKeyCredentialUserEntity(
         var result = id.contentHashCode()
         result = 31 * result + (name?.hashCode() ?: 0)
         result = 31 * result + (displayName?.hashCode() ?: 0)
+        @Suppress("DEPRECATION")
         result = 31 * result + (icon?.hashCode() ?: 0)
         return result
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    override fun toString(): String {
+        @Suppress("DEPRECATION")
+        return "PublicKeyCredentialUserEntity(name=$name, " +
+            "id=${id.toHexString()}, " +
+            "displayName=$displayName, " +
+            "icon=$icon)"
     }
 }
 
@@ -107,12 +118,14 @@ class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialU
         if (value.name != null) {
             size++
         }
+        @Suppress("DEPRECATION")
         if (value.icon != null) {
             size++
         }
         val subEncoder = encoder.beginCollection(descriptor, size)
         subEncoder.encodeStringElement(descriptor, 1, "id")
         subEncoder.encodeSerializableElement(descriptor, 2, ByteArraySerializer(), value.id)
+        @Suppress("DEPRECATION")
         if (value.icon != null) {
             subEncoder.encodeStringElement(descriptor, 3, "icon")
             subEncoder.encodeStringElement(descriptor, 4, value.icon)

@@ -13,14 +13,50 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * One response to a Relying Party enumeration request - represents a single RP.
+ *
+ * Could be returned by [beginning][CredentialManagementCommand.enumerateRPsBegin] or
+ * [continuing][CredentialManagementCommand.enumerateRPsGetNextRP] CTAP RP enumeration.
+ *
+ * @property rp The Relying Party details
+ * @property rpIDHash The hash/handle of the RP
+ * @property totalRPs The total number of RPs matching - set only on starting a new enumeration
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = EnumerateRPsResponseSerializer::class)
 data class EnumerateRPsResponse(
     val rp: PublicKeyCredentialRpEntity?,
     @ByteString val rpIDHash: ByteArray?,
     val totalRPs: UInt? = null,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
 
+        other as EnumerateRPsResponse
+
+        if (rp != other.rp) return false
+        if (rpIDHash != null) {
+            if (other.rpIDHash == null) return false
+            if (!rpIDHash.contentEquals(other.rpIDHash)) return false
+        } else if (other.rpIDHash != null) return false
+        if (totalRPs != other.totalRPs) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = rp?.hashCode() ?: 0
+        result = 31 * result + (rpIDHash?.contentHashCode() ?: 0)
+        result = 31 * result + (totalRPs?.hashCode() ?: 0)
+        return result
+    }
+}
+
+/**
+ * Deserializes an [EnumerateRPsResponse].
+ */
 class EnumerateRPsResponseSerializer : KSerializer<EnumerateRPsResponse> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("EnumerateRPsResponse") {
