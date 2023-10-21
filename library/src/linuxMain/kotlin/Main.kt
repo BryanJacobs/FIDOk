@@ -1,6 +1,7 @@
 import us.q3q.fidok.BotanCryptoProvider
 import us.q3q.fidok.LibHIDDevice
 import us.q3q.fidok.LibPCSCLiteDevice
+import us.q3q.fidok.cli.Main
 import us.q3q.fidok.ctap.FIDOkLibrary
 
 val PROVIDER_MAP = mapOf(

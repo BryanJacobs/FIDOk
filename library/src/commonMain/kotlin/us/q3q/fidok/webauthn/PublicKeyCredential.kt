@@ -1,7 +1,7 @@
 package us.q3q.fidok.webauthn
 
 data class PublicKeyCredential(
-    val id: ByteArray,
+    val id: String,
     val type: String = "",
     val rawId: ByteArray,
     val response: AuthenticatorResponse,

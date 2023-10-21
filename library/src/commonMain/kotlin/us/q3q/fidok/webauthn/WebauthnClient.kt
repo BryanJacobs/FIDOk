@@ -277,7 +277,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         }?.sortedBy { it }?.toList() ?: listOf()
 
         return PublicKeyCredential(
-            id = ret.getCredentialID(),
+            id = Base64.UrlSafe.encode(ret.getCredentialID()),
             rawId = ret.getCredentialID(),
             authenticatorAttachment = getAttachment(infoForSelected).value,
             response = AuthenticatorAttestationResponse(
@@ -358,7 +358,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val ret = CTAPCBORDecoder(assertionBytes).decodeSerializableValue(GetAssertionResponse.serializer())
 
         return PublicKeyCredential(
-            id = ret.credential.id,
+            id = Base64.UrlSafe.encode(ret.credential.id),
             rawId = ret.credential.id,
             authenticatorAttachment = getAttachment(infoForSelected).value,
             response = AuthenticatorAssertionResponse(

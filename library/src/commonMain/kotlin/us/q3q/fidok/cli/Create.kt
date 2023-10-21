@@ -75,7 +75,7 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
                 ),
             )
 
-            echo("Credential created: ${cred.id.toHexString()}")
+            echo("Credential created: ${cred.id}")
         }
     }
 }
