@@ -15,7 +15,11 @@ import us.q3q.fidok.ctap.FIDOkLibrary
 class Main(
     private val providerMap: Map<String, AuthenticatorListing>,
     private val libraryBuilder: (authenticatorAccessors: List<AuthenticatorListing>) -> FIDOkLibrary,
-) : CliktCommand() {
+) : CliktCommand(name = "fidok") {
+
+    init {
+        subcommands(Info(), Create(), Get(), Pin(), Reset())
+    }
 
     private val logLevel by option("--log-level")
         .choice(*Severity.entries.map { it.name.lowercase() }.toTypedArray())
@@ -23,19 +27,15 @@ class Main(
         .help("Minimum log level to display")
 
     private val providers: List<String> by option("--provider")
+        .help("Provider of Authenticator devices")
         .choice(*providerMap.keys.toTypedArray())
         .multiple(default = providerMap.keys.toList())
-        .help("Provider of Authenticator devices")
 
     override fun run() {
         Logger.setMinSeverity(Severity.valueOf(logLevel.replaceFirstChar { it.uppercase() }))
 
-        val providerClasses = providers.mapNotNull { providerMap[it] }.toList()
+        val providerClasses = providers.mapNotNull { providerMap[it] }.distinct().toList()
 
         currentContext.obj = libraryBuilder(providerClasses)
-    }
-
-    fun execute(args: Array<String>) {
-        subcommands(Create(), Get(), Reset()).main(args)
     }
 }

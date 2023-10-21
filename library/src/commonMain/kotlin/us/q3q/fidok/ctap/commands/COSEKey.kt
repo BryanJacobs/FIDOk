@@ -27,13 +27,14 @@ import kotlinx.serialization.encoding.Encoder
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = COSEKeySerializer::class)
-data class COSEKey(val kty: Int, val alg: Long, val crv: Int, @ByteString val x: ByteArray, @ByteString val y: ByteArray) {
+data class COSEKey(val kty: Int, val alg: Long, val crv: Int, @ByteString val x: ByteArray, @ByteString val y: ByteArray?) {
     init {
-        require(kty == 2)
-        require(alg == -7L || alg == -25L)
-        require(crv == 1)
-        require(x.size == 32)
-        require(y.size == 32)
+        require(crv == 1 || (alg != -7L && alg != -25L)) // ES256 mandatory curve
+        require(crv == 2 || alg != -35L) // ES384 mandatory curve
+        require(crv == 3 || alg != -36L) // ES512 mandatory curve
+        require(crv == 6 || alg != -8L) // edDSA mandatory curve
+        require((crv != 1 && crv != 2 && crv != 3) || (x.size == 32 && y?.size == 32 && kty == 2)) // basic ecdsa reqs
+        require(alg != -8L || kty == 1) // basic eddsa reqs
     }
 
     override fun equals(other: Any?): Boolean {
@@ -46,7 +47,10 @@ data class COSEKey(val kty: Int, val alg: Long, val crv: Int, @ByteString val x:
         if (alg != other.alg) return false
         if (crv != other.crv) return false
         if (!x.contentEquals(other.x)) return false
-        if (!y.contentEquals(other.y)) return false
+        if (y != null) {
+            if (other.y == null) return false
+            if (!y.contentEquals(other.y)) return false
+        } else if (other.y != null) return false
 
         return true
     }
@@ -56,7 +60,7 @@ data class COSEKey(val kty: Int, val alg: Long, val crv: Int, @ByteString val x:
         result = 31 * result + alg.hashCode()
         result = 31 * result + crv
         result = 31 * result + x.contentHashCode()
-        result = 31 * result + y.contentHashCode()
+        result = 31 * result + (y?.contentHashCode() ?: 0)
         return result
     }
 }
@@ -72,15 +76,15 @@ class COSEKeySerializer : KSerializer<COSEKey> {
             element("alg", Int.serializer().descriptor)
             element("crv", Int.serializer().descriptor)
             element("x", ByteArraySerializer().descriptor)
-            element("y", ByteArraySerializer().descriptor)
+            element("y", ByteArraySerializer().descriptor, isOptional = true)
         }
 
     override fun deserialize(decoder: Decoder): COSEKey {
         val composite = decoder.beginStructure(descriptor)
         val numItems = composite.decodeCollectionSize(descriptor)
 
-        if (numItems != 5) {
-            throw SerializationException("COSEKey had $numItems items in it; expected five")
+        if (numItems != 4 && numItems != 5) {
+            throw SerializationException("COSEKey had $numItems items in it; expected four or five")
         }
 
         var kty: Int? = null
@@ -113,13 +117,12 @@ class COSEKeySerializer : KSerializer<COSEKey> {
         require(alg != null)
         require(crv != null)
         require(x != null)
-        require(y != null)
 
         return COSEKey(kty = kty, alg = alg, crv = crv, x = x, y = y)
     }
 
     override fun serialize(encoder: Encoder, value: COSEKey) {
-        val composite = encoder.beginCollection(descriptor, 5)
+        val composite = encoder.beginCollection(descriptor, if (value.y != null) 5 else 4)
         composite.encodeIntElement(descriptor, 0, 1)
         composite.encodeIntElement(descriptor, 0, value.kty)
         composite.encodeIntElement(descriptor, 1, 3)
@@ -128,8 +131,10 @@ class COSEKeySerializer : KSerializer<COSEKey> {
         composite.encodeIntElement(descriptor, 2, value.crv)
         composite.encodeIntElement(descriptor, 3, -2)
         composite.encodeSerializableElement(descriptor, 3, ByteArraySerializer(), value.x)
-        composite.encodeIntElement(descriptor, 4, -3)
-        composite.encodeSerializableElement(descriptor, 4, ByteArraySerializer(), value.y)
+        if (value.y != null) {
+            composite.encodeIntElement(descriptor, 4, -3)
+            composite.encodeSerializableElement(descriptor, 4, ByteArraySerializer(), value.y)
+        }
         composite.endStructure(descriptor)
     }
 }

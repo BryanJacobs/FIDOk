@@ -7,20 +7,22 @@ import us.q3q.fidok.ctap.commands.PublicKeyCredentialRpEntity
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialType
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
 
+val DEFAULT_PUB_KEY_CRED_PARAMS = listOf(
+    PublicKeyCredentialParameters(
+        alg = COSEAlgorithmIdentifier.ES256.value,
+        type = PublicKeyCredentialType.PUBLIC_KEY.value,
+    ),
+    PublicKeyCredentialParameters(
+        alg = COSEAlgorithmIdentifier.RS256.value,
+        type = PublicKeyCredentialType.PUBLIC_KEY.value,
+    ),
+)
+
 data class PublicKeyCredentialCreationOptions(
     val rp: PublicKeyCredentialRpEntity,
     val user: PublicKeyCredentialUserEntity,
     val challenge: ByteArray,
-    val pubKeyCredParams: List<PublicKeyCredentialParameters> = listOf(
-        PublicKeyCredentialParameters(
-            alg = COSEAlgorithmIdentifier.ES256.value,
-            type = PublicKeyCredentialType.PUBLIC_KEY.value,
-        ),
-        PublicKeyCredentialParameters(
-            alg = COSEAlgorithmIdentifier.RS256.value,
-            type = PublicKeyCredentialType.PUBLIC_KEY.value,
-        ),
-    ),
+    val pubKeyCredParams: List<PublicKeyCredentialParameters> = DEFAULT_PUB_KEY_CRED_PARAMS,
     val timeout: ULong? = null,
     val excludeCredentials: List<PublicKeyCredentialDescriptor> = listOf(),
     val authenticatorSelectionCriteria: AuthenticatorSelectionCriteria? = null,

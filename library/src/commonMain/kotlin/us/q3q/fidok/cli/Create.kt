@@ -8,11 +8,15 @@ import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.validate
+import com.github.ajalt.clikt.parameters.types.choice
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.FIDOkLibrary
+import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
+import us.q3q.fidok.ctap.commands.PublicKeyCredentialParameters
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialRpEntity
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
 import us.q3q.fidok.webauthn.AuthenticatorSelectionCriteria
+import us.q3q.fidok.webauthn.DEFAULT_PUB_KEY_CRED_PARAMS
 import us.q3q.fidok.webauthn.PublicKeyCredentialCreationOptions
 import us.q3q.fidok.webauthn.ResidentKeyRequirement
 import kotlin.random.Random
@@ -53,10 +57,24 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
         .flag()
         .help("If set, make a discoverable (authenticator-stored) credential")
 
+    private val algorithm by option("--algorithm")
+        .choice(*COSEAlgorithmIdentifier.entries.map { it.name.lowercase() }.toTypedArray())
+        .help("Name of cryptographic algorithm to use for credential")
+
     override fun run() {
         val selectionCriteria = AuthenticatorSelectionCriteria(
             residentKey = if (discoverable) ResidentKeyRequirement.REQUIRED.value else ResidentKeyRequirement.DISCOURAGED.value,
         )
+
+        val chosenAlgorithm = algorithm?.let {
+            COSEAlgorithmIdentifier.entries.find { cose -> cose.name.lowercase() == it }
+        }.let {
+            if (it != null) {
+                listOf(PublicKeyCredentialParameters(it))
+            } else {
+                null
+            }
+        }
 
         runBlocking {
             val cred = library.webauthn().create(
@@ -72,6 +90,7 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
                     ),
                     challenge = Random.nextBytes(32),
                     authenticatorSelectionCriteria = selectionCriteria,
+                    pubKeyCredParams = chosenAlgorithm ?: DEFAULT_PUB_KEY_CRED_PARAMS,
                 ),
             )
 

@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.unique
 import com.github.ajalt.clikt.parameters.options.validate
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.FIDOkLibrary
@@ -28,6 +29,7 @@ class Get : CliktCommand(help = "Get (use) an existing webauthn credential") {
     private val credentials by option("--credential")
         .help("A credential ID to attempt to use, expressed as a base64URL string")
         .multiple()
+        .unique()
         .validate {
             for (cred in it) {
                 if (cred.isEmpty()) {

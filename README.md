@@ -41,37 +41,38 @@ provided by native implementations specific to each platform.
 
 ## Protocol Features
 
-| Feature                                  | Status      |
-|------------------------------------------|-------------|
-| CTAP2.0 Prototype Credentials Management | Supported   |
-| CTAP2.1 Credentials Management           | Supported   |
-| Authenticator Config                     | Supported   |
-| Authenticator Reset                      | Supported   |
-| Client PIN (set, change, info)           | Supported   |
-| `setMinPINLength` Command                | Supported   |
-| PIN Protocol One                         | Supported   |
-| PIN Protocol Two                         | Supported   |
-| PIN tokens using PIN without permissions | Supported   |
-| PIN tokens using PIN with permissions    | Supported   |
-| PIN tokens using onboard UV              | Supported   |
-| `minPinLength` Extension                 | Supported   |
-| `credProtect` Extension                  | Supported   |
-| `hmac-secret` Extension                  | Supported   |
-| `credBlob` Extension                     | Supported   |
-| `largeBlobKey` Extension                 | Supported   |
-| `uvm` Extension (Webauthn)               | Supported   |
-| LargeBlob management                     | Unsupported |
-| Bio Enrollment                           | Unsupported |
-| Authenticator Selection                  | Incomplete  |
-| MakeCredential                           | Supported   |
-| GetAssertion                             | Supported   |
-| Self Attestation                         | Supported   |
-| Basic Attestation                        | Incomplete  |
-| Enterprise Attestation                   | Incomplete  |
-| FIDO Metadata Data Service               | Unsupported |
-| Android-key Attestation                  | Unsupported |
-| TPM Attestation                          | Unsupported |
-| CTAP1/U2F                                | Unsupported |
+| Feature                                  | Status       |
+|------------------------------------------|--------------|
+| CTAP2.0 Prototype Credentials Management | Supported    |
+| CTAP2.1 Credentials Management           | Supported    |
+| Authenticator Config                     | Supported    |
+| Authenticator Reset                      | Supported    |
+| Client PIN (set, change, info)           | Supported    |
+| `setMinPINLength` Command                | Supported    |
+| PIN Protocol One                         | Supported    |
+| PIN Protocol Two                         | Supported    |
+| PIN tokens using PIN without permissions | Supported    |
+| PIN tokens using PIN with permissions    | Supported    |
+| PIN tokens using onboard UV              | Supported    |
+| `minPinLength` Extension                 | Supported    |
+| `credProtect` Extension                  | Supported    |
+| `hmac-secret` Extension                  | Supported    |
+| `credBlob` Extension                     | Supported    |
+| `largeBlobKey` Extension                 | Supported    |
+| `uvm` Extension (Webauthn)               | Supported    |
+| Key Algorithm Types                      | ES256, EdDSA |
+| LargeBlob management                     | Unsupported  |
+| Bio Enrollment                           | Unsupported  |
+| Authenticator Selection                  | Incomplete   |
+| MakeCredential                           | Supported    |
+| GetAssertion                             | Supported    |
+| Self Attestation                         | Supported    |
+| Basic Attestation                        | Incomplete   |
+| Enterprise Attestation                   | Incomplete   |
+| FIDO Metadata Data Service               | Unsupported  |
+| Android-key Attestation                  | Unsupported  |
+| TPM Attestation                          | Unsupported  |
+| CTAP1/U2F                                | Unsupported  |
 
 ## Implementation Features
 

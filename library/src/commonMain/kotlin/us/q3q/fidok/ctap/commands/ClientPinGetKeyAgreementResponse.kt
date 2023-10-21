@@ -36,6 +36,11 @@ class ClientPinGetKeyAgreementResponseSerializer : KSerializer<ClientPinGetKeyAg
             throw SerializationException("ClientPinGetKeyAgreementResponse contained unknown parameter: $param")
         }
         val key = composite.decodeSerializableElement(descriptor, 0, COSEKey.serializer())
+
+        if (key.alg != -25L) {
+            throw SerializationException("ClientPinGetKeyAgreement returned a key agreement with alg ${key.alg}")
+        }
+
         composite.endStructure(descriptor)
         return ClientPinGetKeyAgreementResponse(key)
     }

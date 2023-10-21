@@ -564,7 +564,7 @@ class CTAPClient(
 
         val pubKey = makeCredentialResponse.getCredentialPublicKey()
 
-        validateES256UsingPubKey(makeCredentialResponse, clientDataHash, pubKey.x, pubKey.y, sig)
+        validateES256UsingPubKey(makeCredentialResponse, clientDataHash, pubKey.x, pubKey.y!!, sig)
     }
 
     private fun validateBasicAttestation(
@@ -634,7 +634,7 @@ class CTAPClient(
 
         if (!library.cryptoProvider.es256SignatureValidate(
                 signedBytes = signedBytes,
-                P256Point(publicKey.x, publicKey.y),
+                P256Point(publicKey.x, publicKey.y!!),
                 sig = getAssertionResponse.signature,
             )
         ) {
@@ -843,7 +843,7 @@ class CTAPClient(
             ClientPinGetKeyAgreementResponse.serializer(),
         )
 
-        val otherPublic = P256Point(decoded.key.x, decoded.key.y)
+        val otherPublic = P256Point(decoded.key.x, decoded.key.y!!)
         val state = crypto.ecdhKeyAgreementInit(otherPublic)
         try {
             val pp1Key = crypto.ecdhKeyAgreementKDF(

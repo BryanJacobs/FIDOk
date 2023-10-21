@@ -23,5 +23,5 @@ fun main(args: Array<String>) {
                 pin
             },
         )
-    }.execute(args)
+    }.main(args)
 }

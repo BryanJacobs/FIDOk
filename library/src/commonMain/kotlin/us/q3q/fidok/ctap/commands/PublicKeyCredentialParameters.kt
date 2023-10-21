@@ -15,6 +15,8 @@ import kotlinx.serialization.encoding.Encoder
 enum class COSEAlgorithmIdentifier(val value: Long) {
     ES256(-7),
     EdDSA(-8),
+    ES384(-35),
+    ES512(-36),
     RS256(-257),
 }
 
