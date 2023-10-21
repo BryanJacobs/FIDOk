@@ -14,7 +14,7 @@ fun main(args: Array<String>) {
             BotanCryptoProvider(),
             authenticatorAccessors = it,
             pinCollection = pinCollection@{
-                print("Enter authenticator PIN: ")
+                print("Enter authenticator PIN for $it: ")
                 var pin = readlnOrNull() ?: return@pinCollection null
                 if (pin.endsWith('\n')) {
                     pin = pin.substring(0, pin.length - 1)

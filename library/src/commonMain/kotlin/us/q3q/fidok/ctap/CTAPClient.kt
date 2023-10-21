@@ -216,7 +216,7 @@ class CredentialExcludedError : CTAPError(
 class CTAPClient(
     private val library: FIDOkLibrary,
     private val device: AuthenticatorDevice,
-    private val collectPinFromUser: suspend () -> String? = { null },
+    private val collectPinFromUser: suspend (device: CTAPClient) -> String? = { null },
 ) {
 
     private val PP_2_AES_INFO = "CTAP2 AES key".encodeToByteArray()
@@ -985,7 +985,7 @@ class CTAPClient(
         val pp = getPinProtocol(pinUvProtocol)
         val pk = ensurePlatformKey(pp)
 
-        val pin = (if (cachedPin != null) cachedPin else collectPinFromUser())
+        val pin = (if (cachedPin != null) cachedPin else collectPinFromUser(this))
             ?: throw PinNotAvailableException()
 
         val newPINBytes = checkAndPadPIN(newPinUnicode)
@@ -1113,7 +1113,7 @@ class CTAPClient(
             }
 
             // try PIN (with permissions)
-            val pin = (if (cachedPin != null) cachedPin else collectPinFromUser())
+            val pin = (if (cachedPin != null) cachedPin else collectPinFromUser(this))
                 ?: throw PinNotAvailableException()
             cachedPin = pin
 
@@ -1128,7 +1128,7 @@ class CTAPClient(
         // if we're here, we don't support permissions
         Logger.i { "Authenticator $device does not support permissions, so using CTAP2.0 getPinToken method" }
 
-        val pin = (if (cachedPin != null) cachedPin else collectPinFromUser())
+        val pin = (if (cachedPin != null) cachedPin else collectPinFromUser(this))
             ?: throw PinNotAvailableException()
         cachedPin = pin
 
@@ -1254,7 +1254,7 @@ class CTAPClient(
     }
 
     override fun toString(): String {
-        return "CTAPClient($device)"
+        return device.toString()
     }
 }
 

@@ -9,7 +9,7 @@ import kotlin.jvm.JvmStatic
 class FIDOkLibrary private constructor(
     val cryptoProvider: CryptoProvider,
     private val authenticatorAccessors: List<AuthenticatorListing>,
-    private val defaultPinCollectionFromUser: suspend() -> String? = { null },
+    private val defaultPinCollectionFromUser: suspend(client: CTAPClient) -> String? = { null },
 ) {
 
     companion object {
@@ -18,7 +18,7 @@ class FIDOkLibrary private constructor(
         fun init(
             cryptoProvider: CryptoProvider,
             authenticatorAccessors: List<AuthenticatorListing> = listOf(),
-            pinCollection: suspend () -> String? = { null },
+            pinCollection: suspend (client: CTAPClient) -> String? = { null },
         ): FIDOkLibrary {
             return FIDOkLibrary(
                 cryptoProvider,
@@ -55,7 +55,7 @@ class FIDOkLibrary private constructor(
         return CaBLESupport(this)
     }
 
-    fun ctapClient(device: AuthenticatorDevice, collectPinFromUser: suspend () -> String? = defaultPinCollectionFromUser): CTAPClient {
+    fun ctapClient(device: AuthenticatorDevice, collectPinFromUser: suspend (device: CTAPClient) -> String? = defaultPinCollectionFromUser): CTAPClient {
         return CTAPClient(this, device, collectPinFromUser)
     }
 
