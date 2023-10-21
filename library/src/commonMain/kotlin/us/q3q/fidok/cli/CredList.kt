@@ -46,7 +46,7 @@ class CredList : CliktCommand(name = "list", help = "List discoverable credentia
                 token = null // Token might now be bound to "the wrong" RPID
 
                 for (cred in creds) {
-                    echo(" -- Stored credential: ${Base64.UrlSafe.encode(cred.credentialID.id)}")
+                    echo(" -- Stored credential (level ${cred.credProtect ?: 1}): ${Base64.UrlSafe.encode(cred.credentialID.id)}")
                     echo("   User ID: ${cred.user.id.toHexString()}")
                     if (cred.user.name != null) {
                         echo("   User name: ${cred.user.name} (display ${cred.user.displayName})")

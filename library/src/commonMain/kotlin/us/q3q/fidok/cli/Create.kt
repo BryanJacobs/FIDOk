@@ -46,6 +46,13 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
             checkHex(it)
         }
 
+    private val challenge by option("--challenge")
+        .defaultLazy { Random.nextBytes(32).toHexString() }
+        .help("Hex-encoded random challenge for credential creation operation")
+        .validate {
+            checkHex(it)
+        }
+
     private val userName by option("--user-name")
         .required()
         .help("Name (human readable) of user")
@@ -57,13 +64,17 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
         .flag()
         .help("If set, make a discoverable (authenticator-stored) credential")
 
+    private val algorithm by option("--algorithm")
+        .choice(*COSEAlgorithmIdentifier.entries.map { it.name.lowercase() }.toTypedArray())
+        .help("Name of cryptographic algorithm to use for credential")
+
     private val hmacSecret by option("--hmac-secret")
         .flag()
         .help("If set, (try to) prepare the credential for use with the hmac-secret extension")
 
-    private val algorithm by option("--algorithm")
-        .choice(*COSEAlgorithmIdentifier.entries.map { it.name.lowercase() }.toTypedArray())
-        .help("Name of cryptographic algorithm to use for credential")
+    private val credProtectLevel by option("--protect")
+        .choice("1", "2", "3")
+        .help("CTAP credProtect level - 2 for UV-unless-cred-provided, 3 for always-UV")
 
     override fun run() {
         val selectionCriteria = AuthenticatorSelectionCriteria(
@@ -86,6 +97,12 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
             extensions["hmacCreateSecret"] = true
         }
 
+        val cpLevel = credProtectLevel
+        if (cpLevel != null) {
+            extensions["credentialProtectionPolicy"] = cpLevel.toInt()
+            extensions["enforceCredentialProtectionPolicy"] = true
+        }
+
         runBlocking {
             val cred = library.webauthn().create(
                 PublicKeyCredentialCreationOptions(
@@ -98,7 +115,7 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
                         name = userName,
                         displayName = userDisplayName ?: userName,
                     ),
-                    challenge = Random.nextBytes(32),
+                    challenge = challenge.hexToByteArray(),
                     authenticatorSelectionCriteria = selectionCriteria,
                     pubKeyCredParams = chosenAlgorithm ?: DEFAULT_PUB_KEY_CRED_PARAMS,
                     extensions = extensions,

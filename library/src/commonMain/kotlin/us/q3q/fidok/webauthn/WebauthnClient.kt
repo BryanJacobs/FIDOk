@@ -22,6 +22,7 @@ import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.PinUVToken
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
 import us.q3q.fidok.ctap.commands.CTAPCBORDecoder
+import us.q3q.fidok.ctap.commands.CredProtectExtension
 import us.q3q.fidok.ctap.commands.Extension
 import us.q3q.fidok.ctap.commands.ExtensionSetup
 import us.q3q.fidok.ctap.commands.GetAssertionResponse
@@ -257,6 +258,12 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             hmacSecretExtension = HMACSecretExtension()
             extensions.add(hmacSecretExtension)
         }
+        val credProtectLevel = options.publicKey.extensions?.get("credentialProtectionPolicy") as Int?
+        var credProtectExtension: CredProtectExtension? = null
+        if (credProtectLevel != null) {
+            credProtectExtension = CredProtectExtension(credProtectLevel.toUByte())
+            extensions.add(credProtectExtension)
+        }
 
         val extensionSetup = ExtensionSetup(extensions)
 
@@ -293,6 +300,12 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val extensionResults = hashMapOf<String, Any>()
         if (hmacSecretExtension != null) {
             extensionResults["hmacCreateSecret"] = hmacSecretExtension.wasCreated()
+        }
+        if (credProtectLevel != null && options.publicKey.extensions?.get("enforceCredentialProtectionPolicy") == true) {
+            val cpLevel = credProtectExtension?.getLevel()
+            if ((cpLevel ?: 1u) < credProtectLevel.toUByte()) {
+                throw IllegalStateException("Requested credential protection level was not attained")
+            }
         }
 
         return PublicKeyCredential(

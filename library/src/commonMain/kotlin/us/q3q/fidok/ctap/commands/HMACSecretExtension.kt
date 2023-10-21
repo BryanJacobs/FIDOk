@@ -26,7 +26,7 @@ import kotlin.random.Random
  * value(s).
  *
  * Call [wasCreated] to check the extension was accepted by the Authenticator on creation; call
- * [getFirstResult] and optionally [getSecondResult] to get the HMAC bytes.
+ * [getResult] to get the HMAC bytes.
  *
  * @param salt1 First salt to be HMAC-ed: must be 32 bytes long
  * @param salt2 Second salt to be HMAC-ed: optional, but if provided must be 32 bytes long
