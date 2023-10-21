@@ -2,6 +2,7 @@ package us.q3q.fidok.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.requireObject
+import com.github.ajalt.clikt.parameters.options.defaultLazy
 import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
@@ -17,7 +18,7 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.random.Random
 
-@OptIn(ExperimentalEncodingApi::class)
+@OptIn(ExperimentalEncodingApi::class, ExperimentalStdlibApi::class)
 class Get : CliktCommand(help = "Get (use) an existing webauthn credential") {
 
     private val library by requireObject<FIDOkLibrary>()
@@ -36,6 +37,13 @@ class Get : CliktCommand(help = "Get (use) an existing webauthn credential") {
                     fail("Length must be greater than zero")
                 }
             }
+        }
+
+    private val challenge by option("--challenge")
+        .defaultLazy { Random.nextBytes(32).toHexString() }
+        .help("Hex-encoded random challenge for credential creation operation")
+        .validate {
+            checkHex(it)
         }
 
     private val hmacSalt by option("--hmac-salt")
@@ -68,7 +76,7 @@ class Get : CliktCommand(help = "Get (use) an existing webauthn credential") {
         runBlocking {
             val assertion = library.webauthn().get(
                 PublicKeyCredentialRequestOptions(
-                    challenge = Random.nextBytes(32),
+                    challenge = challenge.hexToByteArray(),
                     rpId = rpId,
                     allowCredentials = credentials.map {
                         PublicKeyCredentialDescriptor(
