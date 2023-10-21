@@ -38,7 +38,33 @@ class Get : CliktCommand(help = "Get (use) an existing webauthn credential") {
             }
         }
 
+    private val hmacSalt by option("--hmac-salt")
+        .help("Salt to use for the hmac-secret extension, hex encoded")
+        .multiple()
+        .validate {
+            if (it.size > 2) {
+                fail("At most two HMAC salts can be used")
+            }
+            for (salt in it) {
+                if (salt.length != 64) {
+                    fail("Each HMAC salt must be exactly 64 hex characters")
+                }
+                checkHex(salt)
+            }
+        }
+
+    @OptIn(ExperimentalStdlibApi::class)
     override fun run() {
+        val extensions = hashMapOf<String, Any>()
+        if (hmacSalt.isNotEmpty()) {
+            val mp = hashMapOf<String, ByteArray>()
+            mp["salt1"] = hmacSalt[0].hexToByteArray()
+            if (hmacSalt.size > 1) {
+                mp["salt2"] = hmacSalt[1].hexToByteArray()
+            }
+            extensions["hmacGetSecret"] = mp
+        }
+
         runBlocking {
             val assertion = library.webauthn().get(
                 PublicKeyCredentialRequestOptions(
@@ -49,12 +75,21 @@ class Get : CliktCommand(help = "Get (use) an existing webauthn credential") {
                             id = Base64.UrlSafe.decode(it),
                         )
                     },
+                    extensions = extensions,
                 ),
             )
 
             val realAssertionResponse = assertion.response as AuthenticatorAssertionResponse
 
             echo("Assertion created: ${Base64.UrlSafe.encode(realAssertionResponse.authenticatorData)}")
+
+            if (hmacSalt.isNotEmpty()) {
+                val secretOutput = assertion.clientExtensionResults["hmacGetSecret"] as Map<*, *>?
+                if (secretOutput != null) {
+                    echo("HMAC output 1: ${(secretOutput["output1"] as ByteArray?)?.toHexString()}")
+                    echo("HMAC output 2: ${(secretOutput["output2"] as ByteArray?)?.toHexString()}")
+                }
+            }
         }
     }
 }

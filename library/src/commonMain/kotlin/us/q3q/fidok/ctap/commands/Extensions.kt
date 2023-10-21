@@ -58,6 +58,7 @@ val extensionSerializers = SerializersModule {
         subclass(ByteArrayExtensionParameter::class, ByteArrayExtensionParameter.serializer())
         subclass(IntExtensionParameter::class, IntExtensionParameter.serializer())
         subclass(MapExtensionParameter::class, MapExtensionParameter.serializer())
+        subclass(HMACSecretExtensionParameter::class, HMACSecretExtensionParameter.serializer())
     }
 }
 

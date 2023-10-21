@@ -22,8 +22,11 @@ import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.PinUVToken
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
 import us.q3q.fidok.ctap.commands.CTAPCBORDecoder
+import us.q3q.fidok.ctap.commands.Extension
+import us.q3q.fidok.ctap.commands.ExtensionSetup
 import us.q3q.fidok.ctap.commands.GetAssertionResponse
 import us.q3q.fidok.ctap.commands.GetInfoResponse
+import us.q3q.fidok.ctap.commands.HMACSecretExtension
 import us.q3q.fidok.ctap.commands.MakeCredentialResponse
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialParameters
 import kotlin.io.encoding.Base64
@@ -248,6 +251,15 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val clientDataJson = clientDataAsString.encodeToByteArray()
         val clientDataHash = library.cryptoProvider.sha256(clientDataJson).hash
 
+        val extensions = arrayListOf<Extension>()
+        var hmacSecretExtension: HMACSecretExtension? = null
+        if (options.publicKey.extensions?.get("hmacCreateSecret") == true) {
+            hmacSecretExtension = HMACSecretExtension()
+            extensions.add(hmacSecretExtension)
+        }
+
+        val extensionSetup = ExtensionSetup(extensions)
+
         val rawResult = selectedClient.makeCredentialRaw(
             rpId = options.publicKey.rp.id!!,
             rpName = options.publicKey.rp.name,
@@ -261,12 +273,14 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             excludeList = options.publicKey.excludeCredentials,
             pinUvToken = pinUvToken,
             enterpriseAttestation = if (usingEP) 1u else null,
-            // TODO: extensions
+            extensions = extensionSetup,
         )
 
         val ret = CTAPCBORDecoder(rawResult).decodeSerializableValue(
             MakeCredentialResponse.serializer(),
         )
+
+        extensionSetup.makeCredentialResponse(ret)
 
         val filteredTransports = infoForSelected.transports?.mapNotNull { transportName ->
             if (AuthenticatorTransport.entries.find { it.value == transportName } != null) {
@@ -275,6 +289,11 @@ class WebauthnClient(private val library: FIDOkLibrary) {
                 null
             }
         }?.sortedBy { it }?.toList() ?: listOf()
+
+        val extensionResults = hashMapOf<String, Any>()
+        if (hmacSecretExtension != null) {
+            extensionResults["hmacCreateSecret"] = hmacSecretExtension.wasCreated()
+        }
 
         return PublicKeyCredential(
             id = Base64.UrlSafe.encode(ret.getCredentialID()),
@@ -285,7 +304,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
                 attestationObject = rawResult,
                 transports = filteredTransports,
             ),
-            clientExtensionResults = ret.authData.extensions ?: mapOf(),
+            clientExtensionResults = extensionResults,
         )
     }
 
@@ -347,15 +366,45 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val clientDataJson = clientDataAsString.encodeToByteArray()
         val clientDataHash = library.cryptoProvider.sha256(clientDataJson).hash
 
+        val extensions = arrayListOf<Extension>()
+        val hmacSecretParams = options.publicKey.extensions?.get("hmacGetSecret") as Map<*, *>?
+        var hmacSecretExtension: HMACSecretExtension? = null
+        if (hmacSecretParams != null) {
+            hmacSecretExtension = HMACSecretExtension(
+                salt1 = hmacSecretParams["salt1"] as ByteArray?,
+                salt2 = hmacSecretParams["salt2"] as ByteArray?,
+            )
+            extensions.add(hmacSecretExtension)
+        }
+
+        val extensionSetup = ExtensionSetup(extensions)
+
         val assertionBytes = client.getAssertionRaw(
             rpId = options.publicKey.rpId ?: "", // TODO: default origin?
             clientDataHash = clientDataHash,
             allowList = options.publicKey.allowCredentials,
-            extensions = null, // TODO: extensions
+            extensions = extensionSetup,
             pinUvToken = pinUvToken,
         )
 
         val ret = CTAPCBORDecoder(assertionBytes).decodeSerializableValue(GetAssertionResponse.serializer())
+
+        extensionSetup.getAssertionResponse(ret)
+
+        val extensionResults = hashMapOf<String, Any>()
+        if (hmacSecretExtension != null) {
+            val result = hmacSecretExtension.getResult()
+            val first = result.first
+            val second = result.second
+            val mp = hashMapOf<String, ByteArray>()
+            if (first != null) {
+                mp["output1"] = first
+            }
+            if (second != null) {
+                mp["output2"] = second
+            }
+            extensionResults["hmacGetSecret"] = mp
+        }
 
         return PublicKeyCredential(
             id = Base64.UrlSafe.encode(ret.credential.id),
@@ -368,6 +417,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
                 userHandle = ret.user?.id,
                 attestationObject = null, // Why would this ever be set?
             ),
+            clientExtensionResults = extensionResults,
         )
     }
 

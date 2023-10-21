@@ -57,6 +57,10 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
         .flag()
         .help("If set, make a discoverable (authenticator-stored) credential")
 
+    private val hmacSecret by option("--hmac-secret")
+        .flag()
+        .help("If set, (try to) prepare the credential for use with the hmac-secret extension")
+
     private val algorithm by option("--algorithm")
         .choice(*COSEAlgorithmIdentifier.entries.map { it.name.lowercase() }.toTypedArray())
         .help("Name of cryptographic algorithm to use for credential")
@@ -76,6 +80,12 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
             }
         }
 
+        val extensions = hashMapOf<String, Any>()
+
+        if (hmacSecret) {
+            extensions["hmacCreateSecret"] = true
+        }
+
         runBlocking {
             val cred = library.webauthn().create(
                 PublicKeyCredentialCreationOptions(
@@ -91,10 +101,14 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
                     challenge = Random.nextBytes(32),
                     authenticatorSelectionCriteria = selectionCriteria,
                     pubKeyCredParams = chosenAlgorithm ?: DEFAULT_PUB_KEY_CRED_PARAMS,
+                    extensions = extensions,
                 ),
             )
 
             echo("Credential created: ${cred.id}")
+            if (hmacSecret) {
+                echo("HMAC set up: ${cred.clientExtensionResults["hmacCreateSecret"]}")
+            }
         }
     }
 }

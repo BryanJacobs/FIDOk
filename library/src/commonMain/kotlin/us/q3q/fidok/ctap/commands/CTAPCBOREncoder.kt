@@ -72,7 +72,7 @@ open class CTAPCBOREncoder : AbstractEncoder() {
             // Lists of bytes are byte strings
             return ByteArrayEncoder(this)
         }
-        if (descriptor.kind == StructureKind.MAP) {
+        if (descriptor.kind == StructureKind.MAP || descriptor.kind == StructureKind.CLASS) {
             return MapEncoder(this, collectionSize)
         }
         if (descriptor.kind == StructureKind.LIST) {
@@ -128,7 +128,6 @@ open class CTAPCBOREncoder : AbstractEncoder() {
     }
 }
 
-@OptIn(ExperimentalStdlibApi::class)
 open class ParentFeedingEncoder(val parentEncoder: CTAPCBOREncoder) : CTAPCBOREncoder() {
 
     fun feedParent() {
@@ -160,11 +159,8 @@ class SealedEncoder(parentEncoder: CTAPCBOREncoder) : ParentFeedingEncoder(paren
     }
 }
 
-@OptIn(ExperimentalSerializationApi::class)
+@OptIn(ExperimentalSerializationApi::class, ExperimentalStdlibApi::class)
 class ClassEncoder(parentEncoder: CTAPCBOREncoder) : ParentFeedingEncoder(parentEncoder) {
-
-    private var descriptorIndex = 0
-    private var classDescriptor: SerialDescriptor? = null
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         if (descriptor.kind == StructureKind.LIST) {
@@ -173,11 +169,18 @@ class ClassEncoder(parentEncoder: CTAPCBOREncoder) : ParentFeedingEncoder(parent
             pe.beginStructure(descriptor)
             return pe
         }
-        classDescriptor = descriptor
-        return this
+        return when (descriptor.kind) {
+            PolymorphicKind.SEALED ->
+                SealedEncoder(this)
+            StructureKind.CLASS ->
+                ClassEncoder(this)
+            else ->
+                this
+        }
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
+        Logger.v { "Ending class $descriptor - feeding ${accumulatedBytes.toByteArray().toHexString()}" }
         super.endStructure(descriptor)
     }
 

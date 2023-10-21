@@ -146,8 +146,30 @@ data class HMACSecretExtensionParameter(
     val pinUvAuthProtocol: UByte?,
 ) : ExtensionParameters() {
     init {
-        require(saltEnc.size == 32 || saltEnc.size == 48 || saltEnc.size == 64 || saltEnc.size == 70)
+        require(saltEnc.size == 32 || saltEnc.size == 48 || saltEnc.size == 64 || saltEnc.size == 80)
         require(saltAuth.size == 16 || saltAuth.size == 32)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as HMACSecretExtensionParameter
+
+        if (keyAgreement != other.keyAgreement) return false
+        if (!saltEnc.contentEquals(other.saltEnc)) return false
+        if (!saltAuth.contentEquals(other.saltAuth)) return false
+        if (pinUvAuthProtocol != other.pinUvAuthProtocol) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = keyAgreement.hashCode()
+        result = 31 * result + saltEnc.contentHashCode()
+        result = 31 * result + saltAuth.contentHashCode()
+        result = 31 * result + (pinUvAuthProtocol?.hashCode() ?: 0)
+        return result
     }
 }
 
