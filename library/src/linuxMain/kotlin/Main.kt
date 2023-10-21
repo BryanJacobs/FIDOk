@@ -2,6 +2,7 @@ import us.q3q.fidok.BotanCryptoProvider
 import us.q3q.fidok.LibHIDDevice
 import us.q3q.fidok.LibPCSCLiteDevice
 import us.q3q.fidok.cli.Main
+import us.q3q.fidok.cli.cliPinCollection
 import us.q3q.fidok.ctap.FIDOkLibrary
 
 val PROVIDER_MAP = mapOf(
@@ -14,14 +15,7 @@ fun main(args: Array<String>) {
         FIDOkLibrary.init(
             BotanCryptoProvider(),
             authenticatorAccessors = it,
-            pinCollection = pinCollection@{
-                print("Enter authenticator PIN for $it: ")
-                var pin = readlnOrNull() ?: return@pinCollection null
-                if (pin.endsWith('\n')) {
-                    pin = pin.substring(0, pin.length - 1)
-                }
-                pin
-            },
+            pinCollection = ::cliPinCollection,
         )
     }.main(args)
 }

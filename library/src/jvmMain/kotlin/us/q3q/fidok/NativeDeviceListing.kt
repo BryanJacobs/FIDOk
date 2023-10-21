@@ -1,7 +1,14 @@
 package us.q3q.fidok
 
-class NativeDeviceListing(libraryPath: String) : NativeLibraryUser(libraryPath) {
-    fun list(): Int {
-        return native.fidok_count_devices()
+import us.q3q.fidok.ctap.AuthenticatorDevice
+import us.q3q.fidok.ctap.AuthenticatorListing
+
+class NativeDeviceListing(private val libraryPath: String) : NativeLibraryUser(libraryPath), AuthenticatorListing {
+    override fun listDevices(): List<AuthenticatorDevice> {
+        val numDevices = native.fidok_count_devices()
+        println("$numDevices devices")
+        return (0..<numDevices).map {
+            NativeBackedDevice(libraryPath, it)
+        }
     }
 }

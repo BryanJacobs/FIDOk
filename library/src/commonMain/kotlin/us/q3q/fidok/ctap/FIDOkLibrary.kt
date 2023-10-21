@@ -1,5 +1,6 @@
 package us.q3q.fidok.ctap
 
+import co.touchlab.kermit.Logger
 import us.q3q.fidok.cable.CaBLESupport
 import us.q3q.fidok.crypto.CryptoProvider
 import us.q3q.fidok.webauthn.WebauthnClient
@@ -20,6 +21,7 @@ class FIDOkLibrary private constructor(
             authenticatorAccessors: List<AuthenticatorListing> = listOf(),
             pinCollection: suspend (client: CTAPClient) -> String? = { null },
         ): FIDOkLibrary {
+            Logger.d { "Initializing FIDOk library using ${authenticatorAccessors.size} types of Authenticator accessor" }
             return FIDOkLibrary(
                 cryptoProvider,
                 authenticatorAccessors,
