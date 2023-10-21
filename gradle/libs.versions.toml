@@ -1,0 +1,50 @@
+[versions]
+activity-compose = "1.8.0"
+activity-ktx = "1.8.0"
+androidx-junit = "1.1.5"
+appcompat = "1.6.1"
+blessed = "0.61"
+clikt = "4.2.0"
+compose = "1.5.2"
+composebom = "2023.03.00"
+core-ktx = "1.12.0"
+coroutines = "1.7.3"
+espresso-core = "3.5.1"
+fragment-ktx = "1.6.1"
+jnr = "2.2.14"
+junit = "4.13.2"
+kermit = "2.0.0-RC5"
+kotlin = "1.9.0"
+lifecycle-runtime-ktx = "2.6.2"
+qrcode-kotlin = "3.3.0"
+serialization = "1.6.0"
+
+[libraries]
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity-ktx" }
+androidx-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata", version.ref = "compose" }
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+blessed = { module = "com.github.weliem.blessed-bluez:blessed", version.ref = "blessed"}
+clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
+compose = { module = "androidx.compose.ui:ui", version.ref = "compose" }
+compose-graphics = { module = "androidx.compose.ui:ui-graphics", version.ref = "compose" }
+compose-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "compose" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
+coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso-core" }
+ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-junit" }
+fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragment-ktx" }
+jnr = { module = "com.github.jnr:jnr-ffi", version.ref = "jnr" }
+junit = { module = "junit:junit", version.ref = "junit" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle-runtime-ktx" }
+qrcode-kotlin = { module = "io.github.g0dkar:qrcode-kotlin", version.ref = "qrcode-kotlin" }
+serialization-cbor = { module = "org.jetbrains.kotlinx:kotlinx-serialization-cbor", version.ref = "serialization"}
+serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization"}
+ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "compose" }
+ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose" }
+
+[bundles]
+compose = ["compose", "compose-graphics", "compose-preview"]
+
+[plugins]

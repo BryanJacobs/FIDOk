@@ -6,7 +6,7 @@ plugins {
     // kotlin("android")
     // id("com.android.application") version "8.1.0"
     // id("com.android.library") version "8.1.0"
-    id("org.jetbrains.compose") version "1.5.2"
+    id("org.jetbrains.compose") version libs.versions.compose
 }
 
 kotlin {
@@ -22,7 +22,7 @@ kotlin {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material)
-                implementation("io.github.g0dkar:qrcode-kotlin:3.3.0")
+                implementation(libs.qrcode.kotlin)
             }
         }
         val commonTest by getting {

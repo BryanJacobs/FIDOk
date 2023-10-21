@@ -175,14 +175,14 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.6.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-                implementation("co.touchlab:kermit:2.0.0-RC5") {
+                implementation(libs.serialization.cbor)
+                implementation(libs.serialization.json)
+                implementation(libs.kermit.get().let { "${it.module}:${it.versionConstraint.requiredVersion}" }) {
                     // conflicts with junit5
                     exclude(group = "org.jetbrains.kotlin", module = "kotlin-test-junit")
                 }
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-                implementation("com.github.ajalt.clikt:clikt:4.2.0")
+                implementation(libs.coroutines)
+                implementation(libs.clikt)
             }
         }
         val commonTest by getting {
@@ -192,8 +192,8 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
-                implementation("com.github.jnr:jnr-ffi:2.2.14")
-                implementation("com.github.weliem.blessed-bluez:blessed:0.61")
+                implementation(libs.jnr)
+                implementation(libs.blessed)
             }
         }
         val jvmTest by getting {
