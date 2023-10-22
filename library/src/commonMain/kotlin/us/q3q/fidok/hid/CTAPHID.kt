@@ -22,16 +22,16 @@ enum class CTAPHIDCommand(val value: UByte) {
     VENDOR_LAST(0x7Fu),
 }
 
-enum class CTAPHIDError(val value: UByte) {
-    INVALID_CMD(0x01u),
-    INVALID_PAR(0x02u),
-    INVALID_LEN(0x03u),
-    INVALID_SEQ(0x04u),
-    MSG_TIMEOUT(0x05u),
-    CHANNEL_BUSY(0x06u),
-    LOCK_REQUIRED(0x0Au),
-    INVALID_CHANNEL(0x0Bu),
-    OTHER(0x7Fu),
+enum class CTAPHIDError(val value: Byte) {
+    INVALID_CMD(0x01),
+    INVALID_PAR(0x02),
+    INVALID_LEN(0x03),
+    INVALID_SEQ(0x04),
+    MSG_TIMEOUT(0x05),
+    CHANNEL_BUSY(0x06),
+    LOCK_REQUIRED(0x0A),
+    INVALID_CHANNEL(0x0B),
+    OTHER(0x7F),
 }
 
 const val HID_DEFAULT_PACKET_SIZE = 64
@@ -89,7 +89,7 @@ class CTAPHID {
             var sent = bytesForFirstPacket.size
             while (sent < bytes.size) {
                 val bytesForNextPacket = bytes.copyOfRange(sent, min(bytes.size, sent + packetSize - 5))
-                Logger.v { "Continuation packet: ${bytesForNextPacket.size} bytes" }
+                // Logger.v { "Continuation packet: ${bytesForNextPacket.size} bytes" }
                 val nextPacket = continuationPacket(channel, seq++, bytesForNextPacket, packetSize)
                 packets.add(nextPacket)
                 sent += bytesForNextPacket.size
@@ -106,7 +106,7 @@ class CTAPHID {
                 }
                 for (i in 0..<4) {
                     if (response[i] != (channel shr 8 * (3 - i)).toByte()) {
-                        throw IncorrectDataException("Channel mismatch in reponse on HID device")
+                        throw IncorrectDataException("Channel mismatch in response on HID device")
                     }
                 }
                 if (response[4].toUByte() and 0x80u == (0x00u).toUByte()) {
@@ -115,7 +115,7 @@ class CTAPHID {
                 val gottenCmd = response[4].toUByte() and 0x7Fu
                 if (gottenCmd != cmd.value) {
                     if (gottenCmd == CTAPHIDCommand.ERROR.value) {
-                        val errorType = CTAPHIDError.entries.find { it.value == response[6].toUByte() }
+                        val errorType = CTAPHIDError.entries.find { it.value == response[6] }
                         if (errorType == null) {
                             throw IncorrectDataException("Unknown CTAPHID error type ${response[6]} in response to ${cmd.name}")
                         } else {

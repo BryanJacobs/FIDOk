@@ -27,11 +27,14 @@ import uhid.uhid_event
 import uhid.uhid_event_type
 import uhid.uhid_input2_req
 import uhid.uhid_output_req
+import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.FIDOkLibrary
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.random.Random
 
 actual typealias HIDGateway = LinuxHIDGateway
+
+const val UHID_FILE_PATH = "/dev/uhid"
 
 @OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class, ExperimentalStdlibApi::class)
 class LinuxHIDGateway() : HIDGatewayBase {
@@ -41,9 +44,11 @@ class LinuxHIDGateway() : HIDGatewayBase {
     suspend fun listenForever(library: FIDOkLibrary) {
         Logger.v { "Starting Linux HID gateway" }
 
-        val f = open("/dev/uhid", O_RDWR)
+        val f = open(UHID_FILE_PATH, O_RDWR)
         if (f < 0) {
-            throw IllegalStateException("Failed to open UHID: ${strerror(errno)?.toKString()}")
+            throw DeviceCommunicationException(
+                "Failed to open UHID (check permissions on $UHID_FILE_PATH): " + strerror(errno)?.toKString(),
+            )
         }
         uhid = f
         try {
@@ -52,8 +57,12 @@ class LinuxHIDGateway() : HIDGatewayBase {
             createDevice()
 
             while (true) {
-                val incomingData = recv()
-                handlePacket(this, library, incomingData)
+                try {
+                    val incomingData = recv()
+                    handlePacket(this, library, incomingData)
+                } catch (e: DeviceCommunicationException) {
+                    Logger.e("Device communication error in HID gateway", e)
+                }
             }
         } finally {
             close(f)
@@ -70,7 +79,7 @@ class LinuxHIDGateway() : HIDGatewayBase {
             val evt = nativeHeap.alloc<uhid_event>()
             val readResult = read(hid, evt.ptr, sizeOf<uhid_event>().convert())
             if (readResult < 0) {
-                throw IllegalStateException("Failed to read from UHID: ${strerror(errno)?.toKString()}")
+                throw DeviceCommunicationException("Failed to read from UHID: ${strerror(errno)?.toKString()}")
             }
             Logger.v { "Read $readResult bytes from UHID" }
 
@@ -169,7 +178,7 @@ class LinuxHIDGateway() : HIDGatewayBase {
         val hid = uhid ?: throw IllegalStateException()
         val writeResult = write(hid, evt.ptr, sizeOf<uhid_event>().convert())
         if (writeResult == -1L) {
-            throw IllegalStateException("Failed to write to UHID: ${strerror(errno)?.toKString()}")
+            throw DeviceCommunicationException("Failed to write to UHID: ${strerror(errno)?.toKString()}")
         }
         assert(writeResult == sizeOf<uhid_event>())
         return writeResult

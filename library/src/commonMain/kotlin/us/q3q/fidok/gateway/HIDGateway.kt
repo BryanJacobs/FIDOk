@@ -2,15 +2,19 @@ package us.q3q.fidok.gateway
 
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.delay
+import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.FIDOkLibrary
+import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.hid.CTAPHID
 import us.q3q.fidok.hid.CTAPHIDCommand
+import us.q3q.fidok.hid.CTAPHIDError
 import us.q3q.fidok.hid.HID_BROADCAST_CHANNEL
 import us.q3q.fidok.hid.HID_DEFAULT_PACKET_SIZE
 import kotlin.experimental.and
 import kotlin.math.min
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 const val FIDOK_HID_PRODUCT = 0x9393
 const val FIDOK_HID_VENDOR = 0x9494
@@ -34,12 +38,15 @@ val FIDOK_REPORT_DESCRIPTOR = byteArrayOf(
     0xc0.toByte(), // End Collection
 )
 
+val HID_TIMEOUT = 30.seconds
+val HID_POLL_DELAY = 500.milliseconds
+
 @OptIn(ExperimentalStdlibApi::class)
 interface HIDGatewayBase {
 
     suspend fun handlePacket(gateway: HIDGateway, library: FIDOkLibrary, bytes: ByteArray) {
         if (bytes.size < 5) {
-            throw IllegalStateException("Received short packet: only ${bytes.size} bytes long")
+            throw DeviceCommunicationException("Received short packet: only ${bytes.size} bytes long")
         }
         val channelId = CTAPHID.assembleChannelFromBytes(bytes, 0)
 
@@ -49,83 +56,153 @@ interface HIDGatewayBase {
         val seqOrCmd = bytes[4] and 0x7F
 
         if (!isFirstPacket) {
-            throw IllegalStateException("Follow-up packet received when expecting initial")
+            sendError(gateway, channelId, CTAPHIDError.INVALID_SEQ)
+            throw DeviceCommunicationException("Follow-up packet received when expecting initial")
         }
 
         val len = CTAPHID.assembleLengthFromBytes(bytes, 5)
 
         if (channelId == HID_BROADCAST_CHANNEL) {
-            Logger.v { "HID new channel requested" }
-
             if (seqOrCmd.toUByte() != CTAPHIDCommand.INIT.value) {
-                throw IllegalStateException("Command other than INIT ($seqOrCmd) received on HID broadcast channel")
+                sendError(gateway, channelId, CTAPHIDError.INVALID_CMD)
+                throw DeviceCommunicationException("Command other than INIT ($seqOrCmd) received on HID broadcast channel")
             }
 
-            if (len != 8u) {
-                throw IllegalStateException("HID INIT packet had invalid length: $len")
-            }
-
-            val newChannel = Random.nextBytes(4)
-
-            val pkt = byteArrayOf(
-                bytes[7],
-                bytes[8],
-                bytes[9],
-                bytes[10],
-                bytes[11],
-                bytes[12],
-                bytes[13],
-                bytes[14], // nonce
-                newChannel[0],
-                newChannel[1],
-                newChannel[2],
-                newChannel[3],
-                0x02, // protocol version
-                0x01, // device version (major)
-                0x00, // device version (minor)
-                0x00, // device version (point)
-                0x0C.toByte(), // CTAP capabilities bitfield - CBOR but no MSG or WINK.
-                // To implement CTAP1/U2F this would need to remove 0x08/NOMSG
-            )
-
-            CTAPHID.sendToChannel(CTAPHIDCommand.INIT, channelId, pkt, HID_DEFAULT_PACKET_SIZE) {
-                gateway.send(it)
-            }
+            openOrResetChannel(gateway, channelId, len, bytes)
         } else {
             val cmd = CTAPHIDCommand.entries.find {
                 it.value == seqOrCmd.toUByte()
-            } ?: throw IllegalStateException("Unknown CTAPHID command $seqOrCmd")
+            }
+            if (cmd == null) {
+                sendError(gateway, channelId, CTAPHIDError.INVALID_CMD)
+                throw DeviceCommunicationException("Unknown CTAPHID command $seqOrCmd")
+            }
 
             Logger.v { "Incoming HID command $cmd" }
 
             val accumulator = arrayListOf<Byte>()
             accumulator.addAll(bytes.copyOfRange(7, min(len.toInt() + 7, bytes.size)).toList())
 
-            val read = CTAPHID.continueReadingFromChannel(channelId, len, accumulator) {
-                gateway.recv()
+            val read = try {
+                CTAPHID.continueReadingFromChannel(channelId, len, accumulator) {
+                    gateway.recv()
+                }
+            } catch (e: IncorrectDataException) {
+                Logger.e("Incorrect data reading from HID channel", e)
+                sendError(gateway, channelId, CTAPHIDError.INVALID_CMD)
+                return
             }
 
             Logger.i { "Read from HID channel: ${read.toHexString()}" }
 
-            if (cmd == CTAPHIDCommand.CBOR) {
-                while (true) {
-                    val devices = library.listDevices()
-                    if (devices.isEmpty()) {
-                        Logger.d { "No CTAP devices found; waiting for one to appear" }
-
-                        delay(500.milliseconds)
-                        continue
-                    }
-                    val ret = devices[0].sendBytes(read)
-                    if (ret.isNotEmpty()) {
-                        val packets = CTAPHID.packetizeMessage(cmd, channelId, ret, HID_DEFAULT_PACKET_SIZE)
-                        for (packet in packets) {
-                            gateway.send(packet)
-                        }
-                        break
+            when (cmd) {
+                CTAPHIDCommand.CBOR -> {
+                    handleCBORMessage(library, gateway, channelId, cmd, read)
+                }
+                CTAPHIDCommand.INIT -> {
+                    openOrResetChannel(gateway, channelId, len, bytes)
+                }
+                CTAPHIDCommand.PING -> {
+                    CTAPHID.sendToChannel(cmd, channelId, read, read.size) {
+                        gateway.send(it)
                     }
                 }
+                else -> {
+                    Logger.w { "Unhandled CTAPHID command $cmd" }
+                    sendError(gateway, channelId, CTAPHIDError.INVALID_CMD)
+                }
             }
+        }
+    }
+
+    private suspend fun handleCBORMessage(
+        library: FIDOkLibrary,
+        gateway: HIDGateway,
+        channelId: UInt,
+        cmd: CTAPHIDCommand,
+        message: ByteArray,
+    ) {
+        var timeout = HID_TIMEOUT
+        val delayAmt = HID_POLL_DELAY
+        while (timeout > 0.milliseconds) {
+            val devices = library.listDevices()
+            if (devices.isEmpty()) {
+                Logger.d { "No CTAP devices found; waiting for one to appear" }
+
+                delay(delayAmt)
+                timeout -= delayAmt
+                continue
+            }
+            try {
+                val ret = devices[0].sendBytes(message)
+                if (ret.isNotEmpty()) {
+                    val packets = CTAPHID.packetizeMessage(cmd, channelId, ret, HID_DEFAULT_PACKET_SIZE)
+                    for (packet in packets) {
+                        gateway.send(packet)
+                    }
+                }
+                return
+            } catch (e: DeviceCommunicationException) {
+                Logger.w("Failure communicating with device", e)
+                delay(delayAmt)
+            }
+        }
+        sendError(gateway, channelId, CTAPHIDError.MSG_TIMEOUT)
+    }
+
+    private suspend fun sendError(gateway: HIDGateway, channelId: UInt, error: CTAPHIDError) {
+        CTAPHID.sendToChannel(CTAPHIDCommand.ERROR, channelId, byteArrayOf(error.value), HID_DEFAULT_PACKET_SIZE) {
+            gateway.send(it)
+        }
+    }
+
+    private suspend fun openOrResetChannel(
+        gateway: HIDGateway,
+        channelId: UInt,
+        len: UInt,
+        bytes: ByteArray,
+    ) {
+        Logger.v { "HID new channel requested" }
+
+        if (len != 8u) {
+            sendError(gateway, channelId, CTAPHIDError.INVALID_LEN)
+            throw DeviceCommunicationException("HID INIT packet had invalid length: $len")
+        }
+
+        val newChannel = if (channelId == HID_BROADCAST_CHANNEL) {
+            Random.nextBytes(4)
+        } else {
+            byteArrayOf(
+                ((channelId and 0xFF000000u) shr 24).toByte(),
+                ((channelId and 0x00FF0000u) shr 16).toByte(),
+                ((channelId and 0x0000FF00u) shr 8).toByte(),
+                (channelId and 0x000000FFu).toByte(),
+            )
+        }
+
+        val pkt = byteArrayOf(
+            bytes[7],
+            bytes[8],
+            bytes[9],
+            bytes[10],
+            bytes[11],
+            bytes[12],
+            bytes[13],
+            bytes[14], // nonce
+            newChannel[0],
+            newChannel[1],
+            newChannel[2],
+            newChannel[3],
+            0x02, // protocol version
+            0x01, // device version (major)
+            0x00, // device version (minor)
+            0x00, // device version (point)
+            0x0C.toByte(), // CTAP capabilities bitfield - CBOR but no MSG or WINK.
+            // To implement CTAP1/U2F this would need to remove 0x08/NOMSG
+        )
+
+        CTAPHID.sendToChannel(CTAPHIDCommand.INIT, channelId, pkt, HID_DEFAULT_PACKET_SIZE) {
+            gateway.send(it)
         }
     }
 }
