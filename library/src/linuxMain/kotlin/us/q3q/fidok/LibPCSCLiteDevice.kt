@@ -52,6 +52,10 @@ class LibPCSCLiteDevice(private val readerName: String, private val useExtendedM
     @OptIn(ExperimentalStdlibApi::class, ExperimentalForeignApi::class)
     companion object : AuthenticatorListing {
 
+        override fun providedTransports(): List<AuthenticatorTransport> {
+            return listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
+        }
+
         private fun checkOp(msg: String, f: () -> pcsc.LONG): Boolean? {
             val ret = f()
             if (ret != SCARD_S_SUCCESS) {
@@ -246,6 +250,6 @@ class LibPCSCLiteDevice(private val readerName: String, private val useExtendedM
     }
 
     override fun getTransports(): List<AuthenticatorTransport> {
-        return listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
+        return providedTransports()
     }
 }

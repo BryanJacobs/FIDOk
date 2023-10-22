@@ -18,7 +18,7 @@ class Main(
 ) : CliktCommand(name = "fidok") {
 
     init {
-        subcommands(Info(), Create(), Get(), Pin(), Cred(), Reset())
+        subcommands(Info(), Create(), Get(), Pin(), Cred(), Gateway(), Reset())
     }
 
     private val logLevel by option("--log-level")

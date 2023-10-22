@@ -52,6 +52,10 @@ class PCSCDevice(private val readerName: String) : AuthenticatorDevice {
     @OptIn(ExperimentalStdlibApi::class, ExperimentalForeignApi::class)
     companion object : AuthenticatorListing {
 
+        override fun providedTransports(): List<AuthenticatorTransport> {
+            return listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
+        }
+
         private fun checkOp(msg: String, f: () -> platform.windows.LONG?): Boolean? {
             val ret = f()
             if (ret != null && ret != SCARD_S_SUCCESS) {
@@ -247,6 +251,6 @@ class PCSCDevice(private val readerName: String) : AuthenticatorDevice {
     }
 
     override fun getTransports(): List<AuthenticatorTransport> {
-        return listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
+        return providedTransports()
     }
 }

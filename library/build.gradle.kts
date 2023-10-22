@@ -126,6 +126,11 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
                         includeDirs("/usr/include/PCSC")
                     }
                 }
+                if (platform == "Linux") {
+                    val uhid by creating {
+                        includeDirs("/usr/include")
+                    }
+                }
                 val botan by creating {
                     includeDirs(
                         project.layout.buildDirectory.dir("botan-$lcPlatform").get()

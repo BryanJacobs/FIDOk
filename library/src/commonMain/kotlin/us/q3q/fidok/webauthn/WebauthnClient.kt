@@ -147,6 +147,9 @@ class WebauthnClient(private val library: FIDOkLibrary) {
 
         val timeout = (options.publicKey.timeout ?: 10_000UL).toLong()
 
+        val enforceCredProtect = options.publicKey.extensions?.get("enforceCredentialProtectionPolicy") == true
+        val credProtectLevel = options.publicKey.extensions?.get("credentialProtectionPolicy") as Int?
+
         val selectedClient = authenticatorFilter({ client ->
             val info = client.getInfoIfUnset()
 
@@ -180,6 +183,11 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             val supportedAlgorithms = info.algorithms?.toList() ?: listOf(PublicKeyCredentialParameters(COSEAlgorithmIdentifier.ES256))
             if (options.publicKey.pubKeyCredParams.find { supportedAlgorithms.contains(it) } == null) {
                 Logger.i { "Ignoring $client because it doesn't support any of the requested algorithms" }
+                return@authenticatorFilter false
+            }
+
+            if (enforceCredProtect && credProtectLevel != null && credProtectLevel > 1 && info.extensions?.contains("credProtect") != true) {
+                Logger.i { "Ignoring $client because it doesn't support required credential protection policy" }
                 return@authenticatorFilter false
             }
 
@@ -258,7 +266,6 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             hmacSecretExtension = HMACSecretExtension()
             extensions.add(hmacSecretExtension)
         }
-        val credProtectLevel = options.publicKey.extensions?.get("credentialProtectionPolicy") as Int?
         var credProtectExtension: CredProtectExtension? = null
         if (credProtectLevel != null) {
             credProtectExtension = CredProtectExtension(credProtectLevel.toUByte())
@@ -301,7 +308,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         if (hmacSecretExtension != null) {
             extensionResults["hmacCreateSecret"] = hmacSecretExtension.wasCreated()
         }
-        if (credProtectLevel != null && options.publicKey.extensions?.get("enforceCredentialProtectionPolicy") == true) {
+        if (credProtectLevel != null && enforceCredProtect) {
             val cpLevel = credProtectExtension?.getLevel()
             if ((cpLevel ?: 1u) < credProtectLevel.toUByte()) {
                 throw IllegalStateException("Requested credential protection level was not attained")
@@ -392,10 +399,20 @@ class WebauthnClient(private val library: FIDOkLibrary) {
 
         val extensionSetup = ExtensionSetup(extensions)
 
+        val effectiveCredentials = options.publicKey.allowCredentials.filter { cred ->
+            (infoForSelected.maxCredentialIdLength == null || cred.id.size <= infoForSelected.maxCredentialIdLength.toInt()) &&
+                (
+                    infoForSelected.algorithms == null ||
+                        infoForSelected.algorithms.find { supportedAlg ->
+                            supportedAlg.type == cred.type
+                        } != null
+                    )
+        }
+
         val assertionBytes = client.getAssertionRaw(
             rpId = options.publicKey.rpId ?: "", // TODO: default origin?
             clientDataHash = clientDataHash,
-            allowList = options.publicKey.allowCredentials,
+            allowList = effectiveCredentials,
             extensions = extensionSetup,
             pinUvToken = pinUvToken,
         )

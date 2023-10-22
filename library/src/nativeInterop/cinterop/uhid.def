@@ -1,0 +1,2 @@
+headers = linux/uhid.h
+headerFilter = linux/*

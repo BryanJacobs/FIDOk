@@ -76,17 +76,17 @@ provided by native implementations specific to each platform.
 
 ## Implementation Features
 
-| Level                             | Status        |
-|-----------------------------------|---------------|
-| Raw CTAP                          | Incomplete    |
-| Testing                           | Incomplete    |
-| Well-documented APIs              | No            |
-| Well-documented Build/Integration | No            |
-| Webauthn Layer                    | Incomplete    |
-| Easy Task-Specific APIs           | Unimplemented |
-| Command Line                      | Incomplete    |
-| Graphical User Interface          | Incomplete    |
-| Authenticator Proxying            | Unimplemented |
+| Level                             | Status           |
+|-----------------------------------|------------------|
+| Raw CTAP                          | Working          |
+| Testing                           | Incomplete       |
+| Well-documented APIs              | No               |
+| Well-documented Build/Integration | No               |
+| Webauthn Layer                    | Working          |
+| Easy Task-Specific APIs           | Unimplemented    |
+| Command Line                      | Working          |
+| Graphical User Interface          | Incomplete       |
+| Authenticator Proxying            | Working from HID |
 
 ## Platforms
 

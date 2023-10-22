@@ -9,7 +9,7 @@ import kotlin.jvm.JvmStatic
 
 class FIDOkLibrary private constructor(
     val cryptoProvider: CryptoProvider,
-    private val authenticatorAccessors: List<AuthenticatorListing>,
+    private var authenticatorAccessors: List<AuthenticatorListing>,
     private val defaultPinCollectionFromUser: suspend(client: CTAPClient) -> String? = { null },
 ) {
 
@@ -51,6 +51,12 @@ class FIDOkLibrary private constructor(
             )
         }
         return devices.toTypedArray()
+    }
+
+    fun disableTransport(transport: AuthenticatorTransport) {
+        authenticatorAccessors = authenticatorAccessors.filter {
+            !it.providedTransports().contains(transport)
+        }
     }
 
     fun caBLESupport(): CaBLESupport {

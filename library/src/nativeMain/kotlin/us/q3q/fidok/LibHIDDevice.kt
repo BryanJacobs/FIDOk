@@ -64,13 +64,17 @@ class LibHIDDevice(private val path: String, private val packetSize: Int) : Auth
 
             return foundDevices
         }
+
+        override fun providedTransports(): List<AuthenticatorTransport> {
+            return listOf(AuthenticatorTransport.USB)
+        }
     }
 
     override fun getTransports(): List<AuthenticatorTransport> {
-        return listOf(AuthenticatorTransport.USB)
+        return providedTransports()
     }
 
-    private fun readOnePacket(handle: CPointer<hid_device>): UByteArray {
+    private fun readOnePacket(handle: CPointer<hid_device>): ByteArray {
         Logger.d("Attempting to read from device $path")
         memScoped {
             val packet = allocArray<UByteVar>(packetSize)
@@ -81,15 +85,15 @@ class LibHIDDevice(private val path: String, private val packetSize: Int) : Auth
             if (read < 0) {
                 throw DeviceCommunicationException("Failed to read from HID device $path: $read")
             }
-            val ret = UByteArray(read)
+            val ret = ByteArray(read)
             for (i in ret.indices) {
-                ret[i] = packet[i]
+                ret[i] = packet[i].convert()
             }
             return ret
         }
     }
 
-    private fun sendOnePacket(handle: CPointer<hid_device>, bytes: UByteArray) {
+    private fun sendOnePacket(handle: CPointer<hid_device>, bytes: ByteArray) {
         if (bytes.size != packetSize) {
             throw IllegalArgumentException("Requested byte length: ${bytes.size} is not equal to packet size $packetSize")
         }
@@ -98,7 +102,7 @@ class LibHIDDevice(private val path: String, private val packetSize: Int) : Auth
             val packet = this.allocArray<UByteVar>(packetSize + 1)
             packet[0] = 0x00u // LibHID wants the descriptor number here
             for (i in bytes.indices) {
-                packet[i + 1] = bytes[i]
+                packet[i + 1] = bytes[i].convert()
             }
             // Logger.v(bytes.toHexString())
             val written = hid_write(handle, packet, (packetSize + 1).convert())
@@ -115,9 +119,9 @@ class LibHIDDevice(private val path: String, private val packetSize: Int) : Auth
                 { sendOnePacket(handle, it) },
                 { readOnePacket(handle) },
                 CTAPHIDCommand.CBOR,
-                bytes.toUByteArray(),
+                bytes,
                 packetSize = packetSize,
-            ).toByteArray()
+            )
         } finally {
             hid_close(handle)
         }
