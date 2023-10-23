@@ -21,6 +21,12 @@ class Main(
         subcommands(Info(), Create(), Get(), Pin(), Cred(), Gateway(), Reset())
     }
 
+    override fun aliases(): Map<String, List<String>> =
+        mapOf(
+            "credential" to listOf("cred"),
+            "gw" to listOf("gateway"),
+        )
+
     private val logLevel by option("--log-level")
         .choice(*Severity.entries.map { it.name.lowercase() }.toTypedArray())
         .default(Severity.Error.name.lowercase())

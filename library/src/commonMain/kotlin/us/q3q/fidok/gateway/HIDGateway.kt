@@ -15,6 +15,7 @@ import kotlin.math.min
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 const val FIDOK_HID_PRODUCT = 0x9393
 const val FIDOK_HID_VENDOR = 0x9494
@@ -40,6 +41,7 @@ val FIDOK_REPORT_DESCRIPTOR = byteArrayOf(
 
 val HID_TIMEOUT = 30.seconds
 val HID_POLL_DELAY = 500.milliseconds
+val HID_RECV_DELAY = 25.milliseconds
 
 @OptIn(ExperimentalStdlibApi::class)
 interface HIDGatewayBase {
@@ -122,9 +124,9 @@ interface HIDGatewayBase {
         cmd: CTAPHIDCommand,
         message: ByteArray,
     ) {
-        var timeout = HID_TIMEOUT
         val delayAmt = HID_POLL_DELAY
-        while (timeout > 0.milliseconds) {
+        val now = TimeSource.Monotonic.markNow()
+        while (now.elapsedNow() < HID_TIMEOUT) {
             val devices = library.listDevices()
             if (devices.isEmpty()) {
                 Logger.d { "No CTAP devices found; waiting for one to appear" }
@@ -142,7 +144,6 @@ interface HIDGatewayBase {
                     Logger.w("Failure communicating with device", e)
                 }
             }
-            timeout -= delayAmt
             delay(delayAmt)
         }
         sendError(gateway, channelId, CTAPHIDError.MSG_TIMEOUT)

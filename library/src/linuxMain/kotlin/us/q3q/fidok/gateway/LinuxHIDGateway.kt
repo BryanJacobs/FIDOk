@@ -13,6 +13,9 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
 import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.toKString
+import kotlinx.coroutines.delay
+import platform.posix.EAGAIN
+import platform.posix.O_NONBLOCK
 import platform.posix.O_RDWR
 import platform.posix.close
 import platform.posix.errno
@@ -31,6 +34,8 @@ import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.FIDOkLibrary
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeSource
 
 actual typealias HIDGateway = LinuxHIDGateway
 
@@ -44,7 +49,7 @@ class LinuxHIDGateway() : HIDGatewayBase {
     suspend fun listenForever(library: FIDOkLibrary) {
         Logger.v { "Starting Linux HID gateway" }
 
-        val f = open(UHID_FILE_PATH, O_RDWR)
+        val f = open(UHID_FILE_PATH, O_RDWR or O_NONBLOCK)
         if (f < 0) {
             throw DeviceCommunicationException(
                 "Failed to open UHID (check permissions on $UHID_FILE_PATH): " + strerror(errno)?.toKString(),
@@ -59,6 +64,11 @@ class LinuxHIDGateway() : HIDGatewayBase {
             while (true) {
                 try {
                     val incomingData = recv()
+
+                    if (incomingData.isEmpty()) {
+                        delay(100.milliseconds)
+                        continue
+                    }
                     handlePacket(this, library, incomingData)
                 } catch (e: DeviceCommunicationException) {
                     Logger.e("Device communication error in HID gateway", e)
@@ -73,12 +83,14 @@ class LinuxHIDGateway() : HIDGatewayBase {
     private suspend fun readEvent(): ByteArray? {
         val hid = uhid ?: throw IllegalStateException()
 
-        Logger.v { "Entering HID read loop" }
-
         memScoped {
             val evt = nativeHeap.alloc<uhid_event>()
             val readResult = read(hid, evt.ptr, sizeOf<uhid_event>().convert())
             if (readResult < 0) {
+                if (errno == EAGAIN) {
+                    // No worries, just no data
+                    return null
+                }
                 throw DeviceCommunicationException("Failed to read from UHID: ${strerror(errno)?.toKString()}")
             }
             Logger.v { "Read $readResult bytes from UHID" }
@@ -154,8 +166,7 @@ class LinuxHIDGateway() : HIDGatewayBase {
 
         withUHIDEvent(uhid_event_type.UHID_INPUT2) { evt ->
             val req = evt.u.reinterpret<uhid_input2_req>()
-            req.size = (bytes.size).convert()
-            // req.data[0] = 0x00.convert() // descriptor index
+            req.size = bytes.size.convert()
             for (i in bytes.indices) {
                 req.data[i] = bytes[i].convert()
             }
@@ -167,11 +178,17 @@ class LinuxHIDGateway() : HIDGatewayBase {
     }
 
     suspend fun recv(): ByteArray {
-        while (true) {
-            val incomingData = readEvent() ?: continue
+        val now = TimeSource.Monotonic.markNow()
+        while (now.elapsedNow() < HID_TIMEOUT) {
+            val incomingData = readEvent()
+            if (incomingData?.isEmpty() != false) {
+                delay(HID_RECV_DELAY)
+                continue
+            }
             Logger.v { "${incomingData.size} bytes of incoming HID data: ${incomingData.toHexString()}" }
             return incomingData
         }
+        throw DeviceCommunicationException("Timed out reading from device")
     }
 
     private fun sendEventObjectToUHID(evt: uhid_event): ssize_t {
