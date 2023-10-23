@@ -128,24 +128,22 @@ interface HIDGatewayBase {
             val devices = library.listDevices()
             if (devices.isEmpty()) {
                 Logger.d { "No CTAP devices found; waiting for one to appear" }
-
-                delay(delayAmt)
-                timeout -= delayAmt
-                continue
-            }
-            try {
-                val ret = devices[0].sendBytes(message)
-                if (ret.isNotEmpty()) {
-                    val packets = CTAPHID.packetizeMessage(cmd, channelId, ret, HID_DEFAULT_PACKET_SIZE)
-                    for (packet in packets) {
-                        gateway.send(packet)
+            } else {
+                try {
+                    val ret = devices[0].sendBytes(message)
+                    if (ret.isNotEmpty()) {
+                        val packets = CTAPHID.packetizeMessage(cmd, channelId, ret, HID_DEFAULT_PACKET_SIZE)
+                        for (packet in packets) {
+                            gateway.send(packet)
+                        }
                     }
+                    return
+                } catch (e: DeviceCommunicationException) {
+                    Logger.w("Failure communicating with device", e)
                 }
-                return
-            } catch (e: DeviceCommunicationException) {
-                Logger.w("Failure communicating with device", e)
-                delay(delayAmt)
             }
+            timeout -= delayAmt
+            delay(delayAmt)
         }
         sendError(gateway, channelId, CTAPHIDError.MSG_TIMEOUT)
     }
