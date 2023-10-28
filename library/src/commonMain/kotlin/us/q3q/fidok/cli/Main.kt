@@ -18,13 +18,14 @@ class Main(
 ) : CliktCommand(name = "fidok") {
 
     init {
-        subcommands(Info(), Create(), Get(), Pin(), Cred(), Gateway(), Reset())
+        subcommands(Cfg(), Create(), Cred(), Gateway(), Get(), Info(), Pin(), Reset())
     }
 
     override fun aliases(): Map<String, List<String>> =
         mapOf(
             "credential" to listOf("cred"),
             "gw" to listOf("gateway"),
+            "config" to listOf("cfg"),
         )
 
     private val logLevel by option("--log-level")

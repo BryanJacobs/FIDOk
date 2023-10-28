@@ -6,15 +6,15 @@ import com.github.ajalt.clikt.core.requireObject
 import com.github.ajalt.clikt.core.subcommands
 import us.q3q.fidok.ctap.FIDOkLibrary
 
-class Cred : CliktCommand("Manage discoverable credentials") {
+class Cfg : CliktCommand("Manage Authenticator settings") {
 
     init {
-        subcommands(CredList(), Delete(), UpdateUser())
+        subcommands(EnableEnterpriseAttestation(), ToggleAlwaysUV())
     }
 
     override fun aliases(): Map<String, List<String>> {
         return mapOf(
-            "set-user" to listOf("update-user"),
+            "enterprise" to listOf("enable-enterprise-attestation"),
         )
     }
 
