@@ -1,6 +1,7 @@
 package us.q3q.fidok.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.core.requireObject
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.CTAPClient
@@ -14,7 +15,7 @@ class ToggleAlwaysUV : CliktCommand(help = "Turn on (or off) the requirement for
     override fun run() {
         var info = client.getInfoIfUnset()
         if (info.options?.containsKey(CTAPOption.ALWAYS_UV.value) != true) {
-            error("The authenticator does not support alwaysUv")
+            throw UsageError("The authenticator does not support alwaysUv")
         }
 
         runBlocking {

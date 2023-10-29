@@ -134,6 +134,8 @@ interface HIDGatewayBase {
                 try {
                     val ret = devices[0].sendBytes(message)
                     if (ret.isNotEmpty()) {
+                        Logger.v { "Sending HID response ${ret.toHexString()}" }
+
                         val packets = CTAPHID.packetizeMessage(cmd, channelId, ret, HID_DEFAULT_PACKET_SIZE)
                         for (packet in packets) {
                             gateway.send(packet)

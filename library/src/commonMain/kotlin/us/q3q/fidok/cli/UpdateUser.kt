@@ -1,6 +1,7 @@
 package us.q3q.fidok.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.core.requireObject
 import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.option
@@ -70,7 +71,7 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
 
             if (userId == null || userName == null) {
                 // Get previous credential to read-modify-write the user info
-                val rpRawId = rpId ?: error("Either the RPID must be provided, or both the user ID and name must be")
+                val rpRawId = rpId ?: throw UsageError("Either the RPID must be provided, or both the user ID and name must be")
                 val creds = credMgmt.enumerateCredentials(
                     rpIDHash = library.cryptoProvider.sha256(rpRawId.hexToByteArray()).hash,
                     pinUVToken = token,
@@ -92,7 +93,7 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
                     }
                 }
                 if (!matched) {
-                    error("User ID and/or name were not provided, but no discoverable credential matches the given one")
+                    throw UsageError("User ID and/or name were not provided, but no discoverable credential matches the given one")
                 }
 
                 token = client.getPinUvTokenUsingAppropriateMethod(
@@ -102,7 +103,7 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
             }
 
             if (effectiveUserId == null || effectiveUserName == null) {
-                error("User ID and/or name not set, but both are required")
+                throw UsageError("User ID and/or name not set, but both are required")
             }
 
             credMgmt.updateUserInformation(
