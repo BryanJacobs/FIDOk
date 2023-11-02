@@ -1,4 +1,5 @@
 @file:Suppress("unused", "FunctionName")
+@file:OptIn(ExperimentalNativeApi::class)
 
 package us.q3q.fidok
 
@@ -7,6 +8,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import us.q3q.fidok.crypto.AES256Key
 import us.q3q.fidok.crypto.KeyAgreementState
 import us.q3q.fidok.crypto.P256Point
+import kotlin.experimental.ExperimentalNativeApi
 
 private val crypto = BotanCryptoProvider()
 

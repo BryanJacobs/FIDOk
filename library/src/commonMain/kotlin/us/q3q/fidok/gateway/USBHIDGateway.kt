@@ -224,6 +224,7 @@ class StubHIDGateway() : HIDGatewayBase {
     }
 }
 
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 expect class HIDGateway() : HIDGatewayBase {
 
     suspend fun listenForever(library: FIDOkLibrary)

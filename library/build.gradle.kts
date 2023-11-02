@@ -156,6 +156,7 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
     jvm {
         jvmToolchain(11)
         withJava()
@@ -208,24 +209,6 @@ kotlin {
         }
         /*val jsMain by getting
         val jsTest by getting*/
-        val nativeMain by creating {
-            dependsOn(commonMain)
-        }
-        val nativeTest by creating {
-            dependsOn(commonTest)
-        }
-        val windowsMain by creating {
-            dependsOn(nativeMain)
-        }
-        val windowsTest by creating {
-            dependsOn(nativeTest)
-        }
-        val linuxMain by creating {
-            dependsOn(nativeMain)
-        }
-        val linuxTest by creating {
-            dependsOn(nativeTest)
-        }
     }
 
     nativeBuild(linuxX64("linux"), "Linux")

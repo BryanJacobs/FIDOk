@@ -45,6 +45,7 @@ import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.APPLET_SELECT_BYTES
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.sendAndReceive
 
+@OptIn(ExperimentalForeignApi::class)
 class LibPCSCLiteDevice(private val readerName: String, private val useExtendedMessages: Boolean = false) : AuthenticatorDevice {
 
     private var appletSelected = false

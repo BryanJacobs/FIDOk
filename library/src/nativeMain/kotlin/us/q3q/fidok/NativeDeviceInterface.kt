@@ -1,4 +1,5 @@
 @file:Suppress("unused")
+@file:OptIn(ExperimentalNativeApi::class)
 
 package us.q3q.fidok
 
@@ -10,6 +11,7 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorListing
+import kotlin.experimental.ExperimentalNativeApi
 
 var devices: List<AuthenticatorDevice>? = null
 
