@@ -78,7 +78,7 @@ fun botanTasks(platform: String, extraArgs: List<String> = listOf(), dlSuffix: S
         inputs.files(buildDir.file("Makefile"))
         if (platform == "Windows") {
             // Don't ask why Botan puts the DLL def file up here instead of in the build directory
-            outputs.files(botanDir.file("libbotan-3.$dlSuffix.a"))
+            outputs.files(botanDir.file("libbotan-3.$dlSuffix"))
         } else {
             outputs.files(buildDir.file("libbotan-3.$dlSuffix"))
         }
@@ -93,7 +93,7 @@ botanTasks(
         "--ar-command=x86_64-w64-mingw32-ar",
         // "--ldflags=-Wl,--output-def,windows/libbotan-3.def",
     ),
-    "dll",
+    "dll.a",
 )
 
 botanTasks("Linux")
@@ -113,6 +113,8 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
     if (platform == "Linux") {
         linkerOpts.add("-l${submodulesDir.dir("pcsc").file("libpcsclite.so.1.0.0").asFile.absolutePath}")
         linkerOpts.add("-l/usr/lib/libudev.so")
+    } else if (platform == "Windows") {
+        linkerOpts.add("-lwinscard")
     }
 
     target.apply {
@@ -146,11 +148,8 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
                     binaryOption("sourceInfoType", "libbacktrace")
                 }
             }
-            if (platform != "Windows") {
-                // FIXME
-                executable()
-                sharedLib("fidok")
-            }
+            executable()
+            sharedLib("fidok")
         }
     }
 }
@@ -221,7 +220,8 @@ fun commonBotan(buildDirPath: String): List<String> {
         "--without-documentation",
         "--optimize-for-size",
         "--without-compilation-database",
-        "--build-targets=shared,static",
+        "--build-targets=shared",
+        // "--build-targets=shared,static",
         "--with-build-dir=$buildDirPath",
         /*"--extra-cxxflags=-fPIC",
         "--extra-cxxflags=-static-libstdc++",
