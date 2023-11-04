@@ -52,9 +52,20 @@ tasks.register<Copy>("copyNativeLibrariesIntoResources") {
     doFirst {
         mkdir(layout.buildDirectory.dir("natives/common"))
     }
-    dependsOn(":library:linkFidokDebugSharedLinux")
+    if (Os.isFamily(Os.FAMILY_MAC)) {
+        dependsOn(":library:linkFidokDebugSharedMacos")
+        from(project(":library").layout.buildDirectory.file("bin/macos/fidokDebugShared/libfidok.dylib"))
+        from(project(":library").layout.buildDirectory.file("botan-macos/libbotan-3.2.dylib"))
+    } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        dependsOn(":library:linkFidokDebugSharedWindows")
+        from(project(":library").layout.buildDirectory.file("bin/windows/fidokDebugShared/libfidok.dll"))
+        from(project(":library").layout.buildDirectory.file("botan-windows/libbotan-3.dll"))
+    } else {
+        dependsOn(":library:linkFidokDebugSharedLinux")
+        from(project(":library").layout.buildDirectory.file("bin/linux/fidokDebugShared/libfidok.so"))
+        from(project(":library").layout.buildDirectory.file("botan-linux/libbotan-3.so.2"))
+    }
 
-    from(project(":library").layout.buildDirectory.file("bin/linux/fidokDebugShared/libfidok.so"))
     into(layout.buildDirectory.dir("natives/common"))
 }
 

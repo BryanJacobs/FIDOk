@@ -1,2 +1,2 @@
-headers = winscard.h
+headers = pcsclite.h winscard.h
 headerFilter = *

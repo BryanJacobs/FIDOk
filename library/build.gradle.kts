@@ -135,6 +135,8 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
         linkerOpts.add("IOKit")
         linkerOpts.add("-framework")
         linkerOpts.add("AppKit")
+        linkerOpts.add("-framework")
+        linkerOpts.add("PCSC")
     }
 
     target.apply {
@@ -146,6 +148,10 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
                 if (platform == "Linux") {
                     val pcsc by creating {
                         includeDirs("/usr/include/PCSC")
+                    }
+                } else if (platform == "Macos") {
+                    val pcsc by creating {
+                        includeDirs("/Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/")
                     }
                 }
                 if (platform == "Linux") {
@@ -236,9 +242,10 @@ kotlin {
         } else {
             nativeBuild(macosArm64("macos"), "Macos", "arm64")
         }
+    } else {
+        nativeBuild(linuxX64("linux"), "Linux")
+        nativeBuild(mingwX64("windows"), "Windows")
     }
-    nativeBuild(linuxX64("linux"), "Linux")
-    nativeBuild(mingwX64("windows"), "Windows")
 }
 
 fun commonBotan(buildDirPath: String): List<String> {
@@ -260,13 +267,14 @@ fun commonBotan(buildDirPath: String): List<String> {
     )
 }
 
-tasks.getByName("compileKotlinLinux").dependsOn("buildBotanLinux", "buildHIDLinux")
-tasks.getByName("cinteropBotanLinux").dependsOn("buildBotanLinux")
-tasks.getByName("compileKotlinWindows").dependsOn("buildBotanWindows", "buildHIDWindows")
-tasks.getByName("cinteropBotanWindows").dependsOn("buildBotanWindows")
 if (Os.isFamily(Os.FAMILY_MAC)) {
     tasks.getByName("compileKotlinMacos").dependsOn("buildBotanMacos", "buildHIDMacos")
     tasks.getByName("cinteropBotanMacos").dependsOn("buildBotanMacos")
+} else {
+    tasks.getByName("compileKotlinLinux").dependsOn("buildBotanLinux", "buildHIDLinux")
+    tasks.getByName("cinteropBotanLinux").dependsOn("buildBotanLinux")
+    tasks.getByName("compileKotlinWindows").dependsOn("buildBotanWindows", "buildHIDWindows")
+    tasks.getByName("cinteropBotanWindows").dependsOn("buildBotanWindows")
 }
 
 tasks.getByName("jvmTestClasses").dependsOn("buildEmbeddedAuthenticatorJar")
