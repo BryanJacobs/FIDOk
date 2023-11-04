@@ -90,17 +90,18 @@ provided by native implementations specific to each platform.
 
 ## Platforms
 
-| Platform                   | Status                                               |
-|----------------------------|------------------------------------------------------|
-| JVM "fat" JAR              | Working                                              |
-| C/C++ Shared Library       | Working                                              |
-| Linux Executable/SO        | Working (.so, elf native binary, AppImage, RPM, DEB) |
-| MacOS Executable/framework | Working (can only be build on Mac OS)                |
-| Windows Executable/DLL     | Working (.dll, .exe native binary)                   |
-| iOS Framework              | Unimplemented                                        |
-| Android JAR/SO             | Incomplete                                           |
-| Android Demo Application   | Working (.apk)                                       |
-| Web Page :)                | Unimplemented                                        |
+| Platform                         | Status                                               |
+|----------------------------------|------------------------------------------------------|
+| JVM "fat" JAR                    | Working                                              |
+| C/C++ Shared Library             | Working                                              |
+| Linux Executable/SO              | Working (.so, elf native binary, AppImage, RPM, DEB) |
+| MacOS X86 Executable/framework   | Working (can only be built on Mac OS X86 or Rosetta) |
+| MacOS Arm64 Executable/framework | Working (can only be built on Mac OS Arm64)          |
+| Windows Executable/DLL           | Working (.dll, .exe native binary)                   |
+| iOS Framework                    | Unimplemented                                        |
+| Android JAR/SO                   | Incomplete                                           |
+| Android Demo Application         | Working (.apk)                                       |
+| Web Page :)                      | Unimplemented                                        |
 
 ## Authenticator Types / Protocols
 

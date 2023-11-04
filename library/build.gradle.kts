@@ -95,7 +95,9 @@ fun botanTasks(platform: String, extraArgs: List<String> = listOf(), dlSuffix: S
 
 botanTasks(
     "Macos",
-    listOf(),
+    listOf(
+        if (System.getProperty("os.arch") == "amd64") "--cpu=x86_64" else "--cpu=arm64",
+    ),
     "dylib",
 )
 botanTasks(
@@ -229,7 +231,11 @@ kotlin {
     }
 
     if (Os.isFamily(Os.FAMILY_MAC)) {
-        nativeBuild(macosArm64("macos"), "Macos", "arm64")
+        if (System.getProperty("os.arch") == "amd64") {
+            nativeBuild(macosX64("macos"), "Macos", "x86_64")
+        } else {
+            nativeBuild(macosArm64("macos"), "Macos", "arm64")
+        }
     }
     nativeBuild(linuxX64("linux"), "Linux")
     nativeBuild(mingwX64("windows"), "Windows")
