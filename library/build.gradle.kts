@@ -97,6 +97,7 @@ botanTasks(
     "Macos",
     listOf(
         if (System.getProperty("os.arch") == "amd64") "--cpu=x86_64" else "--cpu=arm64",
+        "--cc-abi-flags=\"-mmacosx-version-min=11.0\"",
     ),
     "dylib",
 )
