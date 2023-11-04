@@ -1,3 +1,4 @@
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
@@ -17,6 +18,7 @@ fun hidAPITasks(platform: String, cmakeExtraArgs: List<String> = listOf()) {
     val output = when (platform) {
         "Linux" -> hidBuild.dir("src").dir(lcPlatform).file("libhidapi-hidraw.a")
         "Windows" -> hidBuild.dir("src").dir(lcPlatform).file("libhidapi.a")
+        "Macos" -> hidBuild.dir("src").dir("mac").file("libhidapi.a")
         else -> throw NotImplementedError("Platform $platform not handled in HIDAPI build")
     }
 
@@ -38,6 +40,12 @@ fun hidAPITasks(platform: String, cmakeExtraArgs: List<String> = listOf()) {
 }
 
 hidAPITasks("Linux")
+hidAPITasks(
+    "Macos",
+    listOf(
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0",
+    ),
+)
 hidAPITasks(
     "Windows",
     listOf(
@@ -86,6 +94,11 @@ fun botanTasks(platform: String, extraArgs: List<String> = listOf(), dlSuffix: S
 }
 
 botanTasks(
+    "Macos",
+    listOf(),
+    "dylib",
+)
+botanTasks(
     "Windows",
     listOf(
         "--os=mingw",
@@ -115,6 +128,11 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
         linkerOpts.add("-l/usr/lib/libudev.so")
     } else if (platform == "Windows") {
         linkerOpts.add("-lwinscard")
+    } else if (platform == "Macos") {
+        linkerOpts.add("-framework")
+        linkerOpts.add("IOKit")
+        linkerOpts.add("-framework")
+        linkerOpts.add("AppKit")
     }
 
     target.apply {
@@ -123,7 +141,7 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
                 val hidapi by creating {
                     includeDirs(hidDir)
                 }
-                if (platform != "Windows") {
+                if (platform == "Linux") {
                     val pcsc by creating {
                         includeDirs("/usr/include/PCSC")
                     }
@@ -210,6 +228,9 @@ kotlin {
         val jsTest by getting*/
     }
 
+    if (Os.isFamily(Os.FAMILY_MAC)) {
+        nativeBuild(macosArm64("macos"), "Macos", "arm64")
+    }
     nativeBuild(linuxX64("linux"), "Linux")
     nativeBuild(mingwX64("windows"), "Windows")
 }
@@ -237,5 +258,9 @@ tasks.getByName("compileKotlinLinux").dependsOn("buildBotanLinux", "buildHIDLinu
 tasks.getByName("cinteropBotanLinux").dependsOn("buildBotanLinux")
 tasks.getByName("compileKotlinWindows").dependsOn("buildBotanWindows", "buildHIDWindows")
 tasks.getByName("cinteropBotanWindows").dependsOn("buildBotanWindows")
+if (Os.isFamily(Os.FAMILY_MAC)) {
+    tasks.getByName("compileKotlinMacos").dependsOn("buildBotanMacos", "buildHIDMacos")
+    tasks.getByName("cinteropBotanMacos").dependsOn("buildBotanMacos")
+}
 
 tasks.getByName("jvmTestClasses").dependsOn("buildEmbeddedAuthenticatorJar")

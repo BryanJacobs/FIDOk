@@ -1,3 +1,4 @@
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -64,7 +65,11 @@ compose.desktop {
         mainClass = "us.q3q.fidok.ui.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm)
+            if (Os.isFamily(Os.FAMILY_MAC)) {
+                targetFormats(TargetFormat.Dmg)
+            } else {
+                targetFormats(TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi)
+            }
             packageName = "FidoK"
             description = "Manage FIDO Authenticators"
             copyright = "2023 Bryan Jacobs"

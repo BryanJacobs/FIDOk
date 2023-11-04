@@ -95,7 +95,7 @@ provided by native implementations specific to each platform.
 | JVM "fat" JAR              | Working                                              |
 | C/C++ Shared Library       | Working                                              |
 | Linux Executable/SO        | Working (.so, elf native binary, AppImage, RPM, DEB) |
-| MacOS Executable/framework | Unimplemented                                        |
+| MacOS Executable/framework | Working (can only be build on Mac OS)                |
 | Windows Executable/DLL     | Working (.dll, .exe native binary)                   |
 | iOS Framework              | Unimplemented                                        |
 | Android JAR/SO             | Incomplete                                           |
@@ -106,11 +106,11 @@ provided by native implementations specific to each platform.
 
 | Attachment    | What is this?                       | Status        | Linux          | Mac | Windows        | JVM       | Android    | iOS |
 |---------------|-------------------------------------|---------------|----------------|-----|----------------|-----------|------------|-----|
-| USB-HID       | Plug-in USB tokens                  | Working       | Y              |     | N              | As Native | Y          |     |
-| USB-CCID      | Smart Card Readers (via USB)        | Working       | Y (via PC/SC)  |     | Y (via PC/SC)  | As Native | N          |     |
-| NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |     | N (Y via CCID) | As Native | Y          |     |
-| Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |     | N              | As Native | N (and *1) |     |
-| Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |     | N              | Y         | *1         |     |
+| USB-HID       | Plug-in USB tokens                  | Working       | Y              |   Y | N              | As Native | Y          |     |
+| USB-CCID      | Smart Card Readers (via USB)        | Working       | Y (via PC/SC)  |   N | Y (via PC/SC)  | As Native | N          |     |
+| NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |   N | N (Y via CCID) | As Native | Y          |     |
+| Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |   N | N              | As Native | N (and *1) |     |
+| Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |   N | N              | Y         | *1         |     |
 | TPM           | Chips built into computers          | Unimplemented |                |     |                |           |            |     |
 | CaBLE         | Authenticators using the Internet!  | Incomplete    |                |     |                |           |            |     |
 
