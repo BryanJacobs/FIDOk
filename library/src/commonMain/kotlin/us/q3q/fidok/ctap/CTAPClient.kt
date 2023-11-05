@@ -216,9 +216,8 @@ class CredentialExcludedError : CTAPError(
 class CTAPClient(
     private val library: FIDOkLibrary,
     private val device: AuthenticatorDevice,
-    private val collectPinFromUser: suspend (device: CTAPClient) -> String? = { null },
+    private val collectPinFromUser: suspend (client: CTAPClient) -> String? = { null },
 ) {
-
     private val PP_2_AES_INFO = "CTAP2 AES key".encodeToByteArray()
     private val PP_2_HMAC_INFO = "CTAP2 HMAC key".encodeToByteArray()
     private val DEFAULT_CREDENTIAL_ALGORITHMS = listOf(

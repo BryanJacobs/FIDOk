@@ -2,6 +2,8 @@ package us.q3q.fidok.cli
 
 import co.touchlab.kermit.Logger
 import com.github.ajalt.clikt.parameters.options.OptionTransformContext
+import kotlinx.coroutines.runBlocking
+import us.q3q.fidok.ctap.AuthenticatorNotFoundException
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.FIDOkLibrary
 
@@ -18,13 +20,13 @@ fun OptionTransformContext.checkHex(s: String) {
 }
 
 fun getSuitableClient(library: FIDOkLibrary): CTAPClient? {
-    val devices = library.listDevices()
-    if (devices.isEmpty()) {
+    try {
+        return runBlocking {
+            library.waitForUsableAuthenticator()
+        }
+    } catch (e: AuthenticatorNotFoundException) {
         Logger.e("No devices found!")
-        return null
     }
 
-    val device = devices[0]
-
-    return library.ctapClient(device)
+    return null
 }

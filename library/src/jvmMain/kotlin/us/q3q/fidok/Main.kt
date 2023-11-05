@@ -1,7 +1,7 @@
 package us.q3q.fidok
 
+import us.q3q.fidok.cli.DefaultCliCallbacks
 import us.q3q.fidok.cli.Main
-import us.q3q.fidok.cli.cliPinCollection
 import us.q3q.fidok.ctap.FIDOkLibrary
 
 fun main(args: Array<String>) {
@@ -11,12 +11,11 @@ fun main(args: Array<String>) {
         mapOf(
             "native" to NativeDeviceListing(libraryPath),
         ),
-        {
-            FIDOkLibrary.init(
-                NativeBackedCryptoProvider(libraryPath),
-                it,
-                ::cliPinCollection,
-            )
-        },
-    ).main(args)
+    ) {
+        FIDOkLibrary.init(
+            NativeBackedCryptoProvider(libraryPath),
+            it,
+            DefaultCliCallbacks(),
+        )
+    }.main(args)
 }

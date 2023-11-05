@@ -1,18 +1,11 @@
 package us.q3q.fidok.webauthn
 
 import co.touchlab.kermit.Logger
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import us.q3q.fidok.ctap.AuthenticatorTransport
-import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.CTAPError
 import us.q3q.fidok.ctap.CTAPOption
 import us.q3q.fidok.ctap.CTAPPinPermission
@@ -50,81 +43,6 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             AuthenticatorAttachment.CROSS_PLATFORM
         }
 
-    private suspend fun authenticatorFilter(
-        preFilter: suspend (client: CTAPClient) -> Boolean,
-        activeSelection: suspend (client: CTAPClient) -> Boolean,
-        timeout: Long,
-    ): CTAPClient {
-        val devices = library.listDevices()
-
-        Logger.d { "${devices.size} device(s) available" }
-
-        val potentialCTAPClients: ArrayList<CTAPClient> = arrayListOf()
-
-        for (device in devices) {
-            val client = library.ctapClient(device)
-
-            if (!preFilter(client)) {
-                continue
-            }
-
-            potentialCTAPClients.add(client)
-        }
-
-        if (potentialCTAPClients.isEmpty()) {
-            throw IllegalStateException("Could not find a usable CTAP device")
-        }
-
-        var selectedClient: CTAPClient = potentialCTAPClients[0]
-
-        if (potentialCTAPClients.size > 1) {
-            // TODO: prefer authenticators that better match the requested parameters
-            coroutineScope {
-                var ok = false
-
-                try {
-                    withTimeout(timeout.milliseconds) {
-                        val receiver = Channel<CTAPClient?>(capacity = potentialCTAPClients.size)
-                        val jobs = potentialCTAPClients.map {
-                            launch {
-                                val working = activeSelection(it)
-
-                                if (working) {
-                                    receiver.send(it)
-                                } else {
-                                    receiver.send(null)
-                                }
-                            }
-                        }
-
-                        for (i in 1..potentialCTAPClients.size) {
-                            val clientOrNull = receiver.receive()
-                            if (clientOrNull != null) {
-                                // cancel anything left
-                                for (job in jobs) {
-                                    if (job.isActive) {
-                                        job.cancel()
-                                    }
-                                }
-                                selectedClient = clientOrNull
-                                ok = true
-                                break
-                            }
-                        }
-                    }
-                } catch (_: TimeoutCancellationException) {
-                    Logger.w { "Timed out waiting for authenticator(s) to answer selection call" }
-                }
-
-                if (!ok) {
-                    throw IllegalStateException("No CTAP client answered selection call")
-                }
-            }
-        }
-
-        return selectedClient
-    }
-
     /**
      * The Webauthn standard way to create a new Credential.
      *
@@ -145,12 +63,12 @@ class WebauthnClient(private val library: FIDOkLibrary) {
 
         Logger.d { "Creating a credential for RP '${options.publicKey.rp.name}'" }
 
-        val timeout = (options.publicKey.timeout ?: 10_000UL).toLong()
+        val timeout = (options.publicKey.timeout ?: 10_000UL).toLong().milliseconds
 
         val enforceCredProtect = options.publicKey.extensions?.get("enforceCredentialProtectionPolicy") == true
         val credProtectLevel = options.publicKey.extensions?.get("credentialProtectionPolicy") as Int?
 
-        val selectedClient = authenticatorFilter({ client ->
+        val selectedClient = library.waitForUsableAuthenticator({ client ->
             val info = client.getInfoIfUnset()
 
             if ((
@@ -163,32 +81,32 @@ class WebauthnClient(private val library: FIDOkLibrary) {
                 !isRKCapable(info)
             ) {
                 Logger.i { "Ignoring $client because it does not support discoverable credentials" }
-                return@authenticatorFilter false
+                return@waitForUsableAuthenticator false
             }
 
             if (options.publicKey.authenticatorSelectionCriteria?.userVerification
                 == UserVerificationRequirement.REQUIRED.value && !isUVCapable(info)
             ) {
                 Logger.i { "Ignoring $client because it does not have a means of user verification available" }
-                return@authenticatorFilter false
+                return@waitForUsableAuthenticator false
             }
 
             if (options.publicKey.authenticatorSelectionCriteria?.authenticatorAttachment != null &&
                 options.publicKey.authenticatorSelectionCriteria.authenticatorAttachment != getAttachment(info).value
             ) {
                 Logger.i { "Ignoring $client because it doesn't match the desired attachment modality" }
-                return@authenticatorFilter false
+                return@waitForUsableAuthenticator false
             }
 
             val supportedAlgorithms = info.algorithms?.toList() ?: listOf(PublicKeyCredentialParameters(COSEAlgorithmIdentifier.ES256))
             if (options.publicKey.pubKeyCredParams.find { supportedAlgorithms.contains(it) } == null) {
                 Logger.i { "Ignoring $client because it doesn't support any of the requested algorithms" }
-                return@authenticatorFilter false
+                return@waitForUsableAuthenticator false
             }
 
             if (enforceCredProtect && credProtectLevel != null && credProtectLevel > 1 && info.extensions?.contains("credProtect") != true) {
                 Logger.i { "Ignoring $client because it doesn't support required credential protection policy" }
-                return@authenticatorFilter false
+                return@waitForUsableAuthenticator false
             }
 
             true
@@ -197,7 +115,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
                 while (true) {
                     val res = client.select()
                     if (res == true) {
-                        return@authenticatorFilter true
+                        return@waitForUsableAuthenticator true
                     }
                     if (res == false) {
                         break
@@ -211,10 +129,10 @@ class WebauthnClient(private val library: FIDOkLibrary) {
                     // This authenticator does not support selection
                     // TODO: use "silent" authentication instead
                     Logger.d { "Device $client does not support selection so is auto-used" }
-                    return@authenticatorFilter true
+                    return@waitForUsableAuthenticator true
                 }
             }
-            return@authenticatorFilter false
+            return@waitForUsableAuthenticator false
         }, timeout)
 
         val infoForSelected = selectedClient.getInfoIfUnset()
@@ -353,9 +271,9 @@ class WebauthnClient(private val library: FIDOkLibrary) {
     suspend fun get(origin: String, options: CredentialRequestOptions, sameOriginWithAncestors: Boolean = true): PublicKeyCredential {
         Logger.d { "Getting a credential for RP ID '${options.publicKey.rpId}'" }
 
-        val timeout = (options.publicKey.timeout ?: 10_000UL).toLong()
+        val timeout = (options.publicKey.timeout ?: 10_000UL).toLong().milliseconds
 
-        val client = authenticatorFilter({ true }, { true }, timeout) // FIXME: pick authenticator sanely
+        val client = library.waitForUsableAuthenticator(timeout = timeout) // FIXME: pick authenticator sanely
 
         val infoForSelected = client.getInfoIfUnset()
 
