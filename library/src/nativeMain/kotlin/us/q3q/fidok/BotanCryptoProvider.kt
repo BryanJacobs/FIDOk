@@ -1,5 +1,8 @@
 package us.q3q.fidok
 
+import botan.BOTAN_CIPHER_INIT_FLAG_DECRYPT
+import botan.BOTAN_CIPHER_INIT_FLAG_ENCRYPT
+import botan.BOTAN_CIPHER_UPDATE_FLAG_FINAL
 import botan.BOTAN_FFI_INVALID_VERIFIER
 import botan.BOTAN_FFI_SUCCESS
 import botan.botan_cipher_destroy
@@ -290,7 +293,7 @@ class BotanCryptoProvider : CryptoProvider {
     private fun aes256(bytes: ByteArray, key: AES256Key, flags: uint32_t): ByteArray {
         return withBotanAlloc<botan_cipher_tVar, ByteArray>({ botan_cipher_destroy(it.value) }) { bc ->
             botanSuccessCheck {
-                botan_cipher_init(bc.ptr, "AES-256/CBC", flags)
+                botan_cipher_init(bc.ptr, "AES-256/CBC/NoPadding", flags)
             }
             withInBuffer(key.key) {
                 botanSuccessCheck {
@@ -315,25 +318,36 @@ class BotanCryptoProvider : CryptoProvider {
                 val inputLenBuffer = this.alloc<size_tVar>()
                 inputLenBuffer.value = 0u
                 outputLenBuffer.value = 0u
+                var previousConsumed: ULong = 0u
 
                 val ret = withInBuffer(bytes) { input ->
                     withOutBuffer(outputLength) { output ->
-                        botanSuccessCheck {
-                            botan_cipher_update(
-                                bc.value,
-                                0u,
-                                output,
-                                outputLength.convert(),
-                                outputLenBuffer.ptr,
-                                input,
-                                bytes.size.convert(),
-                                inputLenBuffer.ptr,
-                            )
+                        while (inputLenBuffer.value.toInt() != bytes.size) {
+                            botanSuccessCheck {
+                                botan_cipher_update(
+                                    bc.value,
+                                    BOTAN_CIPHER_UPDATE_FLAG_FINAL,
+                                    output,
+                                    outputLength.convert(),
+                                    outputLenBuffer.ptr,
+                                    input,
+                                    bytes.size.convert(),
+                                    inputLenBuffer.ptr,
+                                )
+                            }
+
+                            Logger.v {
+                                "Stream cipher completed ${outputLenBuffer.value} bytes of $outputLength " +
+                                    "(input ${inputLenBuffer.value} of ${bytes.size})"
+                            }
+
+                            if (inputLenBuffer.value == previousConsumed) {
+                                throw IllegalStateException("Stream cipher failed to consume entire input!")
+                            }
+                            previousConsumed = inputLenBuffer.value
                         }
                     }
                 }
-
-                Logger.v { "Stream cipher completed ${outputLenBuffer.value} bytes" }
 
                 ret
             }
@@ -341,11 +355,11 @@ class BotanCryptoProvider : CryptoProvider {
     }
 
     override fun aes256CBCEncrypt(bytes: ByteArray, key: AES256Key): ByteArray {
-        return aes256(bytes, key, 0u)
+        return aes256(bytes, key, BOTAN_CIPHER_INIT_FLAG_ENCRYPT.convert())
     }
 
     override fun aes256CBCDecrypt(bytes: ByteArray, key: AES256Key): ByteArray {
-        return aes256(bytes, key, 1u)
+        return aes256(bytes, key, BOTAN_CIPHER_INIT_FLAG_DECRYPT.convert())
     }
 
     private fun <R> withInBuffer(bytes: ByteArray, f: (array: CArrayPointer<uint8_tVar>) -> R): R {

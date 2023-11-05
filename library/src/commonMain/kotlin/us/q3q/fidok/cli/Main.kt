@@ -18,7 +18,7 @@ class Main(
 ) : CliktCommand(name = "fidok") {
 
     init {
-        subcommands(Cfg(), Create(), Cred(), Gateway(), Get(), Info(), Pin(), Reset())
+        subcommands(Cfg(), Create(), Cred(), Gateway(), Get(), HMAC(), Info(), Pin(), Reset())
     }
 
     override fun aliases(): Map<String, List<String>> =

@@ -83,7 +83,7 @@ provided by native implementations specific to each platform.
 | Well-documented APIs              | No               |
 | Well-documented Build/Integration | No               |
 | Webauthn Layer                    | Working          |
-| Easy Task-Specific APIs           | Unimplemented    |
+| Easy Task-Specific APIs           | Incomplete       |
 | Command Line                      | Working          |
 | Graphical User Interface          | Incomplete       |
 | Authenticator Proxying            | Working from HID |
