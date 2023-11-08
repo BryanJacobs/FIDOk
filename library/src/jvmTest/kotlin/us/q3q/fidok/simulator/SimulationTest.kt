@@ -2,7 +2,10 @@ package us.q3q.fidok.simulator
 
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
+import us.q3q.fidok.FIDOkCallbacks
 import us.q3q.fidok.PureJVMCryptoProvider
+import us.q3q.fidok.ctap.AuthenticatorDevice
+import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.FIDOkLibrary
 import kotlin.random.Random
@@ -20,11 +23,19 @@ open class SimulationTest {
 
         lateinit var library: FIDOkLibrary
 
+        const val TEST_PIN = "TEST_PIN"
+
         @JvmStatic
         @BeforeAll
         fun loadNativeLibrary() {
-            // loadNativeLibraryForPlatform()
-            library = FIDOkLibrary.init(PureJVMCryptoProvider())
+            library = FIDOkLibrary.init(
+                PureJVMCryptoProvider(),
+                callbacks = object : FIDOkCallbacks {
+                    override suspend fun collectPin(client: CTAPClient?): String? {
+                        return TEST_PIN
+                    }
+                },
+            )
         }
     }
 
@@ -36,5 +47,15 @@ open class SimulationTest {
         rpId = Random.nextBytes(Random.nextInt(1, 64)).toHexString()
         userDisplayName = Random.nextBytes(Random.nextInt(1, 64)).toHexString()
         userName = Random.nextBytes(Random.nextInt(1, 64)).toHexString()
+
+        library.setAuthenticatorAccessors(
+            listOf(
+                object : AuthenticatorListing {
+                    override fun listDevices(): List<AuthenticatorDevice> {
+                        return listOf(device)
+                    }
+                },
+            ),
+        )
     }
 }

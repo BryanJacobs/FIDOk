@@ -17,6 +17,17 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import us.q3q.fidok.ctap.AuthenticatorTransport
 
+/**
+ * Represents a FIDO Credential.
+ *
+ * @property type The "type" of Credential. Will be [PublicKeyCredentialType.PUBLIC_KEY] for all CTAP standards in
+ * existence at the time of this writing.
+ * @property id The Credential ID as an array of bytes. This is effectively a handle or key; having possession of both
+ * it and the Authenticator allows [producing Assertions][GetAssertionCommand] by
+ * [using an allowList][GetAssertionCommand.allowList]
+ * @property transports The [transport(s)][AuthenticatorTransport] over which the Credential has been, or should be,
+ * used
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = PublicKeyCredentialDescriptorSerializer::class)
 data class PublicKeyCredentialDescriptor(val type: String, @ByteString val id: ByteArray, val transports: List<String>? = null) {
@@ -30,6 +41,11 @@ data class PublicKeyCredentialDescriptor(val type: String, @ByteString val id: B
         require(type.isNotEmpty())
     }
 
+    /**
+     * Get the subset of the Credential's transports that are known/understood by this Platform.
+     *
+     * @return Instances of [AuthenticatorTransport], ignoring any entry in [transports] that is not understood
+     */
     fun getKnownTransports(): List<AuthenticatorTransport>? {
         return transports?.mapNotNull { stringTransport ->
             AuthenticatorTransport.entries.find {
@@ -62,6 +78,9 @@ data class PublicKeyCredentialDescriptor(val type: String, @ByteString val id: B
 @Serializable
 data class PublicKeyCredentialListParameter(override val v: List<PublicKeyCredentialDescriptor>) : ParameterValue()
 
+/**
+ * Serializes or deserializes a [PublicKeyCredentialDescriptor] to/from CTAP CBOR.
+ */
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class PublicKeyCredentialDescriptorSerializer : KSerializer<PublicKeyCredentialDescriptor> {
     override val descriptor: SerialDescriptor

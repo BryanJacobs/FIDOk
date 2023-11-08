@@ -12,16 +12,52 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import us.q3q.fidok.webauthn.NoneAttestation
+import us.q3q.fidok.webauthn.NoneAttestationStatement
 import kotlin.reflect.KClass
 
+/**
+ * Represents a particular format/type of [AttestationStatement].
+ *
+ * @property value The canonical CTAP/Webauthn representation of the Attestation format
+ * @property klass The FIDOk class that represents Attestations of this type, if any
+ */
 enum class AttestationTypes(val value: String, val klass: KClass<out Any>? = null) {
+    /**
+     * The most common Attestation type - a map with up to three fields.
+     */
     PACKED("packed", PackedAttestationStatement::class),
+
+    /**
+     * An Attestation coming from a Trusted Platform Module - a chip built into certain computers.
+     */
     TPM("tpm"),
+
+    /**
+     * Google likes to do things its own way, so this is an Attestation that absolutely COULD be [PACKED], but is
+     * incompatible instead.
+     */
     ANDROID_KEY("android-key"),
+
+    /**
+     * This represents the raw result of a call to Google's "Safety Net" API, and is useless to anyone who can't
+     * communicate with that. Please don't ask why this is part of a nominally vendor-neutral standard; I doubt you'll
+     * like the answer.
+     */
     ANDROID_SAFETYNET("android-safetynet"),
+
+    /**
+     * This represents a CTAP1 (U2F) Attestation repackaged in CTAP2.
+     */
     FIDO_U2F("fido-u2f"),
-    NONE("none"),
+
+    /**
+     * Whether the absence of an Attestation is an Attestation format is a question for the philosophers.
+     */
+    NONE("none", NoneAttestationStatement::class),
+
+    /**
+     * When Google did proprietary things, Apple did too. So there's an Apple-specific Attestation format.
+     */
     APPLE("apple"), ;
 
     override fun toString(): String {
@@ -29,27 +65,64 @@ enum class AttestationTypes(val value: String, val klass: KClass<out Any>? = nul
     }
 }
 
+/**
+ * Represents the response to a [MakeCredentialCommand].
+ *
+ * @property fmt The [type of Attestation provided][AttestationTypes]
+ * @property authData The portion of the Authenticator's response that is signed - authenticated
+ * @property rawAttStmt The Attestation Statement - the Authenticator declaring which manufacturer or whatever
+ * pinky-promises that the key is securely stored - as Kotlin object. In order to interpret this, [fmt] needs to be
+ * consulted as well
+ * @property attStmt The Attestation Statement as a map of fields and their values. Which fields will be present
+ * depends on the [type of attestation][fmt]
+ * @property epAtt True if an Enterprise Attestation was provided. What that means... isn't standardized
+ * @property largeBlobKey For reasons that don't appear to be extremely sane and likely relate to government regulatory
+ * certifications, the [LargeBlobKeyExtension]'s return value is outside the [AuthenticatorData.extensions] and is
+ * instead its own field in the [MakeCredentialResponse]. This contains that value, and may be used for
+ * encrypting/decrypting the portion of the Large Blob Array that pertains to this Credential
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = MakeCredentialResponseSerializer::class)
 data class MakeCredentialResponse(
     val fmt: String,
     @ByteString val authData: AuthenticatorData,
-    val rawAttStmt: AttestatationStatement,
+    val rawAttStmt: AttestationStatement,
     val attStmt: Map<Any, Any>,
     val epAtt: Boolean?,
     @ByteString val largeBlobKey: ByteArray?,
 ) {
 
+    /**
+     * Access the Credential itself.
+     *
+     * @return Byte array representing the CTAP "Credential ID"
+     * @throws IllegalStateException If no Credential is inside this object
+     */
     fun getCredentialID(): ByteArray {
         return authData.attestedCredentialData?.credentialId
             ?: throw IllegalStateException("MakeCredentialResponse has no credential in it")
     }
 
+    /**
+     * Access the Credential's public key quickly.
+     *
+     * This key is necessary if one wishes to validate any [assertions][GetAssertionResponse] the Authenticator
+     * produces for this Credential.
+     *
+     * @return The public key associated with the Credential
+     * @throws IllegalStateException If no Credential is inside this object
+     */
     fun getCredentialPublicKey(): COSEKey {
         return authData.attestedCredentialData?.credentialPublicKey
             ?: throw IllegalStateException("MakeCredentialResponse has no credential in it")
     }
 
+    /**
+     * Return the Attestation Statement as an instance of [PackedAttestationStatement].
+     *
+     * @throws IllegalStateException If [fmt] is not [AttestationTypes.PACKED.value]
+     * @return Attestation Statement object
+     */
     fun getPackedAttestationStatement(): PackedAttestationStatement {
         if (fmt != AttestationTypes.PACKED.value) {
             throw IllegalStateException("Not using packed attestation")
@@ -88,6 +161,9 @@ data class MakeCredentialResponse(
     }
 }
 
+/**
+ * Deserializes a CBOR [MakeCredentialResponse] into a usable object.
+ */
 class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
     override val descriptor: SerialDescriptor
         get() = buildClassSerialDescriptor("MakeCredentialResponse") {
@@ -105,7 +181,7 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
         var fmt: String? = null
         var authData: AuthenticatorData? = null
         var attStmt: Map<Any, Any>? = null
-        var rawAttStmt: AttestatationStatement? = null
+        var rawAttStmt: AttestationStatement? = null
         var epAtt: Boolean? = null
         var largeBlobKey: ByteArray? = null
 
@@ -153,7 +229,7 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
                             }
                         }
                         AttestationTypes.NONE -> {
-                            rawAttStmt = NoneAttestation()
+                            rawAttStmt = NoneAttestationStatement()
                             val gottenMap = composite.decodeSerializableElement(
                                 descriptor,
                                 idx - 1,

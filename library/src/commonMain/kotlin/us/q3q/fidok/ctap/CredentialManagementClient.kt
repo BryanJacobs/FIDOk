@@ -10,7 +10,18 @@ import us.q3q.fidok.ctap.commands.PublicKeyCredentialDescriptor
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialRpEntity
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
 
+/**
+ * Provides methods for managing an Authenticator's stored Discoverable Credentials.
+ */
 class CredentialManagementClient internal constructor(private val client: CTAPClient) {
+
+    /**
+     * Gets information about how many Discoverable Credentials are stored, the Authenticator capacity, etc.
+     *
+     * @param pinProtocol The PIN/UV protocol version in use
+     * @param pinUVToken A PIN/UV token obtained from the Authenticator
+     * @return Meta-info about the Authenticator and its creds
+     */
     suspend fun getCredsMetadata(pinProtocol: UByte? = null, pinUVToken: PinUVToken? = null): CredentialManagementGetMetadataResponse {
         val pp = client.getPinProtocol(pinProtocol)
         val effectiveUVToken = pinUVToken ?: client.getPinUvTokenUsingAppropriateMethod(
@@ -29,6 +40,13 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         return client.xmit(command, CredentialManagementGetMetadataResponse.serializer())
     }
 
+    /**
+     * Gets a list of the Relying Parties for which Discoverable Credentials are stored on the Authenticator.
+     *
+     * @param pinProtocol The PIN/UV protocol version in use
+     * @param pinUVToken A PIN/UV token obtained from the Authenticator
+     * @return A list of Relying Party info, and the SHA-256 of each Relying Party's ID
+     */
     suspend fun enumerateRPs(pinProtocol: UByte? = null, pinUVToken: PinUVToken? = null): List<RPWithHash> {
         val pp = client.getPinProtocol(pinProtocol)
         val effectiveUVToken = pinUVToken ?: client.getPinUvTokenUsingAppropriateMethod(
@@ -58,10 +76,10 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         for (i in 1..<totalRPs) {
             val res = client.xmit(enumerateCommand, EnumerateRPsResponse.serializer())
             if (res.totalRPs != null) {
-                throw IllegalStateException("Present totalRPs on enumerate-RPs follow-up")
+                throw IncorrectDataException("Present totalRPs on enumerate-RPs follow-up")
             }
             if (res.rp == null || res.rpIDHash == null) {
-                throw IllegalStateException("Null RP fields found in RP enumeration")
+                throw IncorrectDataException("Null RP fields found in RP enumeration")
             }
             allRPs.add(RPWithHash(res.rpIDHash, res.rp))
         }
@@ -69,6 +87,14 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         return allRPs
     }
 
+    /**
+     * Gets a list of the Discoverable Credentials the Authenticator is storing for a particular Relying Party
+     *
+     * @param rpIDHash The SHA-256 hash of the Relying Party ID being requested
+     * @param pinProtocol The PIN/UV protocol version in use
+     * @param pinUVToken A PIN/UV token obtained from the Authenticator
+     * @return A list of the stored Credentials
+     */
     suspend fun enumerateCredentials(rpIDHash: ByteArray, pinProtocol: UByte? = null, pinUVToken: PinUVToken? = null): List<StoredCredentialData> {
         val pp = client.getPinProtocol(pinProtocol)
         val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
@@ -97,7 +123,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         for (i in 1..<totalCredentials) {
             val res = client.xmit(enumerateCommand, EnumerateCredentialsResponse.serializer())
             if (res.totalCredentials != null) {
-                throw IllegalStateException("Present totalCredentials on enumerate-credentials follow-up")
+                throw IncorrectDataException("Present totalCredentials on enumerate-credentials follow-up")
             }
             allRPs.add(StoredCredentialData(res))
         }
@@ -105,6 +131,13 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         return allRPs
     }
 
+    /**
+     * Delete a stored Discoverable Credential from the Authenticator.
+     *
+     * @param credentialID The Credential to delete
+     * @param pinProtocol The PIN/UV protocol version in use
+     * @param pinUVToken A PIN/UV token obtained from the Authenticator
+     */
     suspend fun deleteCredential(
         credentialID: PublicKeyCredentialDescriptor,
         pinProtocol: UByte? = null,
@@ -129,6 +162,16 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         client.xmit(command)
     }
 
+    /**
+     * Update the user information stored in conjunction with a particular Discoverable Credential.
+     *
+     * This allows "changing the username" associated with a Credential or just updating the user display name.
+     *
+     * @param credentialID The Credential for which user information should be updated
+     * @param user The new user information to write
+     * @param pinProtocol The PIN/UV protocol version in use
+     * @param pinUVToken A PIN/UV token obtained from the Authenticator
+     */
     suspend fun updateUserInformation(
         credentialID: PublicKeyCredentialDescriptor,
         user: PublicKeyCredentialUserEntity,
@@ -155,6 +198,13 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
     }
 }
 
+/**
+ * A combination of Relying Party details and the handle with which Credentials can be enumerated.
+ *
+ * @property rpIDHash The value to pass to [CredentialManagementClient.enumerateCredentials] to list this
+ * Relying Party's Credentials
+ * @property rp Information about this Relying Party
+ */
 data class RPWithHash(val rpIDHash: ByteArray, val rp: PublicKeyCredentialRpEntity) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -175,6 +225,17 @@ data class RPWithHash(val rpIDHash: ByteArray, val rp: PublicKeyCredentialRpEnti
     }
 }
 
+/**
+ * Information about a stored Discoverable Credential.
+ *
+ * @property user The user associated with the Discoverable Credential
+ * @property credentialID The Credential itself
+ * @property publicKey The public key associated with the Credential - necessary for validating Assertions
+ * @property credProtect The [protection level][us.q3q.fidok.ctap.commands.CredProtectExtension] of the Credential,
+ * if supported and set
+ * @property largeBlobKey The [large blob key][us.q3q.fidok.ctap.commands.LargeBlobKeyExtension] for this Credential,
+ * if supported
+ */
 data class StoredCredentialData(
     val user: PublicKeyCredentialUserEntity,
     val credentialID: PublicKeyCredentialDescriptor,

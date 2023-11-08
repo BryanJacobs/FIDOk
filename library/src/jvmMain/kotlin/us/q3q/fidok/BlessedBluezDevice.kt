@@ -11,6 +11,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ble.CTAPBLE
 import us.q3q.fidok.ble.CTAPBLECommand
+import us.q3q.fidok.ble.FIDO_BLE_SERVICE_UUID
+import us.q3q.fidok.ble.FIDO_CONTROL_POINT_ATTRIBUTE
+import us.q3q.fidok.ble.FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE
+import us.q3q.fidok.ble.FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE
+import us.q3q.fidok.ble.FIDO_STATUS_ATTRIBUTE
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.DeviceCommunicationException
@@ -19,6 +24,17 @@ import us.q3q.fidok.ctap.InvalidDeviceException
 import java.util.UUID
 import kotlin.experimental.and
 
+/**
+ * An [AuthenticatorDevice] implementation for Bluetooth.
+ *
+ * This uses the BlueZ bluetooth stack (over D-Bus) via a library called Blessed BlueZ.
+ * Blessed looks quite similar to the Android Bluetooth API.
+ *
+ * This implementation is designed for the JVM, as Blessed BlueZ is distributed as a Java JAR file.
+ *
+ * @property central A Blessed BlueZ bluetooth state manager object
+ * @property peripheral The Authenticator device, as a Blessed BlueZ object
+ */
 @OptIn(ExperimentalStdlibApi::class, ExperimentalUnsignedTypes::class)
 class BlessedBluezDevice(
     private val central: BluetoothCentralManager,

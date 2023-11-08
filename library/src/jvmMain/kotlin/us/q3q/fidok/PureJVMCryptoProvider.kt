@@ -28,6 +28,12 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.random.Random
 
+/**
+ * A [CryptoProvider] using only the JVM's provided cryptography functions.
+ *
+ * Depending on the JVM implementation, this might throw exceptions at run time. Or it might
+ * work fine. All cryptographic operations are delegated to the JVM's built-in implementations.
+ */
 class PureJVMCryptoProvider : CryptoProvider {
 
     private fun pointsToECPK(x: ByteArray, y: ByteArray, spec: ECParameterSpec): PublicKey {

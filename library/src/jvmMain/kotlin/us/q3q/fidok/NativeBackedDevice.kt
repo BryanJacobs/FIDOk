@@ -6,6 +6,12 @@ import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import java.nio.ByteBuffer
 
+/**
+ * An [AuthenticatorDevice] implementation backed by native code.
+ *
+ * This allows using platform-specific [AuthenticatorDevice] implementations from the JVM, where no
+ * JVM-hosted implementation exists.
+ */
 class NativeBackedDevice(libraryPath: String, private val deviceNumber: Int) : NativeLibraryUser(libraryPath), AuthenticatorDevice {
     override fun sendBytes(bytes: ByteArray): ByteArray {
         val capacity = 32768

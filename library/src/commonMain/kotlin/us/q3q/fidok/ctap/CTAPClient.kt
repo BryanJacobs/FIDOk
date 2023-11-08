@@ -126,16 +126,39 @@ enum class CTAPOption(val value: String) {
 
 /**
  * The different permissions that [may be requested][CTAPClient.getPinUvTokenUsingAppropriateMethod] from an
- * Authenticator
+ * Authenticator.
  *
  * @property value The bitfield encoding of the permissions
  */
 enum class CTAPPinPermission(val value: UByte) {
+    /**
+     * Allows creating new Credentials.
+     */
     MAKE_CREDENTIAL(0x01u),
+
+    /**
+     * Allows getting Assertions.
+     */
     GET_ASSERTION(0x02u),
+
+    /**
+     * Allows managing Discoverable Credentials.
+     */
     CREDENTIAL_MANAGEMENT(0x04u),
+
+    /**
+     * Allows enrolling new biometric User Verification information.
+     */
     BIO_ENROLLMENT(0x08u),
+
+    /**
+     * Allows writing to the Large Blob Store.
+     */
     LARGE_BLOB_WRITE(0x10u),
+
+    /**
+     * Allows changing the Authenticator's own configuration.
+     */
     AUTHENTICATOR_CONFIGURATION(0x20u),
 }
 
@@ -145,7 +168,16 @@ enum class CTAPPinPermission(val value: UByte) {
  * @property value The CTAP value passed as [MakeCredentialCommand.enterpriseAttestation]
  */
 enum class EnterpriseAttestationLevel(val value: UByte) {
+    /**
+     * The Authenticator will check the provided Relying Party ID against its own built-in list,
+     * probably set by the Authenticator vendor.
+     */
     VENDOR_FACILITATED(1u),
+
+    /**
+     * The Authenticator won't check the provided Relying Party ID, and will just check the Platform
+     * has already done some kind of appropriate checking.
+     */
     PLATFORM_MANAGED(2u),
 }
 
@@ -1092,7 +1124,7 @@ class CTAPClient(
 
             if (info.options[CTAPOption.CLIENT_PIN.value] != true) {
                 // we want to try a PIN, but it's not set :-(
-                throw PinNotAvailableException()
+                throw PinNotAvailableException("Authenticator is not configured to use a PIN, but must be")
             }
 
             if (desiredPermissions.toUInt() and
@@ -1257,7 +1289,7 @@ class CTAPClient(
     }
 }
 
-class PinNotAvailableException : Exception("A PIN was required, but not available")
+class PinNotAvailableException(msg: String = "A PIN was required, but not available") : Exception(msg)
 
 data class PinUVToken(val token: ByteArray) {
     init {

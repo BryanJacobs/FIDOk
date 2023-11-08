@@ -12,6 +12,14 @@ import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Represents information about a Relying Party being passed to/from an Authenticator.
+ *
+ * @property id The Relying Party ID. This will generally be a string like `something.example.com`.
+ * @property name The Relying Party "name" for display to a human: this generally isn't used for anything important
+ * in the CTAP standards, and might even be truncated from its original value
+ * @property icon Relying Parties used to be able to have a display icon, but this is deprecated and should not be used
+ */
 @Serializable(with = PKCredentialRpEntitySerializer::class)
 data class PublicKeyCredentialRpEntity(
     val id: String? = null,
@@ -22,6 +30,9 @@ data class PublicKeyCredentialRpEntity(
 @Serializable
 data class PublicKeyCredentialRpEntityParameter(override val v: PublicKeyCredentialRpEntity) : ParameterValue()
 
+/**
+ * Serializes and/or deserializes a [PublicKeyCredentialRpEntity] to/from CTAP CBOR.
+ */
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class PKCredentialRpEntitySerializer : KSerializer<PublicKeyCredentialRpEntity> {
     override val descriptor: SerialDescriptor

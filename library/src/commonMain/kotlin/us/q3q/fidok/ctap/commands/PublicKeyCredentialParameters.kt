@@ -12,18 +12,56 @@ import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Algorithms that may be used to produce a [FIDO Credential][PublicKeyCredentialDescriptor] or
+ * [Attestation][AttestationStatement].
+ *
+ * @property value COSE's canonical integer representing the algorithm
+ */
 enum class COSEAlgorithmIdentifier(val value: Long) {
+    /**
+     * ECDSA with a SHA-256 hash
+     */
     ES256(-7),
+
+    /**
+     * Using Twisted Edwards (generally curve Ed25519)
+     */
     EdDSA(-8),
+
+    /**
+     * ECDSA with a SHA-384 hash
+     */
     ES384(-35),
+
+    /**
+     * ECDSA with a SHA-512 hash
+     */
     ES512(-36),
+
+    /**
+     * RSASSA, PKCS1-v1_5 padding, with a SHA-256 hash
+     */
     RS256(-257),
 }
 
+/**
+ * The different "types" of [FIDO Credential][PublicKeyCredentialDescriptor].
+ *
+ * At the time of this writing, this is always "public-key".
+ *
+ * @property value COSE's canonical identifier for the Credential type
+ */
 enum class PublicKeyCredentialType(val value: String) {
     PUBLIC_KEY("public-key"),
 }
 
+/**
+ * The cryptographic algorithms considered acceptable for a Credential.
+ *
+ * @property type The [PublicKeyCredentialType] for this entry
+ * @property alg The [COSEAlgorithmIdentifier] for this entry
+ */
 @Serializable(with = PublicKeyCredentialsParametersSerializer::class)
 data class PublicKeyCredentialParameters(
     val type: String,
@@ -45,6 +83,9 @@ data class PublicKeyCredentialParameters(
     }
 }
 
+/**
+ * Serializes and deserializes [PublicKeyCredentialParameters] to/from CTAP CBOR
+ */
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class PublicKeyCredentialsParametersSerializer : KSerializer<PublicKeyCredentialParameters> {
     override val descriptor: SerialDescriptor

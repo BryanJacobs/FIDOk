@@ -91,34 +91,128 @@ class UVMEntrySerializer : KSerializer<UVMEntry> {
 @Serializable(with = UVMExtensionResultSerializer::class)
 class UVMExtensionResultParameter(val v: List<UVMEntry>) : ExtensionParameters()
 
+/**
+ * Ways an Authenticator can verify that the "right" human is interacting with it.
+ *
+ * @property v The FIDO canonical integer representing the user verification method
+ */
 enum class UserVerificationMethod(val v: Int) {
+    /**
+     * Verify somebody is present
+     */
     USER_VERIFY_PRESENCE(0x00000001),
+
+    /**
+     * Check the unique-ish pattern on the end of a human finger
+     */
     USER_VERIFY_FINGERPRINT(0x00000002),
+
+    /**
+     * Check the user can remember some sequence of characters
+     */
     USER_VERIFY_PASSCODE(0x00000004),
+
+    /**
+     * Check the user's voice sounds familiar-ish
+     */
     USER_VERIFY_VOICEPRINT(0x00000008),
+
+    /**
+     * Check an image of the user's frontal head area
+     */
     USER_VERIFY_FACEPRINT(0x00000010),
+
+    /**
+     * Check a location sensor - this one isn't so much about WHO is interacting with the Authenticator, but rather
+     * WHERE the interaction is happening
+     */
     USER_VERIFY_LOCATION(0x00000020),
+
+    /**
+     * Check an image of one side of a human eyeball
+     */
     USER_VERIFY_EYEPRINT(0x00000040),
+
+    /**
+     * Check the user can remember a geometric pattern. Conceptually identical to a passcode
+     */
     USER_VERIFY_PATTERN(0x00000080),
+
+    /**
+     * Check an image of a human hand
+     */
     USER_VERIFY_HANDPRINT(0x00000100),
+
+    /**
+     * No user verification supported/performed
+     */
     USER_VERIFY_NONE(0x00000200),
+
+    /**
+     * All possible methods. No, just joking, this represents a combination of many methods.
+     */
     USER_VERIFY_ALL(0x00000400),
 }
 
+/**
+ * How an Authenticator keeps a private key safe.
+ *
+ * @property v The FIDO canonical integer representing the key protection method
+ */
 enum class KeyProtectionType(val v: Int) {
+    /**
+     * The key is protected by a sequence of instructions executing on a general-purpose computer
+     */
     KEY_PROTECTION_SOFTWARE(0x0001),
+
+    /**
+     * The key is protected by some physical object designed to protect it
+     */
     KEY_PROTECTION_HARDWARE(0x0002),
+
+    /**
+     * The key is protected by some software that's VERY SPECIAL software
+     */
     KEY_PROTECTION_TEE(0x0004),
+
+    /**
+     * The key is protected by some hardware that's VERY SPECIAL hardware
+     */
     KEY_PROTECTION_SECURE_ELEMENT(0x0008),
+
+    /**
+     * The key is protected by virtue of being stored elsewhere, where it's someone else's problem
+     */
     KEY_PROTECTION_REMOTE_HANDLE(0x0010),
 }
 
+/**
+ * How an Authenticator ensures that a user verification `true` result hasn't been tampered with.
+ *
+ * @property v The FIDO canonical integer representing the matcher protection type
+ */
 enum class MatcherProtectionType(val v: Int) {
+    /**
+     * The Authenticator checks the User Verification using a series of instructions to a general-purpose computer
+     */
     MATCHER_PROTECTION_SOFTWARE(0x0001),
+
+    /**
+     * The Authenticator checks the User Verification using a series of VERY SPECIAL instructions running on a computer
+     */
     MATCHER_PROTECTION_TEE(0x0002),
+
+    /**
+     * The Authenticator checks the User Verification using a series of instructions running on a VERY SPECIAL computer.
+     *
+     * Or actually a dedicated chip.
+     */
     MATCHER_PROTECTION_ON_CHIP(0x0004),
 }
 
+/**
+ * Deserializes the [UVM extension response][UVMExtensionResultParameter] from incoming CBOR.
+ */
 @OptIn(ExperimentalSerializationApi::class)
 class UVMExtensionResultSerializer : KSerializer<UVMExtensionResultParameter> {
     override val descriptor: SerialDescriptor

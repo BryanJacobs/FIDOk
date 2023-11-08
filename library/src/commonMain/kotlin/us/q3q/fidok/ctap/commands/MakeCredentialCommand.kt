@@ -2,15 +2,55 @@ package us.q3q.fidok.ctap.commands
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Options to a CTAP [MakeCredentialCommand].
+ *
+ * @property value The canonical string representation of the option
+ */
 enum class CredentialCreationOption(val value: String) {
+    /**
+     * Create a Discoverable Credential.
+     *
+     * Because Discoverable Credentials were originally called "Resident Keys", this is the `RK` option.
+     */
     RK("rk"),
+
+    /**
+     * Require user presence prior to creating the credential
+     */
     UP("up"),
+
+    /**
+     * Verify the user through an on-board method (heart rate cadence, blood test, karaoke recording, whatever)
+     */
     UV("uv"),
 }
 
 @Serializable
 data class CreationOptionParameter(override val v: Map<String, Boolean>) : ParameterValue()
 
+/**
+ * A command to create a [CTAP Credential][PublicKeyCredentialDescriptor].
+ *
+ * This will be sent to an Authenticator to get back something usable for a [getting an Assertion][GetAssertionCommand].
+ *
+ * @property clientDataHash A SHA-256 hash of the webauthn "client data" - an arbitrary challenge parameter. This will
+ *                          become part of the signed response from the Authenticator
+ * @property rp Information on the Relying Party for which the Credential is being created
+ * @property user The user to which the Credential is attached. Note that an Authenticator will try not to store
+ *                two Discoverable Credentials for the same user ID and the same Relying Party
+ * @property pubKeyCredParams The acceptable cryptographic algorithms to use in generating the Credential
+ * @property excludeList A list of previously-generated credentials. If the Authenticator recognizes one, it will return
+ * [CREDENTIAL_EXCLUDED][us.q3q.fidok.ctap.CredentialExcludedError] instead of creating the Credential. This is used
+ * to avoid accidentally creating an extra Credential on the same Authenticator, which could otherwise happen for
+ * non-Discoverable Credentials.
+ * @property options Any options to pass to the Authenticator along with the creation command
+ * @property pinUvAuthParam An authentication of the command parameters using a PIN/UV token, as per the CTAP standard
+ * @property pinUvAuthProtocol The PIN/UV protocol version in use
+ * @property enterpriseAttestation Enterprise Attestation type to request, if any. Enterprise Attestations uniquely
+ * identify a particular Authenticator in a proprietary fashion. Generally this should be
+ * [a valid Enterprise Attestation level][us.q3q.fidok.ctap.EnterpriseAttestationLevel]
+ */
 @Serializable
 class MakeCredentialCommand(
     private val clientDataHash: ByteArray,

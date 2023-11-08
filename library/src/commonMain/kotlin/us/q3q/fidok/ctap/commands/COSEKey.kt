@@ -17,13 +17,17 @@ import kotlinx.serialization.encoding.Encoder
 /**
  * An encoding of a key that represents its mathematical parameters.
  *
- * Currently, only holds ECDSA keys on NIST P-256.
+ * Currently, only holds some types of key:
+ * - ES256
+ * - ES384
+ * - ES512
+ * - EdDSA
  *
  * @property kty The "key type", loosely describing the algorithm used for this key
  * @property alg The signature algorithm with which the key is used
  * @property crv For an EC key, the curve number on which points reside
  * @property x The X-coordinate of the EC point, as a 32-byte array
- * @property y The Y-coordinate of the EC point, as a 32-byte array
+ * @property y The Y-coordinate of the EC point, as a 32-byte array. Null for EdDSA keys.
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = COSEKeySerializer::class)

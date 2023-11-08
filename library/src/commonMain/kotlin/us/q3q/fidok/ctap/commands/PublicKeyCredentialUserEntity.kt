@@ -14,6 +14,19 @@ import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Represents information about a user for a particular Relying Party, to be passed to/from an Authenticator.
+ *
+ * Note that this data structure isn't about the human using the Authenticator. It's more like a user account for a
+ * web site.
+ *
+ * @property id The unique user ID, a byte string determined by the Relying Party
+ * @property name The user account's name. Important to humans, not to the FIDO standard itself: this may be truncated
+ * @property displayName The user's even more display-y name. While [name] might be something like "bob@example.com",
+ * [displayName] might be something like "Bob Exampleson"
+ * @property icon User objects used to be able to have an icon for showing humans; this is deprecated and should not
+ * be used
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = PublicKeyCredentialUserEntitySerializer::class)
 data class PublicKeyCredentialUserEntity(
@@ -64,6 +77,9 @@ data class PublicKeyCredentialUserEntity(
 @Serializable
 data class PublicKeyCredentialUserEntityParameter(override val v: PublicKeyCredentialUserEntity) : ParameterValue()
 
+/**
+ * Serializes and deserializes a [PublicKeyCredentialUserEntity] to/from CTAP CBOR.
+ */
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialUserEntity> {
     override val descriptor: SerialDescriptor

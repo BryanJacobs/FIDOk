@@ -168,6 +168,10 @@ class FIDOkLibrary private constructor(
         }
     }
 
+    fun setAuthenticatorAccessors(accessors: List<AuthenticatorListing>) {
+        authenticatorAccessors = accessors
+    }
+
     fun caBLESupport(): CaBLESupport {
         return CaBLESupport(this)
     }

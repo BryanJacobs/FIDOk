@@ -2,14 +2,41 @@ package us.q3q.fidok.ctap.commands
 
 import kotlinx.serialization.Serializable
 
+/**
+ * CTAP options valid for a [GetAssertionCommand]
+ *
+ * @property value The canonical string representing the option
+ */
 enum class GetAssertionOption(val value: String) {
+    /**
+     * User presence check requested
+     */
     UP("up"),
+
+    /**
+     * Onboard user verification (fingerprint, voice, iris scan, whatever) requested
+     */
     UV("uv"),
 }
 
 @Serializable
 data class AssertionOptionParameter(override val v: Map<String, Boolean>) : ParameterValue()
 
+/**
+ * Represents a request to an Authenticator to create an Assertion - the fundamental purpose of the FIDO standards.
+ *
+ * @property rpId The identifier of a Relying Party, as a string
+ * @property clientDataHash A SHA-256 hash of the webauthn "client data" - an arbitrary challenge parameter. This will
+ *                          become part of the signed response from the Authenticator
+ * @property allowList A list of credentials previously obtained from [MakeCredentialCommand]s. If this is absent,
+ *                     results from Discoverable Credentials may still be returned
+ * @property extensions Extension data to pass to the Authenticator, as a map from the extension's name to its
+ *                      parameters
+ * @property options Any options to pass to the Authenticator
+ * @property pinUvAuthParam The result of appropriately authenticating this request using a PIN/UV auth token, as
+ *                          per the CTAP standards
+ * @property pinUvAuthProtocol The version of the PIN/UV auth protocol in use
+ */
 @Serializable
 class GetAssertionCommand(
     private val rpId: String,

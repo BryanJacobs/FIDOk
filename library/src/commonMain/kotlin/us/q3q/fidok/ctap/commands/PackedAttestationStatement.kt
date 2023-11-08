@@ -16,13 +16,28 @@ import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Represents a "packed" Attestation Statement.
+ *
+ * This is the most common type of Attestation Statement. It contains the algorithm used for the key doing the
+ * signing, the signature itself, and an optional chain of certificates to anchor the signing certificate to a
+ * trusted root.
+ *
+ * @property alg The [COSE algorithm identifier][COSEAlgorithmIdentifier] describing the signing key
+ * @property sig The signature itself, as described by the [algorithm in use][alg]
+ * @property x5c An OPTIONAL chain of trust for the Attestation. If this is a "basic surrogate attestation", the
+ * signing key is the Credential's own private key, and this will be absent. If this is a "full attestation", this
+ * will be a list of DER-encoded X.509 certificates, starting with the one used to generate the [signature][sig] and
+ * ending with a certificate _signed by_ what should be a trusted root. The standard says the root certificate itself
+ * will not be present in the chain
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = PackedAttestationSerializer::class)
 data class PackedAttestationStatement(
     val alg: Long,
     @ByteString val sig: ByteArray,
     val x5c: Array<ByteArray>? = null,
-) : AttestatationStatement() {
+) : AttestationStatement() {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -47,6 +62,9 @@ data class PackedAttestationStatement(
     }
 }
 
+/**
+ * Serializes and/or deserializes a [PackedAttestationStatement] to/from a CBOR map.
+ */
 @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 class PackedAttestationSerializer : KSerializer<PackedAttestationStatement> {
     override val descriptor: SerialDescriptor

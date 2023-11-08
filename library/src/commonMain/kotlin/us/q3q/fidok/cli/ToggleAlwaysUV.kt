@@ -19,7 +19,7 @@ class ToggleAlwaysUV : CliktCommand(help = "Turn on (or off) the requirement for
         }
 
         runBlocking {
-            val token = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.CREDENTIAL_MANAGEMENT.value)
+            val token = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
 
             val config = client.authenticatorConfig()
 

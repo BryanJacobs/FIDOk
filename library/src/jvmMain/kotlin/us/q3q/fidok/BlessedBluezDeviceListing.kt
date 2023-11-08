@@ -6,17 +6,16 @@ import com.welie.blessed.BluetoothCentralManagerCallback
 import com.welie.blessed.BluetoothCommandStatus
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.ScanResult
+import us.q3q.fidok.ble.FIDO_BLE_SERVICE_UUID
 import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import java.util.UUID
 
-const val FIDO_BLE_SERVICE_UUID = "0000fffd-0000-1000-8000-00805f9b34fb"
-const val FIDO_CONTROL_POINT_ATTRIBUTE = "f1d0fff1-deaa-ecee-b42f-c9ba7ed623bb"
-const val FIDO_STATUS_ATTRIBUTE = "f1d0fff2-deaa-ecee-b42f-c9ba7ed623bb"
-const val FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE = "f1d0fff3-deaa-ecee-b42f-c9ba7ed623bb"
-const val FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE = "f1d0fff4-deaa-ecee-b42f-c9ba7ed623bb"
-const val FIDO_SERVICE_REVISION_ATTRIBUTE = "00002a28-0000-1000-8000-00805f9b34fb"
-
+/**
+ * Code for listing Bluetooth Low Energy Authenticators using Blessed BlueZ.
+ *
+ * Authenticators will be returned if they're available via a BLE scan.
+ */
 class BlessedBluezDeviceListing {
     companion object : AuthenticatorListing {
         private var central: BluetoothCentralManager? = null

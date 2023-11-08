@@ -12,11 +12,6 @@ import androidx.core.app.ActivityCompat
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
-import us.q3q.fidok.FIDO_BLE_SERVICE_UUID
-import us.q3q.fidok.FIDO_CONTROL_POINT_ATTRIBUTE
-import us.q3q.fidok.FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE
-import us.q3q.fidok.FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE
-import us.q3q.fidok.FIDO_STATUS_ATTRIBUTE
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.DeviceCommunicationException

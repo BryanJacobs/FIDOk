@@ -4,6 +4,9 @@ import us.q3q.fidok.cli.DefaultCliCallbacks
 import us.q3q.fidok.cli.Main
 import us.q3q.fidok.ctap.FIDOkLibrary
 
+/**
+ * Entry point for the FIDOk command line, JVM edition :-)
+ */
 fun main(args: Array<String>) {
     val libraryPath = getNativeLibraryPathForPlatform()
 

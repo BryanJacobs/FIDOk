@@ -9,6 +9,15 @@ import us.q3q.fidok.crypto.SHA256Result
 import us.q3q.fidok.crypto.X509Info
 import java.nio.ByteBuffer
 
+/**
+ * A [CryptoProvider] implementation that uses FFI to call a native [CryptoProvider].
+ *
+ * This purely passes through function calls to the underlying native library, and doesn't actually
+ * implement any cryptography itself. Only makes sense on the JVM, in a situation where the JVM
+ * implementation doesn't provide sufficient cryptographic functionality itself...
+ *
+ * @param libraryPath Fully-qualified path to the native FIDOk library file.
+ */
 class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(libraryPath), CryptoProvider {
 
     override fun ecdhKeyAgreementInit(otherPublicKeyPoint: P256Point): KeyAgreementState {

@@ -19,7 +19,7 @@ class EnableEnterpriseAttestation : CliktCommand(help = "Enable Enterprise Attes
         }
 
         runBlocking {
-            val token = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.CREDENTIAL_MANAGEMENT.value)
+            val token = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
 
             val config = client.authenticatorConfig()
 

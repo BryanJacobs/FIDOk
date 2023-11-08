@@ -5,7 +5,7 @@ import us.q3q.fidok.ctap.PinUVToken
 /**
  * Implements PIN/UV protocol version two.
  *
- * @param cryptoProvider Provider of the cryptographic capabilities necessary for the protocol
+ * @property cryptoProvider Provider of the cryptographic capabilities necessary for the protocol
  */
 class PinUVProtocolV2(private val cryptoProvider: CryptoProvider) : PinUVProtocol {
 

@@ -4,6 +4,7 @@ import us.q3q.fidok.crypto.AES256Key
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.CTAPPinPermission
 import us.q3q.fidok.ctap.FIDOkLibrary
+import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.ctap.commands.ExtensionSetup
 import us.q3q.fidok.ctap.commands.HMACSecretExtension
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialDescriptor
@@ -11,6 +12,14 @@ import kotlin.coroutines.cancellation.CancellationException
 
 private const val EZ_HMAC_SECRET_USER = "FIDOk EZ hmac-secret"
 
+/**
+ * Provides an "easy" interface to encrypting/decrypting data using the
+ * [hmac-secret extension][us.q3q.fidok.ctap.commands.HMACSecretExtension].
+ *
+ * @property library A configured FIDOk library instance
+ * @property rpId The Relying Party ID to use for generated Credentials/Assertions. Must match between [setup] and
+ * [use][encryptUsingKey]!
+ */
 class EZHmac(
     private val library: FIDOkLibrary,
     private val rpId: String = "fidok.nodomain",
@@ -26,6 +35,16 @@ class EZHmac(
 
     class InvalidKeyException : IllegalArgumentException("Key does not match given data")
 
+    /**
+     * Prepare to encrypt/decrypt data.
+     *
+     * Each time this is called, it will return a new handle usable for encryption or decryption. Data encrypted
+     * using a given handle may only be decrypted using both that handle and the Authenticator that created it.
+     *
+     * Under the hood, this is making a new FIDO Credential.
+     *
+     * @return Handle usable for [encrypt] or [decrypt]
+     */
     suspend fun setup(): ByteArray {
         val client = library.waitForUsableAuthenticator(preFilter = ::supportsHMACSecret)
 
@@ -42,10 +61,34 @@ class EZHmac(
             throw IllegalStateException("Failed to create hmac-secret")
         }
 
-        return credential.getCredentialID()
+        return (listOf(0x01.toByte()) + credential.getCredentialID().toList()).toByteArray()
     }
 
+    private fun getCredentialFromHandle(setup: ByteArray): ByteArray {
+        if (setup[0] != 0x01.toByte()) {
+            throw IncorrectDataException("Unknown setup passed to EZHMAC method")
+        }
+        return setup.copyOfRange(1, setup.size)
+    }
+
+    /**
+     * Get HMAC secret(s) in their raw form.
+     *
+     * While this is an "easy" class, this particular method is more advanced. It has the following properties:
+     *
+     * - When given the same input, it will return the same output.
+     * - A given [setup] is only usable with the Authenticator that created it
+     * - A change in the input alters the output in unpredictable ways
+     *
+     * @param setup The result of calling [EZHmac.setup]
+     * @param salt1 First "salt" to get a key
+     * @param salt2 Second "salt" to get a key
+     * @return Pair of the result of HMACing [salt1] and [salt2]
+     */
     suspend fun getKeys(setup: ByteArray, salt1: ByteArray = EZ_HMAC_DEFAULT_SALT, salt2: ByteArray? = null): Pair<ByteArray, ByteArray?> {
+        require(salt1.size == 32)
+        require(salt2 == null || salt2.size == 32)
+
         val client = library.waitForUsableAuthenticator(preFilter = ::supportsHMACSecret)
 
         val uvToken = client.getPinUvTokenUsingAppropriateMethod(
@@ -60,7 +103,7 @@ class EZHmac(
             extensions = ExtensionSetup(extension),
             allowList = listOf(
                 PublicKeyCredentialDescriptor(
-                    id = setup,
+                    id = getCredentialFromHandle(setup),
                 ),
             ),
         )
@@ -77,14 +120,17 @@ class EZHmac(
     }
 
     private fun encryptUsingKey(key: ByteArray, data: ByteArray): ByteArray {
-        if (data.size % 16 != 0) {
-            throw IllegalArgumentException("Input data is not a multiple of 16 bytes long")
-        }
-
         val iv = library.cryptoProvider.secureRandom(16)
 
+        // Pad to a multiple of 16 bytes, storing the number of padding bytes in the last byte
+        var necessaryPaddingBytes = 16 - (data.size % 16)
+        if (necessaryPaddingBytes == 0) {
+            necessaryPaddingBytes = 16
+        }
+        val toEncrypt = data.toList() + List(necessaryPaddingBytes - 1) { 0x00 } + listOf(necessaryPaddingBytes.toByte())
+
         val encrypted = library.cryptoProvider.aes256CBCEncrypt(
-            data,
+            toEncrypt.toByteArray(),
             AES256Key(
                 key = key,
                 iv = iv,
@@ -118,12 +164,33 @@ class EZHmac(
         }
     }
 
+    /**
+     * Encrypt data.
+     *
+     * @param setup The result of calling [EZHmac.setup]
+     * @param data Bytes to be encrypted
+     * @param salt Optionally, a "salt". Without providing the same salt to the decryption function, decryption
+     * will fail.
+     * @return Encrypted data, which may be decrypted via [decrypt]
+     */
     suspend fun encrypt(setup: ByteArray, data: ByteArray, salt: ByteArray = EZ_HMAC_DEFAULT_SALT): ByteArray {
         val keys = getKeys(setup, salt)
 
         return encryptUsingKey(keys.first, data)
     }
 
+    /**
+     * Encrypt data in two different ways.
+     *
+     * This is useful to only require using an Authenticator once, but allow "rotating" from one salt to another.
+     *
+     * @param setup The result of calling [EZHmac.setup]
+     * @param data Bytes to be encrypted
+     * @param salt1 First salt to use in encryption
+     * @param salt2 Second salt to use in encryption
+     * @return A pair, whose first element is [data] encrypted using [salt1], and second element is [data] encrypted
+     * using [salt2]
+     */
     suspend fun encryptAndRotate(setup: ByteArray, data: ByteArray, salt1: ByteArray, salt2: ByteArray): Pair<ByteArray, ByteArray> {
         val keys = getKeys(setup, salt1, salt2)
         val secondKey = keys.second
@@ -135,9 +202,18 @@ class EZHmac(
         )
     }
 
+    /**
+     * Decrypt previously-encrypted data.
+     *
+     * @param setup Result of calling [EZHmac.setup]
+     * @param data Result of calling [encrypt]
+     * @param salt Optional salt. Must match the value given to [encrypt]
+     * @return Decrypted data
+     * @throws InvalidKeyException If the given [setup] and/or [salt] do not match the given [data]
+     */
     @Throws(InvalidKeyException::class, CancellationException::class)
     suspend fun decrypt(setup: ByteArray, data: ByteArray, salt: ByteArray = EZ_HMAC_DEFAULT_SALT): ByteArray {
-        require(data.size >= 48)
+        require(data.size >= 64)
 
         val keys = getKeys(setup, salt)
 
@@ -146,12 +222,16 @@ class EZHmac(
         val iv = data.copyOfRange(0, 16)
         val toDecrypt = data.copyOfRange(16, data.size - 32)
 
-        return library.cryptoProvider.aes256CBCDecrypt(
+        val decrypted = library.cryptoProvider.aes256CBCDecrypt(
             toDecrypt,
             AES256Key(
                 key = keys.first,
                 iv = iv,
             ),
         )
+
+        val numPaddingBytes = decrypted[decrypted.size - 1]
+
+        return decrypted.copyOfRange(0, decrypted.size - numPaddingBytes)
     }
 }
