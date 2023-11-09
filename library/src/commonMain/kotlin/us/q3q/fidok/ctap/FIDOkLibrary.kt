@@ -17,6 +17,9 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
+/**
+ * Primary object for interacting with FIDOk.
+ */
 class FIDOkLibrary private constructor(
     val cryptoProvider: CryptoProvider,
     private var authenticatorAccessors: List<AuthenticatorListing>,
@@ -24,6 +27,15 @@ class FIDOkLibrary private constructor(
 ) {
 
     companion object {
+
+        /**
+         * Create a library instance.
+         *
+         * @param cryptoProvider Support for necessary Cryptographic functionality
+         * @param authenticatorAccessors Ways to get [Authenticator][AuthenticatorDevice] instances
+         * @param callbacks Hooks to handle different library events
+         * @return Ready-for-use [FIDOkLibrary] instance
+         */
         @JvmStatic
         @JvmOverloads
         fun init(
@@ -40,6 +52,12 @@ class FIDOkLibrary private constructor(
         }
     }
 
+    /**
+     * Get [devices][AuthenticatorDevice] available for use.
+     *
+     * @param allowedTransports If provided, only return Authenticators that support one of the given transports
+     * @return A list of available Authenticators
+     */
     fun listDevices(allowedTransports: List<AuthenticatorTransport>? = null): Array<AuthenticatorDevice> {
         val devices = arrayListOf<AuthenticatorDevice>()
         for (accessor in authenticatorAccessors) {
@@ -63,6 +81,15 @@ class FIDOkLibrary private constructor(
         return devices.toTypedArray()
     }
 
+    /**
+     * Wait until an [Authenticator][AuthenticatorDevice] is available which matches the given criteria.
+     *
+     * @param preFilter Only Authenticators for which the given function returns `true` will be used
+     * @param activeSelection This function will be called only on Authenticators which pass the [preFilter]. If it
+     * returns `true`, the Authenticator may be returned. This function will not be called if only a single
+     * Authenticator is available passing the [preFilter]
+     * @param timeout How long to wait for an Authenticator that matches the filters
+     */
     @Throws(AuthenticatorNotFoundException::class, CancellationException::class)
     suspend fun waitForUsableAuthenticator(
         preFilter: suspend (client: CTAPClient) -> Boolean = { true },
@@ -123,7 +150,7 @@ class FIDOkLibrary private constructor(
                         val receiver = Channel<CTAPClient?>(capacity = potentialCTAPClients.size)
                         val jobs = potentialCTAPClients.map {
                             launch {
-                                callbacks?.auhtenticatorWaitingForSelection(it)
+                                callbacks?.authenticatorWaitingForSelection(it)
                                 val working = activeSelection(it)
 
                                 if (working) {
@@ -162,25 +189,55 @@ class FIDOkLibrary private constructor(
         return selectedClient
     }
 
+    /**
+     * Remove all sources of Authenticators that provide the given transport.
+     *
+     * @param transport Transport to exclude
+     */
     fun disableTransport(transport: AuthenticatorTransport) {
         authenticatorAccessors = authenticatorAccessors.filter {
             !it.providedTransports().contains(transport)
         }
     }
 
+    /**
+     * Change the library's sources of Authenticators.
+     *
+     * @param accessors New ways to get [AuthenticatorDevice] instances
+     */
     fun setAuthenticatorAccessors(accessors: List<AuthenticatorListing>) {
         authenticatorAccessors = accessors
     }
 
+    /**
+     * Get a client for Cloud Assisted Bluetooth LE (CaBLE) functionality.
+     *
+     * @return Client for interacting with CaBLE features
+     */
     fun caBLESupport(): CaBLESupport {
         return CaBLESupport(this)
     }
 
+    /**
+     * Get a client for communicating with Authenticators via the lower-level CTAP protocol.
+     *
+     * @param device Authenticator object for which to produce a client
+     * @param collectPinFromUser Function for supplying a PIN to the device when necessary. If not provided, will use
+     * the library's [callbacks]
+     * @return Object for CTAP interaction with the given [device]
+     */
     fun ctapClient(device: AuthenticatorDevice, collectPinFromUser: (suspend (client: CTAPClient?) -> String?)? = null): CTAPClient {
         val callback = collectPinFromUser ?: (if (callbacks != null) callbacks::collectPin else { { null } })
         return CTAPClient(this, device, callback)
     }
 
+    /**
+     * Get a client for communicating with Authenticators via the higher-level Webauthn protocol.
+     *
+     * WebauthN operations select their own appropriate Authenticator to handle each request.
+     *
+     * @return Object for interacting with this library over WebauthN
+     */
     fun webauthn(): WebauthnClient {
         return WebauthnClient(this)
     }

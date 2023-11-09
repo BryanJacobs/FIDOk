@@ -11,5 +11,5 @@ interface FIDOkCallbacks {
 
     suspend fun authenticatorUnsuitable(client: CTAPClient) {}
 
-    suspend fun auhtenticatorWaitingForSelection(client: CTAPClient) {}
+    suspend fun authenticatorWaitingForSelection(client: CTAPClient) {}
 }

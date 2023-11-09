@@ -1260,12 +1260,23 @@ class CTAPClient(
         return PinUVToken(pp.decrypt(pk, ret.pinUvAuthToken))
     }
 
+    /**
+     * Get the number of remaining PIN retries before blocking.
+     *
+     * @return CTAP response object with retry count and power-cycle-required state
+     */
     @Throws(DeviceCommunicationException::class, CTAPError::class)
     fun getPINRetries(): ClientPinGetRetriesResponse {
         val command = ClientPinCommand.getPINRetries()
         return xmit(command, ClientPinGetRetriesResponse.serializer())
     }
 
+    /**
+     * Get a client for performing authenticator-config-related CTAP operations.
+     *
+     * @return Authenticator config object
+     * @throws IllegalStateException If the authenticator does not support configuration
+     */
     fun authenticatorConfig(): AuthenticatorConfigClient {
         val info = getInfoIfUnset()
         if (info.options?.get(CTAPOption.AUTHENTICATOR_CONFIG.value) != true) {
@@ -1274,6 +1285,12 @@ class CTAPClient(
         return AuthenticatorConfigClient(this)
     }
 
+    /**
+     * Get a client for performing credential-management-related CTAP operations.
+     *
+     * @return Credential management object
+     * @throws IllegalStateException If the authenticator does not support credentials management in some form
+     */
     fun credentialManagement(): CredentialManagementClient {
         val info = getInfoIfUnset()
         val fullySupported = info.options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true

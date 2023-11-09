@@ -7,38 +7,59 @@ import co.touchlab.kermit.Logger
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.StableRef
+import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorListing
 import kotlin.experimental.ExperimentalNativeApi
 
-var devices: List<AuthenticatorDevice>? = null
+expect fun platformDeviceProviders(): List<AuthenticatorListing>
 
-@CName("fidok_count_devices")
-fun listDevices(): Int {
+data class DeviceListingResult(
+    val devices: List<AuthenticatorDevice>?,
+)
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fidok_device_list")
+fun listDevices(): COpaquePointer {
     val providers = platformDeviceProviders()
+
     val foundDevices = arrayListOf<AuthenticatorDevice>()
     for (provider in providers) {
         foundDevices.addAll(provider.listDevices())
     }
-    devices = foundDevices
-    return foundDevices.size
+
+    val ret = DeviceListingResult(foundDevices)
+
+    return StableRef.create(ret).asCPointer()
 }
 
-expect fun platformDeviceProviders(): List<AuthenticatorListing>
+@OptIn(ExperimentalForeignApi::class)
+@CName("fidok_device_count")
+fun countDevicesInList(listing: COpaquePointer): Int {
+    return listing.asStableRef<DeviceListingResult>().get().devices?.size ?: 0
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fidok_free_device_list")
+fun freeDeviceList(listing: COpaquePointer) {
+    return listing.asStableRef<DeviceListingResult>().dispose()
+}
 
 @Suppress("LocalVariableName")
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_send_bytes")
 fun sendToDevice(
+    listing: COpaquePointer,
     device_number: Int,
     input: COpaquePointer,
     input_len: Int,
     output: COpaquePointer,
     output_len: COpaquePointer,
 ): Int {
-    val validDevices = devices
+    val validDevices = listing.asStableRef<DeviceListingResult>().get().devices
     if (validDevices == null) {
         Logger.e { "Attempted to use native device $device_number when devices not listed" }
         return -1

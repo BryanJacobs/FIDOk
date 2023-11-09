@@ -2,6 +2,7 @@ package us.q3q.fidok
 
 import jnr.ffi.LibraryLoader
 import jnr.ffi.LibraryOption
+import jnr.ffi.Pointer
 import jnr.ffi.annotations.In
 import java.nio.ByteBuffer
 
@@ -92,8 +93,11 @@ interface FIDOkNative {
         keyY: ByteBuffer,
     )
 
-    fun fidok_count_devices(): Int
+    fun fidok_device_list(): Pointer
+    fun fidok_device_count(listing: Pointer): Int
+    fun fidok_free_device_list(listing: Pointer): Int
     fun fidok_send_bytes(
+        listing: Pointer,
         deviceNumber: Int,
         @In input: ByteBuffer,
         inputLen: Int,
