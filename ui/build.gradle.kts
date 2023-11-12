@@ -81,9 +81,10 @@ compose.desktop {
             } else {
                 targetFormats(TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi)
             }
-            packageName = "FidoK"
+            packageName = "FIDOk"
             description = "Manage FIDO Authenticators"
             copyright = "2023 Bryan Jacobs"
+            version = "1.0.0"
             licenseFile.set(file(rootProject.layout.projectDirectory.file("LICENSE")))
 
             appResourcesRootDir.set(project.layout.buildDirectory.dir("natives"))
