@@ -114,7 +114,7 @@ botanTasks(
 
 botanTasks("Linux")
 
-fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x86_64") {
+fun nativeBuild(target: KotlinNativeTarget, platform: String) {
     val hidBuild = tasks.getByName("buildHID$platform")
     val botanBuild = tasks.getByName("buildBotan$platform")
     val lcPlatform = platform.lowercase()
@@ -126,18 +126,21 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
         "-L${botanBuild.outputs.files.singleFile.parent}",
         "-lbotan-3",
     )
-    if (platform == "Linux") {
-        linkerOpts.add("-l${submodulesDir.dir("pcsc").file("libpcsclite.so.1.0.0").asFile.absolutePath}")
-        linkerOpts.add("-l/usr/lib/libudev.so")
-    } else if (platform == "Windows") {
-        linkerOpts.add("-lwinscard")
-    } else if (platform == "Macos") {
-        linkerOpts.add("-framework")
-        linkerOpts.add("IOKit")
-        linkerOpts.add("-framework")
-        linkerOpts.add("AppKit")
-        linkerOpts.add("-framework")
-        linkerOpts.add("PCSC")
+    when (platform) {
+        "Linux" -> {
+            linkerOpts.add("-l${submodulesDir.dir("pcsc").file("libpcsclite.so.1.0.0").asFile.absolutePath}")
+            linkerOpts.add("-l/usr/lib/libudev.so")
+        }
+        "Windows" -> {
+            linkerOpts.add("-lwinscard")
+        }
+        "Macos" -> {
+            linkerOpts.addAll(arrayOf(
+                "-framework", "IOKit",
+                "-framework", "AppKit",
+                "-framework", "PCSC",
+            ))
+        }
     }
 
     target.apply {
@@ -151,8 +154,9 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String, arch: String = "x8
                         includeDirs("/usr/include/PCSC")
                     }
                 } else if (platform == "Macos") {
+                    val macLibraries = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
                     val pcsc by creating {
-                        includeDirs("/Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/")
+                        includeDirs("$macLibraries/PCSC.framework/Versions/A/Headers/")
                     }
                 }
                 if (platform == "Linux") {
@@ -240,9 +244,9 @@ kotlin {
     if (Os.isFamily(Os.FAMILY_MAC)) {
         val arch = determineMacOsArch()
         if (arch == "arm64") {
-            nativeBuild(macosArm64("macos"), "Macos", arch)
+            nativeBuild(macosArm64("macos"), "Macos")
         } else {
-            nativeBuild(macosX64("macos"), "Macos", arch)
+            nativeBuild(macosX64("macos"), "Macos")
         }
     } else {
         nativeBuild(linuxX64("linux"), "Linux")

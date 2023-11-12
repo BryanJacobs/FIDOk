@@ -16,11 +16,11 @@ import java.io.File
 fun main() {
     val resourcesDirPath = System.getProperty("compose.application.resources.dir")
         ?: throw IllegalStateException("Could not find native libraries!")
-    val os = System.getProperty("os.name")
-    val libFileName = if (os.contains("Linux")) "libfidok.so" else "libfidok.dylib"
+    val os = System.getProperty("os.name").lowercase()
+    val libFileName = if (os.contains("linux")) "libfidok.so" else "libfidok.dylib"
     val libPath = File(resourcesDirPath).resolve(libFileName).absolutePath
 
-    val botanFileName = if (os.contains("Linux")) "libbotan-3.so.2" else "libbotan-3.2.dylib"
+    val botanFileName = if (os.contains("linux")) "libbotan-3.so.2" else "libbotan-3.2.dylib"
     val botanPath = File(resourcesDirPath).resolve(botanFileName).absolutePath
     System.load(botanPath)
 

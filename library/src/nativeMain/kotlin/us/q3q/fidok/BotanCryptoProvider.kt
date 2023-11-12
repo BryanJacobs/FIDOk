@@ -362,16 +362,6 @@ class BotanCryptoProvider : CryptoProvider {
         return aes256(bytes, key, BOTAN_CIPHER_INIT_FLAG_DECRYPT.convert())
     }
 
-    private fun <R> withInBuffer(bytes: ByteArray, f: (array: CArrayPointer<uint8_tVar>) -> R): R {
-        return memScoped {
-            val arr = this.allocArray<uint8_tVar>(bytes.size)
-            for (i in bytes.indices) {
-                arr[i] = bytes[i].toUByte().convert()
-            }
-            f(arr)
-        }
-    }
-
     override fun hmacSHA256(bytes: ByteArray, key: AES256Key): SHA256Result {
         return withBotanAlloc<botan_mac_tVar, SHA256Result>({ botan_mac_destroy(it.value) }) { mac ->
             botanSuccessCheck {
