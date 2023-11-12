@@ -77,7 +77,7 @@ compose.desktop {
 
         nativeDistributions {
             if (Os.isFamily(Os.FAMILY_MAC)) {
-                targetFormats(TargetFormat.Dmg)
+                targetFormats(TargetFormat.Pkg)
             } else {
                 targetFormats(TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi)
             }

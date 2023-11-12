@@ -1,8 +1,8 @@
 import us.q3q.fidok.BotanCryptoProvider
 import us.q3q.fidok.LibHIDDevice
 import us.q3q.fidok.MacPCSCLiteDevice
+import us.q3q.fidok.cli.DefaultCliCallbacks
 import us.q3q.fidok.cli.Main
-import us.q3q.fidok.cli.cliPinCollection
 import us.q3q.fidok.ctap.FIDOkLibrary
 
 fun main(args: Array<String>) {
@@ -15,7 +15,7 @@ fun main(args: Array<String>) {
             FIDOkLibrary.init(
                 BotanCryptoProvider(),
                 it,
-                pinCollection = ::cliPinCollection,
+                callbacks = DefaultCliCallbacks()
             )
         },
     ).main(args)

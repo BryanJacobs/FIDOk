@@ -96,7 +96,7 @@ fun botanTasks(platform: String, extraArgs: List<String> = listOf(), dlSuffix: S
 botanTasks(
     "Macos",
     listOf(
-        if (System.getProperty("os.arch") == "amd64") "--cpu=x86_64" else "--cpu=arm64",
+        "--cpu=${determineMacOsArch()}",
         "--cc-abi-flags=\"-mmacosx-version-min=11.0\"",
     ),
     "dylib",
@@ -238,14 +238,35 @@ kotlin {
     }
 
     if (Os.isFamily(Os.FAMILY_MAC)) {
-        if (System.getProperty("os.arch") == "amd64") {
-            nativeBuild(macosX64("macos"), "Macos", "x86_64")
+        val arch = determineMacOsArch()
+        if (arch == "arm64") {
+            nativeBuild(macosArm64("macos"), "Macos", arch)
         } else {
-            nativeBuild(macosArm64("macos"), "Macos", "arm64")
+            nativeBuild(macosX64("macos"), "Macos", arch)
         }
     } else {
         nativeBuild(linuxX64("linux"), "Linux")
         nativeBuild(mingwX64("windows"), "Windows")
+    }
+}
+
+fun determineMacOsArch(): String {
+    if (!Os.isFamily(Os.FAMILY_MAC)) return "NOT_MAC"
+
+    val arch = System.getProperty("os.arch").lowercase()
+    if (arch.contains("aarch64")) {
+        val process = ProcessBuilder("sysctl", "-in", "sysctl.proc_translated")
+            .redirectOutput(ProcessBuilder.Redirect.PIPE)
+            .redirectError(ProcessBuilder.Redirect.INHERIT)
+            .start()
+
+        process.waitFor(5, TimeUnit.SECONDS)
+        val xlated = process.inputStream.bufferedReader().readText().toIntOrNull()
+        if (xlated == 1) return "x86_64"
+
+        return "arm64"
+    } else {
+        return "x86_64"
     }
 }
 

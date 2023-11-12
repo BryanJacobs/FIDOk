@@ -1,4 +1,4 @@
-rootProject.name = "fidok"
+rootProject.name = "FIDOk"
 
 include(":library")
 include(":ui")
