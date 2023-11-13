@@ -20,14 +20,14 @@ import kotlinx.serialization.modules.SerializersModule
  */
 @OptIn(ExperimentalSerializationApi::class, ExperimentalStdlibApi::class)
 open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
-
     protected var offset = 0
     private val cbor = Cbor { customSerializers }
 
     override val serializersModule: SerializersModule
-        get() = SerializersModule {
-            customSerializers
-        }
+        get() =
+            SerializersModule {
+                customSerializers
+            }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
         if (descriptor.kind == StructureKind.LIST &&
@@ -61,10 +61,11 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
     }
 
     override fun decodeInt(): Int {
-        val ret = cbor.decodeFromByteArray(
-            Int.serializer(),
-            input.toList().subList(offset, input.size).toByteArray(),
-        )
+        val ret =
+            cbor.decodeFromByteArray(
+                Int.serializer(),
+                input.toList().subList(offset, input.size).toByteArray(),
+            )
         offset++
         if (ret > 23 || ret < -24) {
             offset++
@@ -76,10 +77,11 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
     }
 
     override fun decodeLong(): Long {
-        val ret = cbor.decodeFromByteArray(
-            Long.serializer(),
-            input.toList().subList(offset, input.size).toByteArray(),
-        )
+        val ret =
+            cbor.decodeFromByteArray(
+                Long.serializer(),
+                input.toList().subList(offset, input.size).toByteArray(),
+            )
         offset++
         if (ret > 23 || ret < -24) {
             offset++
@@ -102,10 +104,11 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
     }
 
     override fun decodeString(): String {
-        val ret = cbor.decodeFromByteArray(
-            String.serializer(),
-            input.toList().subList(offset, input.size).toByteArray(),
-        )
+        val ret =
+            cbor.decodeFromByteArray(
+                String.serializer(),
+                input.toList().subList(offset, input.size).toByteArray(),
+            )
 
         offset += ret.length + 1
         if (ret.length > 23) {
@@ -120,41 +123,42 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
 
     private fun peekCollectionSize(descriptor: SerialDescriptor): Pair<Int, Int> {
         var soffset = offset
-        val ret = when (descriptor.kind) {
-            StructureKind.MAP, StructureKind.CLASS -> {
-                val byte = input[soffset++]
-                if (byte == (0xB8).toByte()) {
-                    val num = input[soffset++].toUByte()
-                    num.toInt()
-                } else if (byte >= (0xA0).toByte() && byte <= (0xB7).toByte()) {
-                    byte - (0xA0).toByte()
-                } else {
-                    throw SerializationException("Overlong or incorrect map: $byte")
-                }
-            }
-            StructureKind.LIST -> {
-                when (val byte = input[soffset++].toUByte().toInt()) {
-                    0x98, 0x58 -> {
-                        input[soffset++].toUByte().toInt()
-                    }
-                    0x99, 0x59 -> {
-                        (input[soffset++].toUByte().toInt() shl 8) + input[soffset++].toUByte().toInt()
-                    }
-                    in 0x80..0x97 -> {
-                        byte - 0x80
-                    }
-                    in 0x40..0x57 -> {
-                        // for bogus reasons, a byte array is a "byte list" here
-                        byte - 0x40
-                    }
-                    else -> {
-                        throw SerializationException("Overlong or incorrect list: ${byte.toHexString()}")
+        val ret =
+            when (descriptor.kind) {
+                StructureKind.MAP, StructureKind.CLASS -> {
+                    val byte = input[soffset++]
+                    if (byte == (0xB8).toByte()) {
+                        val num = input[soffset++].toUByte()
+                        num.toInt()
+                    } else if (byte >= (0xA0).toByte() && byte <= (0xB7).toByte()) {
+                        byte - (0xA0).toByte()
+                    } else {
+                        throw SerializationException("Overlong or incorrect map: $byte")
                     }
                 }
+                StructureKind.LIST -> {
+                    when (val byte = input[soffset++].toUByte().toInt()) {
+                        0x98, 0x58 -> {
+                            input[soffset++].toUByte().toInt()
+                        }
+                        0x99, 0x59 -> {
+                            (input[soffset++].toUByte().toInt() shl 8) + input[soffset++].toUByte().toInt()
+                        }
+                        in 0x80..0x97 -> {
+                            byte - 0x80
+                        }
+                        in 0x40..0x57 -> {
+                            // for bogus reasons, a byte array is a "byte list" here
+                            byte - 0x40
+                        }
+                        else -> {
+                            throw SerializationException("Overlong or incorrect list: ${byte.toHexString()}")
+                        }
+                    }
+                }
+                else ->
+                    throw NotImplementedError()
             }
-            else ->
-                throw NotImplementedError()
-        }
         return ret to soffset
     }
 
@@ -169,7 +173,6 @@ open class CTAPCBORDecoder(protected var input: ByteArray) : AbstractDecoder() {
  * Decodes a CTAP byte array at a particular position - by just returning the bytes
  */
 class CTAPCBORArrayDecoder(bytes: ByteArray) : CTAPCBORDecoder(bytes) {
-
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
         return AdvancingDecoder(input.copyOfRange(offset, input.size), this)
     }
@@ -198,7 +201,7 @@ class AdvancingDecoder(bytes: ByteArray, val parent: CTAPCBORArrayDecoder) : CTA
 @Suppress("UNUSED_VARIABLE")
 @OptIn(ExperimentalStdlibApi::class)
 fun ctapCBORDecoderExample() {
-    val response_bytes = "A10503".hexToByteArray()
-    val decoder = CTAPCBORDecoder(response_bytes)
+    val responseBytes = "A10503".hexToByteArray()
+    val decoder = CTAPCBORDecoder(responseBytes)
     val decodedObject = decoder.decodeSerializableValue(ClientPinUvRetriesResponse.serializer())
 }

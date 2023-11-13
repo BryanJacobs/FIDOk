@@ -83,24 +83,32 @@ data class GetInfoResponse(
         if (extensions != null) {
             if (other.extensions == null) return false
             if (!extensions.contentEquals(other.extensions)) return false
-        } else if (other.extensions != null) return false
+        } else if (other.extensions != null) {
+            return false
+        }
         if (!aaguid.contentEquals(other.aaguid)) return false
         if (options != other.options) return false
         if (maxMsgSize != other.maxMsgSize) return false
         if (pinUvAuthProtocols != null) {
             if (other.pinUvAuthProtocols == null) return false
             if (!pinUvAuthProtocols.contentEquals(other.pinUvAuthProtocols)) return false
-        } else if (other.pinUvAuthProtocols != null) return false
+        } else if (other.pinUvAuthProtocols != null) {
+            return false
+        }
         if (maxCredentialCountInList != other.maxCredentialCountInList) return false
         if (maxCredentialIdLength != other.maxCredentialIdLength) return false
         if (transports != null) {
             if (other.transports == null) return false
             if (!transports.contentEquals(other.transports)) return false
-        } else if (other.transports != null) return false
+        } else if (other.transports != null) {
+            return false
+        }
         if (algorithms != null) {
             if (other.algorithms == null) return false
             if (!algorithms.contentEquals(other.algorithms)) return false
-        } else if (other.algorithms != null) return false
+        } else if (other.algorithms != null) {
+            return false
+        }
         if (maxSerializedLargeBlobArray != other.maxSerializedLargeBlobArray) return false
         if (forcePINChange != other.forcePINChange) return false
         if (minPINLength != other.minPINLength) return false
@@ -114,7 +122,9 @@ data class GetInfoResponse(
         if (vendorPrototypeConfigCommands != null) {
             if (other.vendorPrototypeConfigCommands == null) return false
             if (!vendorPrototypeConfigCommands.contentEquals(other.vendorPrototypeConfigCommands)) return false
-        } else if (other.vendorPrototypeConfigCommands != null) return false
+        } else if (other.vendorPrototypeConfigCommands != null) {
+            return false
+        }
 
         return true
     }
@@ -151,30 +161,34 @@ data class GetInfoResponse(
 @OptIn(ExperimentalSerializationApi::class)
 class GetInfoResponseSerializer : KSerializer<GetInfoResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("GetInfoResponse") {
-            element("versions", ArraySerializer(String.serializer()).descriptor)
-            element("extensions", ArraySerializer(String.serializer()).descriptor, isOptional = true)
-            element("aaguid", ByteArraySerializer().descriptor)
-            element("options", MapSerializer(String.serializer(), Boolean.serializer()).descriptor, isOptional = true)
-            element("maxMsgSize", UInt.serializer().descriptor, isOptional = true)
-            element("pinUvAuthProtocols", ArraySerializer(UInt.serializer()).descriptor, isOptional = true)
-            element("maxCredentialCountInList", UInt.serializer().descriptor, isOptional = true)
-            element("transports", ArraySerializer(String.serializer()).descriptor, isOptional = true)
-            element("algorithms", ArraySerializer(PublicKeyCredentialDescriptor.serializer()).descriptor, isOptional = true)
-            element("maxSerializedLargeBlobArray", UInt.serializer().descriptor, isOptional = true)
-            element("forcePINChange", Boolean.serializer().descriptor, isOptional = true)
-            element("minPINLength", UInt.serializer().descriptor, isOptional = true)
-            element("firmwareVersion", UInt.serializer().descriptor, isOptional = true)
-            element("maxCredBlobLength", UInt.serializer().descriptor, isOptional = true)
-            element("maxRPIDsForSetMinPINLength", UInt.serializer().descriptor, isOptional = true)
-            element("preferredPlatformUvAttempts", UInt.serializer().descriptor, isOptional = true)
-            element("uvModality", UInt.serializer().descriptor, isOptional = true)
-            element("certifications", MapSerializer(String.serializer(), Unit.serializer()).descriptor, isOptional = true)
-            element("remainingDiscoverableCredentials", UInt.serializer().descriptor, isOptional = true)
-            element("vendorPrototypeConfigCommands", ArraySerializer(UInt.serializer()).descriptor, isOptional = true)
-        }
+        get() =
+            buildClassSerialDescriptor("GetInfoResponse") {
+                element("versions", ArraySerializer(String.serializer()).descriptor)
+                element("extensions", ArraySerializer(String.serializer()).descriptor, isOptional = true)
+                element("aaguid", ByteArraySerializer().descriptor)
+                element("options", MapSerializer(String.serializer(), Boolean.serializer()).descriptor, isOptional = true)
+                element("maxMsgSize", UInt.serializer().descriptor, isOptional = true)
+                element("pinUvAuthProtocols", ArraySerializer(UInt.serializer()).descriptor, isOptional = true)
+                element("maxCredentialCountInList", UInt.serializer().descriptor, isOptional = true)
+                element("transports", ArraySerializer(String.serializer()).descriptor, isOptional = true)
+                element("algorithms", ArraySerializer(PublicKeyCredentialDescriptor.serializer()).descriptor, isOptional = true)
+                element("maxSerializedLargeBlobArray", UInt.serializer().descriptor, isOptional = true)
+                element("forcePINChange", Boolean.serializer().descriptor, isOptional = true)
+                element("minPINLength", UInt.serializer().descriptor, isOptional = true)
+                element("firmwareVersion", UInt.serializer().descriptor, isOptional = true)
+                element("maxCredBlobLength", UInt.serializer().descriptor, isOptional = true)
+                element("maxRPIDsForSetMinPINLength", UInt.serializer().descriptor, isOptional = true)
+                element("preferredPlatformUvAttempts", UInt.serializer().descriptor, isOptional = true)
+                element("uvModality", UInt.serializer().descriptor, isOptional = true)
+                element("certifications", MapSerializer(String.serializer(), Unit.serializer()).descriptor, isOptional = true)
+                element("remainingDiscoverableCredentials", UInt.serializer().descriptor, isOptional = true)
+                element("vendorPrototypeConfigCommands", ArraySerializer(UInt.serializer()).descriptor, isOptional = true)
+            }
 
-    private fun deserializeStringArray(decoder: CompositeDecoder, idx: Int): Array<String> {
+    private fun deserializeStringArray(
+        decoder: CompositeDecoder,
+        idx: Int,
+    ): Array<String> {
         val ser = ArraySerializer(String.serializer())
         return decoder.decodeSerializableElement(
             ser.descriptor,
@@ -220,34 +234,37 @@ class GetInfoResponseSerializer : KSerializer<GetInfoResponse> {
                     extensions = deserializeStringArray(composite, idx)
                 }
                 0x03 -> {
-                    aaguid = composite.decodeSerializableElement(
-                        ByteArraySerializer().descriptor,
-                        idx - 1,
-                        ByteArraySerializer(),
-                        null,
-                    )
+                    aaguid =
+                        composite.decodeSerializableElement(
+                            ByteArraySerializer().descriptor,
+                            idx - 1,
+                            ByteArraySerializer(),
+                            null,
+                        )
                 }
                 0x04 -> {
-                    options = composite.decodeSerializableElement(
-                        descriptor.getElementDescriptor(idx - 1),
-                        idx - 1,
-                        MapSerializer(
-                            String.serializer(),
-                            Boolean.serializer(),
-                        ),
-                        null,
-                    )
+                    options =
+                        composite.decodeSerializableElement(
+                            descriptor.getElementDescriptor(idx - 1),
+                            idx - 1,
+                            MapSerializer(
+                                String.serializer(),
+                                Boolean.serializer(),
+                            ),
+                            null,
+                        )
                 }
                 0x05 -> {
                     maxMsgSize = composite.decodeIntElement(descriptor, idx - 1).toUInt()
                 }
                 0x06 -> {
-                    pinUvAuthProtocols = composite.decodeSerializableElement(
-                        ArraySerializer(UInt.serializer()).descriptor,
-                        idx - 1,
-                        ArraySerializer(UInt.serializer()),
-                        null,
-                    )
+                    pinUvAuthProtocols =
+                        composite.decodeSerializableElement(
+                            ArraySerializer(UInt.serializer()).descriptor,
+                            idx - 1,
+                            ArraySerializer(UInt.serializer()),
+                            null,
+                        )
                 }
                 0x07 -> {
                     maxCredentialCountInList = composite.decodeIntElement(descriptor, idx - 1).toUInt()
@@ -259,12 +276,13 @@ class GetInfoResponseSerializer : KSerializer<GetInfoResponse> {
                     transports = deserializeStringArray(composite, idx)
                 }
                 0x0A -> {
-                    algorithms = composite.decodeSerializableElement(
-                        ArraySerializer(PublicKeyCredentialParameters.serializer()).descriptor,
-                        idx - 1,
-                        ArraySerializer(PublicKeyCredentialParameters.serializer()),
-                        null,
-                    )
+                    algorithms =
+                        composite.decodeSerializableElement(
+                            ArraySerializer(PublicKeyCredentialParameters.serializer()).descriptor,
+                            idx - 1,
+                            ArraySerializer(PublicKeyCredentialParameters.serializer()),
+                            null,
+                        )
                 }
                 0x0B -> {
                     maxSerializedLargeBlobArray = composite.decodeIntElement(descriptor, idx - 1).toUInt()
@@ -291,26 +309,28 @@ class GetInfoResponseSerializer : KSerializer<GetInfoResponse> {
                     uvModality = composite.decodeIntElement(descriptor, idx - 1).toUInt()
                 }
                 0x13 -> {
-                    certifications = composite.decodeSerializableElement(
-                        descriptor.getElementDescriptor(idx - 1),
-                        idx - 1,
-                        MapSerializer(
-                            String.serializer(),
-                            UInt.serializer(),
-                        ),
-                        null,
-                    )
+                    certifications =
+                        composite.decodeSerializableElement(
+                            descriptor.getElementDescriptor(idx - 1),
+                            idx - 1,
+                            MapSerializer(
+                                String.serializer(),
+                                UInt.serializer(),
+                            ),
+                            null,
+                        )
                 }
                 0x14 -> {
                     remainingDiscoverableCredentials = composite.decodeIntElement(descriptor, idx - 1).toUInt()
                 }
                 0x15 -> {
-                    vendorPrototypeConfigCommands = composite.decodeSerializableElement(
-                        ArraySerializer(UInt.serializer()).descriptor,
-                        idx - 1,
-                        ArraySerializer(UInt.serializer()),
-                        null,
-                    )
+                    vendorPrototypeConfigCommands =
+                        composite.decodeSerializableElement(
+                            ArraySerializer(UInt.serializer()).descriptor,
+                            idx - 1,
+                            ArraySerializer(UInt.serializer()),
+                            null,
+                        )
                 }
                 else -> {
                     // Ignore - unknown element
@@ -335,7 +355,10 @@ class GetInfoResponseSerializer : KSerializer<GetInfoResponse> {
         )
     }
 
-    override fun serialize(encoder: Encoder, value: GetInfoResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: GetInfoResponse,
+    ) {
         throw NotImplementedError()
     }
 }

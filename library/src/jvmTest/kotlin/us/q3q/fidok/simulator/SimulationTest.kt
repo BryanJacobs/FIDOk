@@ -12,7 +12,6 @@ import kotlin.random.Random
 
 @OptIn(ExperimentalStdlibApi::class)
 open class SimulationTest {
-
     private lateinit var device: SimulatedAppletDevice
     lateinit var client: CTAPClient
     lateinit var rpId: String
@@ -20,7 +19,6 @@ open class SimulationTest {
     lateinit var userName: String
 
     companion object {
-
         lateinit var library: FIDOkLibrary
 
         const val TEST_PIN = "TEST_PIN"
@@ -28,14 +26,16 @@ open class SimulationTest {
         @JvmStatic
         @BeforeAll
         fun loadNativeLibrary() {
-            library = FIDOkLibrary.init(
-                PureJVMCryptoProvider(),
-                callbacks = object : FIDOkCallbacks {
-                    override suspend fun collectPin(client: CTAPClient?): String? {
-                        return TEST_PIN
-                    }
-                },
-            )
+            library =
+                FIDOkLibrary.init(
+                    PureJVMCryptoProvider(),
+                    callbacks =
+                        object : FIDOkCallbacks {
+                            override suspend fun collectPin(client: CTAPClient?): String? {
+                                return TEST_PIN
+                            }
+                        },
+                )
         }
     }
 

@@ -8,7 +8,6 @@ import com.github.ajalt.clikt.parameters.options.option
 import us.q3q.fidok.ctap.FIDOkLibrary
 
 class Reset : CliktCommand(help = "PERMANENTLY reset an Authenticator, restoring it to fresh") {
-
     private val library by requireObject<FIDOkLibrary>()
 
     private val confirmation by option("--yes")

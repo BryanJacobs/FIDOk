@@ -4,7 +4,6 @@ package us.q3q.fidok.ctap
  * A provider of [AuthenticatorDevice] instances.
  */
 interface AuthenticatorListing {
-
     /**
      * Get Authenticators currently attached.
      *

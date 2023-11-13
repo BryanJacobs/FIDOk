@@ -21,9 +21,10 @@ data class ClientPinGetKeyAgreementResponse(val key: COSEKey)
  */
 class ClientPinGetKeyAgreementResponseSerializer : KSerializer<ClientPinGetKeyAgreementResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("ClientPinGetKeyAgreementResponse") {
-            element("key", COSEKey.serializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("ClientPinGetKeyAgreementResponse") {
+                element("key", COSEKey.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): ClientPinGetKeyAgreementResponse {
         val composite = decoder.beginStructure(descriptor)
@@ -45,7 +46,10 @@ class ClientPinGetKeyAgreementResponseSerializer : KSerializer<ClientPinGetKeyAg
         return ClientPinGetKeyAgreementResponse(key)
     }
 
-    override fun serialize(encoder: Encoder, value: ClientPinGetKeyAgreementResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: ClientPinGetKeyAgreementResponse,
+    ) {
         throw NotImplementedError("Cannot serialize a response")
     }
 }

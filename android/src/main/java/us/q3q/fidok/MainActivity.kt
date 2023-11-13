@@ -34,13 +34,15 @@ class MainActivity : ComponentActivity() {
     private var nfcAdapter: NfcAdapter? = null
 
     private val techDiscoveredIntentFilter = IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED)
-    private val supportedTechClassNames = arrayOf(
-        IsoDep::class.java.name,
-    )
+    private val supportedTechClassNames =
+        arrayOf(
+            IsoDep::class.java.name,
+        )
 
-    private val blePermissionRequestLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        Logger.d { "BLE permissions request result: $it" }
-    }
+    private val blePermissionRequestLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            Logger.d { "BLE permissions request result: $it" }
+        }
 
     private var nfcPendingIntent: PendingIntent? = null
     private var deviceListLive = MutableLiveData<List<AuthenticatorDevice>?>(null)
@@ -61,23 +63,26 @@ class MainActivity : ComponentActivity() {
 
         Logger.setMinSeverity(Severity.Verbose)
 
-        val permissionIntent = PendingIntent.getBroadcast(
-            this,
-            0,
-            Intent(ACTION_USB_PERMISSION),
-            PendingIntent.FLAG_IMMUTABLE,
-        )
+        val permissionIntent =
+            PendingIntent.getBroadcast(
+                this,
+                0,
+                Intent(ACTION_USB_PERMISSION),
+                PendingIntent.FLAG_IMMUTABLE,
+            )
         usbPermissionIntent = permissionIntent
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         registerReceiver(usbPermissionIntentReceiver, filter)
 
-        val nfcIntent = Intent(this, javaClass).apply {
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        nfcPendingIntent = PendingIntent.getActivity(
-            this, 0, nfcIntent,
-            PendingIntent.FLAG_MUTABLE,
-        )
+        val nfcIntent =
+            Intent(this, javaClass).apply {
+                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+        nfcPendingIntent =
+            PendingIntent.getActivity(
+                this, 0, nfcIntent,
+                PendingIntent.FLAG_MUTABLE,
+            )
 
         val bluetoothManager = getSystemService(BluetoothManager::class.java)
         var bluetoothAdapter = bluetoothManager.adapter
@@ -141,16 +146,18 @@ class MainActivity : ComponentActivity() {
             }
         }*/
 
-        val library = FIDOkLibrary.init(
-            PureJVMCryptoProvider(),
-            authenticatorAccessors = listOf(
-                object : AuthenticatorListing {
-                    override fun listDevices(): List<AuthenticatorDevice> {
-                        return doListUSB()
-                    }
-                },
-            ),
-        )
+        val library =
+            FIDOkLibrary.init(
+                PureJVMCryptoProvider(),
+                authenticatorAccessors =
+                    listOf(
+                        object : AuthenticatorListing {
+                            override fun listDevices(): List<AuthenticatorDevice> {
+                                return doListUSB()
+                            }
+                        },
+                    ),
+            )
 
         val doStartServer = {
             Logger.v { "About to check BLE permissions" }

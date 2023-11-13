@@ -17,10 +17,9 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import co.touchlab.kermit.Logger
 import us.q3q.fidok.ctap.DeviceCommunicationException
-import java.util.*
+import java.util.UUID
 
 class AndroidBLEServer(private val ctx: Context, private val manager: BluetoothManager, private val adapter: BluetoothAdapter) {
-
     @Throws(DeviceCommunicationException::class)
     fun startBLEServer() {
         Logger.i { "Requesting startup of BLE server" }
@@ -101,42 +100,44 @@ class AndroidBLEServer(private val ctx: Context, private val manager: BluetoothM
 
         Logger.v { "BLE service constructed; opening server" }
 
-        val gattCallbackHandler = object : BluetoothGattServerCallback() {
-            override fun onCharacteristicReadRequest(
-                device: BluetoothDevice?,
-                requestId: Int,
-                offset: Int,
-                characteristic: BluetoothGattCharacteristic?,
-            ) {
-                super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
-                Logger.v { "Received read request for ${characteristic?.uuid}" }
-            }
+        val gattCallbackHandler =
+            object : BluetoothGattServerCallback() {
+                override fun onCharacteristicReadRequest(
+                    device: BluetoothDevice?,
+                    requestId: Int,
+                    offset: Int,
+                    characteristic: BluetoothGattCharacteristic?,
+                ) {
+                    super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
+                    Logger.v { "Received read request for ${characteristic?.uuid}" }
+                }
 
-            override fun onCharacteristicWriteRequest(
-                device: BluetoothDevice?,
-                requestId: Int,
-                characteristic: BluetoothGattCharacteristic?,
-                preparedWrite: Boolean,
-                responseNeeded: Boolean,
-                offset: Int,
-                value: ByteArray?,
-            ) {
-                super.onCharacteristicWriteRequest(
-                    device,
-                    requestId,
-                    characteristic,
-                    preparedWrite,
-                    responseNeeded,
-                    offset,
-                    value,
-                )
-                Logger.v { "Received write request for ${characteristic?.uuid}" }
+                override fun onCharacteristicWriteRequest(
+                    device: BluetoothDevice?,
+                    requestId: Int,
+                    characteristic: BluetoothGattCharacteristic?,
+                    preparedWrite: Boolean,
+                    responseNeeded: Boolean,
+                    offset: Int,
+                    value: ByteArray?,
+                ) {
+                    super.onCharacteristicWriteRequest(
+                        device,
+                        requestId,
+                        characteristic,
+                        preparedWrite,
+                        responseNeeded,
+                        offset,
+                        value,
+                    )
+                    Logger.v { "Received write request for ${characteristic?.uuid}" }
+                }
             }
-        }
-        val server = manager.openGattServer(
-            ctx,
-            gattCallbackHandler,
-        )
+        val server =
+            manager.openGattServer(
+                ctx,
+                gattCallbackHandler,
+            )
 
         Logger.v { "BLE server opened" }
 

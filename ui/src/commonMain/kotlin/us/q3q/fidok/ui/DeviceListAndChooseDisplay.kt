@@ -45,18 +45,23 @@ internal fun DeviceListAndChooseDisplayPreviewEmpty() {
 @Composable
 internal fun DeviceListAndChooseDisplayPreview() {
     DeviceListAndChooseDisplay(
-        deviceList = listOf(
-            object : AuthenticatorDevice {
-                override fun sendBytes(bytes: ByteArray) = byteArrayOf()
-                override fun getTransports(): List<AuthenticatorTransport> =
-                    listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
-                override fun toString(): String = "FirstDevice"
-            },
-            object : AuthenticatorDevice {
-                override fun sendBytes(bytes: ByteArray) = byteArrayOf()
-                override fun getTransports(): List<AuthenticatorTransport> = listOf(AuthenticatorTransport.USB)
-                override fun toString(): String = "SecondDevice"
-            },
-        ),
+        deviceList =
+            listOf(
+                object : AuthenticatorDevice {
+                    override fun sendBytes(bytes: ByteArray) = byteArrayOf()
+
+                    override fun getTransports(): List<AuthenticatorTransport> =
+                        listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
+
+                    override fun toString(): String = "FirstDevice"
+                },
+                object : AuthenticatorDevice {
+                    override fun sendBytes(bytes: ByteArray) = byteArrayOf()
+
+                    override fun getTransports(): List<AuthenticatorTransport> = listOf(AuthenticatorTransport.USB)
+
+                    override fun toString(): String = "SecondDevice"
+                },
+            ),
     )
 }

@@ -11,7 +11,6 @@ import us.q3q.fidok.ctap.PinUVToken
  * @see CryptoProvider
  */
 interface PinUVProtocol {
-
     /**
      * Encipher data using the negotiated authenticator-platform shared secret.
      *
@@ -19,7 +18,10 @@ interface PinUVProtocol {
      * @param data The data to be enciphered
      * @return The enciphered representation of `data`, in a way specific to this protocol
      */
-    fun encrypt(key: KeyAgreementPlatformKey, data: ByteArray): ByteArray
+    fun encrypt(
+        key: KeyAgreementPlatformKey,
+        data: ByteArray,
+    ): ByteArray
 
     /**
      * Decipher data using the negotiated authenticator-platform shared secret.
@@ -29,7 +31,10 @@ interface PinUVProtocol {
      *             the Authenticator rather than the Platform
      * @return The original data passed to [encrypt]
      */
-    fun decrypt(key: KeyAgreementPlatformKey, data: ByteArray): ByteArray
+    fun decrypt(
+        key: KeyAgreementPlatformKey,
+        data: ByteArray,
+    ): ByteArray
 
     /**
      * Authenticate data using the authenticator-platform shared secret.
@@ -39,7 +44,10 @@ interface PinUVProtocol {
      * @return Bytes that may be used to verify that the caller of this function had
      *         possession of the `key`
      */
-    fun authenticate(key: KeyAgreementPlatformKey, data: ByteArray): ByteArray
+    fun authenticate(
+        key: KeyAgreementPlatformKey,
+        data: ByteArray,
+    ): ByteArray
 
     /**
      * Authenticate data using a [PinUVToken] directly, producing a signature.
@@ -50,7 +58,10 @@ interface PinUVProtocol {
      * @return Bytes that may be used to verify that the caller of this function had
      *         possession of the PIN/UV token
      */
-    fun authenticate(pinUVToken: PinUVToken, data: ByteArray): ByteArray
+    fun authenticate(
+        pinUVToken: PinUVToken,
+        data: ByteArray,
+    ): ByteArray
 
     /**
      * Verify that the given data were signed using the shared authenticator-platform secret.
@@ -61,7 +72,11 @@ interface PinUVProtocol {
      *                  the Authenticator
      * @return true if the `signature` is valid; false otherwise
      */
-    fun verify(key: KeyAgreementPlatformKey, data: ByteArray, signature: ByteArray): Boolean {
+    fun verify(
+        key: KeyAgreementPlatformKey,
+        data: ByteArray,
+        signature: ByteArray,
+    ): Boolean {
         val result = authenticate(key, data)
         return result.contentEquals(signature)
     }

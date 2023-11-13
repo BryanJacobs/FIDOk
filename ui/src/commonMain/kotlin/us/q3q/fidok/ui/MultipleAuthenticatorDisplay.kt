@@ -37,7 +37,9 @@ internal fun multipleAuthenticatorDisplayPreviewOne() {
         listOf(
             object : AuthenticatorDevice {
                 override fun sendBytes(bytes: ByteArray) = byteArrayOf()
+
                 override fun getTransports() = listOf(AuthenticatorTransport.SMART_CARD)
+
                 override fun toString() = "Some Authenticator"
             },
         ),

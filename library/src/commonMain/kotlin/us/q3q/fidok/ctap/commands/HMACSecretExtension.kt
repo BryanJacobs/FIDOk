@@ -38,8 +38,9 @@ class HMACSecretExtension(
     private val salt1: ByteArray? = null,
     private val salt2: ByteArray? = null,
 ) : Extension {
-
-    private val NAME = "hmac-secret"
+    companion object {
+        private const val NAME = "hmac-secret"
+    }
 
     init {
         require(salt1 == null || salt1.size == 32)
@@ -62,6 +63,7 @@ class HMACSecretExtension(
     fun getResult(): Pair<ByteArray?, ByteArray?> {
         return results.removeFirst()
     }
+
     fun wasCreated(): Boolean {
         return created
     }
@@ -77,7 +79,10 @@ class HMACSecretExtension(
         return BooleanExtensionParameter(true)
     }
 
-    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
+    override fun getAssertion(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters {
         if (keyAgreement == null || pinUVProtocol == null) {
             throw IllegalStateException("hmac-secret requires key agreement")
         }
@@ -87,11 +92,12 @@ class HMACSecretExtension(
         this.keyAgreement = keyAgreement
         this.pinUVProtocol = pinUVProtocol
 
-        val salt = if (salt2 == null) {
-            salt1
-        } else {
-            (salt1.toList() + salt2.toList()).toByteArray()
-        }
+        val salt =
+            if (salt2 == null) {
+                salt1
+            } else {
+                (salt1.toList() + salt2.toList()).toByteArray()
+            }
 
         val saltEnc = pinUVProtocol.encrypt(keyAgreement, salt)
         val saltAuth = pinUVProtocol.authenticate(keyAgreement, saltEnc)
@@ -105,8 +111,9 @@ class HMACSecretExtension(
     }
 
     override fun makeCredentialResponse(response: MakeCredentialResponse) {
-        val gotten = response.authData.extensions?.get(getName())
-            ?: return
+        val gotten =
+            response.authData.extensions?.get(getName())
+                ?: return
         created = (gotten as BooleanExtensionParameter).v
     }
 
@@ -175,18 +182,22 @@ data class HMACSecretExtensionParameter(
 
 class HMACSecretInputSerializer : KSerializer<HMACSecretExtensionParameter> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("HMACSecretInput") {
-            element("keyAgreement", COSEKey.serializer().descriptor)
-            element("saltEnc", ByteArraySerializer().descriptor)
-            element("saltAuth", ByteArraySerializer().descriptor)
-            element("pinUvAuthProtocol", UInt.serializer().descriptor, isOptional = true)
-        }
+        get() =
+            buildClassSerialDescriptor("HMACSecretInput") {
+                element("keyAgreement", COSEKey.serializer().descriptor)
+                element("saltEnc", ByteArraySerializer().descriptor)
+                element("saltAuth", ByteArraySerializer().descriptor)
+                element("pinUvAuthProtocol", UInt.serializer().descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): HMACSecretExtensionParameter {
         throw NotImplementedError("Cannot deserialize an HMAC secret INput")
     }
 
-    override fun serialize(encoder: Encoder, value: HMACSecretExtensionParameter) {
+    override fun serialize(
+        encoder: Encoder,
+        value: HMACSecretExtensionParameter,
+    ) {
         var numElements = 3
         val puv = value.pinUvAuthProtocol
         if (puv != null) {
@@ -214,10 +225,11 @@ internal fun hmacSecretExtensionCreation() {
     val client = Examples.getCTAPClient()
 
     val hmacSecretExtension = HMACSecretExtension()
-    val credential = client.makeCredential(
-        rpId = "some.cool.example",
-        extensions = ExtensionSetup(listOf(hmacSecretExtension)),
-    )
+    val credential =
+        client.makeCredential(
+            rpId = "some.cool.example",
+            extensions = ExtensionSetup(listOf(hmacSecretExtension)),
+        )
 
     if (hmacSecretExtension.wasCreated()) {
         println("Rejoice!")
@@ -228,14 +240,16 @@ internal fun hmacSecretExtensionCreation() {
 internal fun hmacSecretExtensionUse() {
     val client = Examples.getCTAPClient()
 
-    val hmacSecretExtension = HMACSecretExtension(
-        salt1 = Random.nextBytes(32),
-        salt2 = Random.nextBytes(32),
-    )
-    val assertions = client.getAssertions(
-        rpId = "some.awesome.example",
-        extensions = ExtensionSetup(listOf(hmacSecretExtension)),
-    )
+    val hmacSecretExtension =
+        HMACSecretExtension(
+            salt1 = Random.nextBytes(32),
+            salt2 = Random.nextBytes(32),
+        )
+    val assertions =
+        client.getAssertions(
+            rpId = "some.awesome.example",
+            extensions = ExtensionSetup(listOf(hmacSecretExtension)),
+        )
 
     for (assertion in assertions) {
         val result = hmacSecretExtension.getResult()

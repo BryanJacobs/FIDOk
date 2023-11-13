@@ -13,7 +13,10 @@ import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
 
 @Composable
-fun OneAuthenticatorDisplay(device: AuthenticatorDevice, onSelect: () -> Unit = {}) {
+fun OneAuthenticatorDisplay(
+    device: AuthenticatorDevice,
+    onSelect: () -> Unit = {},
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         for (transport in device.getTransports()) {
             InnerCard(transport.value)
@@ -28,10 +31,13 @@ fun OneAuthenticatorDisplay(device: AuthenticatorDevice, onSelect: () -> Unit = 
 @Composable
 @Preview
 internal fun oneAuthenticatorDisplayPreview() {
-    OneAuthenticatorDisplay(object : AuthenticatorDevice {
-        override fun sendBytes(bytes: ByteArray) = byteArrayOf()
-        override fun getTransports(): List<AuthenticatorTransport> =
-            listOf(AuthenticatorTransport.USB, AuthenticatorTransport.NFC)
-        override fun toString() = "Magic Authenticator"
-    })
+    OneAuthenticatorDisplay(
+        object : AuthenticatorDevice {
+            override fun sendBytes(bytes: ByteArray) = byteArrayOf()
+
+            override fun getTransports(): List<AuthenticatorTransport> = listOf(AuthenticatorTransport.USB, AuthenticatorTransport.NFC)
+
+            override fun toString() = "Magic Authenticator"
+        },
+    )
 }

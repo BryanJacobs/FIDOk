@@ -41,7 +41,6 @@ data class GetAssertionResponse(
     val userSelected: Boolean?,
     @ByteString val largeBlobKey: ByteArray?,
 ) {
-
     init {
         require((numberOfCredentials ?: 1) == 1 || userSelected == null)
     }
@@ -61,7 +60,9 @@ data class GetAssertionResponse(
         if (largeBlobKey != null) {
             if (other.largeBlobKey == null) return false
             if (!largeBlobKey.contentEquals(other.largeBlobKey)) return false
-        } else if (other.largeBlobKey != null) return false
+        } else if (other.largeBlobKey != null) {
+            return false
+        }
 
         return true
     }
@@ -83,15 +84,16 @@ data class GetAssertionResponse(
  */
 class GetAssertionResponseSerializer : KSerializer<GetAssertionResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("GetAssertionResponse") {
-            element("credential", PublicKeyCredentialDescriptor.serializer().descriptor)
-            element("authData", AuthenticatorData.serializer().descriptor)
-            element("signature", ByteArraySerializer().descriptor)
-            element("user", PublicKeyCredentialUserEntity.serializer().descriptor, isOptional = true)
-            element("numberOfCredentials", Int.serializer().descriptor, isOptional = true)
-            element("userSelected", Boolean.serializer().descriptor, isOptional = true)
-            element("largeBlobKey", ByteArraySerializer().descriptor, isOptional = true)
-        }
+        get() =
+            buildClassSerialDescriptor("GetAssertionResponse") {
+                element("credential", PublicKeyCredentialDescriptor.serializer().descriptor)
+                element("authData", AuthenticatorData.serializer().descriptor)
+                element("signature", ByteArraySerializer().descriptor)
+                element("user", PublicKeyCredentialUserEntity.serializer().descriptor, isOptional = true)
+                element("numberOfCredentials", Int.serializer().descriptor, isOptional = true)
+                element("userSelected", Boolean.serializer().descriptor, isOptional = true)
+                element("largeBlobKey", ByteArraySerializer().descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): GetAssertionResponse {
         val composite = decoder.beginStructure(descriptor)
@@ -145,7 +147,10 @@ class GetAssertionResponseSerializer : KSerializer<GetAssertionResponse> {
         )
     }
 
-    override fun serialize(encoder: Encoder, value: GetAssertionResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: GetAssertionResponse,
+    ) {
         throw NotImplementedError("Cannot serialize a GetAssertionResponse")
     }
 }

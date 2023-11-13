@@ -6,14 +6,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class AttestedCredentialDataSerializerTest {
-
     @Test
     fun roundTrips() {
-        val cred = AttestedCredentialData(
-            Random.nextBytes(16),
-            Random.nextBytes(32),
-            COSEKey(2, -7, 1, Random.nextBytes(32), Random.nextBytes(32)),
-        )
+        val cred =
+            AttestedCredentialData(
+                Random.nextBytes(16),
+                Random.nextBytes(32),
+                COSEKey(2, -7, 1, Random.nextBytes(32), Random.nextBytes(32)),
+            )
         val roundTripped = Utils.roundTripSerialize(cred, AttestedCredentialData.serializer())
 
         assertEquals(cred, roundTripped)

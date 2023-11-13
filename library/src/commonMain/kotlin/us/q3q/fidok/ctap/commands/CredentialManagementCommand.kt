@@ -48,22 +48,23 @@ class CredentialManagementCommand private constructor(
     }
 
     fun getUvParamData(): ByteArray {
-        val parameterBytes = if (subCommandParams != null) {
-            val encoder = CTAPCBOREncoder()
-            encoder.encodeSerializableValue(
-                MapSerializer(UByte.serializer(), ParameterValue.serializer()),
-                subCommandParams,
-            )
-            encoder.getBytes()
-        } else {
-            byteArrayOf()
-        }
+        val parameterBytes =
+            if (subCommandParams != null) {
+                val encoder = CTAPCBOREncoder()
+                encoder.encodeSerializableValue(
+                    MapSerializer(UByte.serializer(), ParameterValue.serializer()),
+                    subCommandParams,
+                )
+                encoder.getBytes()
+            } else {
+                byteArrayOf()
+            }
 
         return (
             listOf(
                 subCommand.toByte(),
             ) + parameterBytes.toList()
-            ).toByteArray()
+        ).toByteArray()
     }
 
     init {
@@ -164,9 +165,10 @@ class CredentialManagementCommand private constructor(
                 pinUvAuthProtocol = pinUvAuthProtocol,
                 pinUvAuthParam = pinUvAuthParam,
                 ctap21Implementation = ctap21Implementation,
-                subCommandParams = mapOf(
-                    0x01u.toUByte() to ByteArrayParameter(rpIDHash),
-                ),
+                subCommandParams =
+                    mapOf(
+                        0x01u.toUByte() to ByteArrayParameter(rpIDHash),
+                    ),
             )
         }
 
@@ -213,9 +215,10 @@ class CredentialManagementCommand private constructor(
                 subCommand = 0x06u,
                 pinUvAuthProtocol = pinUvAuthProtocol,
                 pinUvAuthParam = pinUvAuthParam,
-                subCommandParams = mapOf(
-                    0x02u.toUByte() to PublicKeyCredentialDescriptorParameter(credentialId),
-                ),
+                subCommandParams =
+                    mapOf(
+                        0x02u.toUByte() to PublicKeyCredentialDescriptorParameter(credentialId),
+                    ),
                 ctap21Implementation = ctap21Implementation,
             )
         }
@@ -245,10 +248,11 @@ class CredentialManagementCommand private constructor(
                 subCommand = 0x07u,
                 pinUvAuthProtocol = pinUvAuthProtocol,
                 pinUvAuthParam = pinUvAuthParam,
-                subCommandParams = mapOf(
-                    0x02u.toUByte() to PublicKeyCredentialDescriptorParameter(credentialId),
-                    0x03u.toUByte() to PublicKeyCredentialUserEntityParameter(user),
-                ),
+                subCommandParams =
+                    mapOf(
+                        0x02u.toUByte() to PublicKeyCredentialDescriptorParameter(credentialId),
+                        0x03u.toUByte() to PublicKeyCredentialUserEntityParameter(user),
+                    ),
                 ctap21Implementation = ctap21Implementation,
             )
         }

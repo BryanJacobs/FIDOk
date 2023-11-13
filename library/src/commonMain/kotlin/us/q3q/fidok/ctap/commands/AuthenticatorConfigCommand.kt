@@ -31,26 +31,28 @@ class AuthenticatorConfigCommand private constructor(
      * @return Bytes included in the PIN/UV verification process
      */
     fun getUvParamData(): ByteArray {
-        val parameterBytes = if (subCommandParams != null) {
-            val encoder = CTAPCBOREncoder()
-            encoder.encodeSerializableValue(
-                MapSerializer(UByte.serializer(), ParameterValue.serializer()),
-                subCommandParams,
-            )
-            encoder.getBytes()
-        } else {
-            byteArrayOf()
-        }
+        val parameterBytes =
+            if (subCommandParams != null) {
+                val encoder = CTAPCBOREncoder()
+                encoder.encodeSerializableValue(
+                    MapSerializer(UByte.serializer(), ParameterValue.serializer()),
+                    subCommandParams,
+                )
+                encoder.getBytes()
+            } else {
+                byteArrayOf()
+            }
 
         return (
-            ByteArray(32) { 0xFF.toByte() }.toList() + listOf(
-                cmdByte, subCommand.toByte(),
-            ) + parameterBytes.toList()
-            ).toByteArray()
+            ByteArray(32) { 0xFF.toByte() }.toList() +
+                listOf(
+                    cmdByte, subCommand.toByte(),
+                ) +
+                parameterBytes.toList()
+        ).toByteArray()
     }
 
     companion object {
-
         /**
          * Get a command to enable Enterprise Attestation.
          *
@@ -67,7 +69,10 @@ class AuthenticatorConfigCommand private constructor(
          * @return A command for enabling Enterprise Attestation
          */
         @JvmStatic
-        fun enableEnterpriseAttestation(pinUvAuthProtocol: UByte? = null, pinUvAuthParam: ByteArray? = null): AuthenticatorConfigCommand {
+        fun enableEnterpriseAttestation(
+            pinUvAuthProtocol: UByte? = null,
+            pinUvAuthParam: ByteArray? = null,
+        ): AuthenticatorConfigCommand {
             return AuthenticatorConfigCommand(
                 subCommand = 0x01u,
                 pinUvAuthProtocol = pinUvAuthProtocol,
@@ -88,7 +93,10 @@ class AuthenticatorConfigCommand private constructor(
          * @return A command for toggling the Always UV state
          */
         @JvmStatic
-        fun toggleAlwaysUv(pinUvAuthProtocol: UByte? = null, pinUvAuthParam: ByteArray? = null): AuthenticatorConfigCommand {
+        fun toggleAlwaysUv(
+            pinUvAuthProtocol: UByte? = null,
+            pinUvAuthParam: ByteArray? = null,
+        ): AuthenticatorConfigCommand {
             return AuthenticatorConfigCommand(
                 subCommand = 0x02u,
                 pinUvAuthProtocol = pinUvAuthProtocol,
@@ -129,17 +137,18 @@ class AuthenticatorConfigCommand private constructor(
                 subCommand = 0x03u,
                 pinUvAuthProtocol = pinUvAuthProtocol,
                 pinUvAuthParam = pinUvAuthParam,
-                subCommandParams = HashMap<UByte, ParameterValue>().apply {
-                    if (newMinPINLength != null) {
-                        this[0x01u] = UIntParameter(newMinPINLength)
-                    }
-                    if (minPinLengthRPIDs != null) {
-                        this[0x02u] = StringArrayParameter(minPinLengthRPIDs)
-                    }
-                    if (forceChangePin != null) {
-                        this[0x03u] = BooleanParameter(forceChangePin)
-                    }
-                },
+                subCommandParams =
+                    HashMap<UByte, ParameterValue>().apply {
+                        if (newMinPINLength != null) {
+                            this[0x01u] = UIntParameter(newMinPINLength)
+                        }
+                        if (minPinLengthRPIDs != null) {
+                            this[0x02u] = StringArrayParameter(minPinLengthRPIDs)
+                        }
+                        if (forceChangePin != null) {
+                            this[0x03u] = BooleanParameter(forceChangePin)
+                        }
+                    },
             )
         }
     }

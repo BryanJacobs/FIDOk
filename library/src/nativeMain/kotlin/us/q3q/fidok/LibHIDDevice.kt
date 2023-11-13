@@ -93,7 +93,10 @@ class LibHIDDevice(private val path: String, private val packetSize: Int) : Auth
         }
     }
 
-    private fun sendOnePacket(handle: CPointer<hid_device>, bytes: ByteArray) {
+    private fun sendOnePacket(
+        handle: CPointer<hid_device>,
+        bytes: ByteArray,
+    ) {
         if (bytes.size != packetSize) {
             throw IllegalArgumentException("Requested byte length: ${bytes.size} is not equal to packet size $packetSize")
         }

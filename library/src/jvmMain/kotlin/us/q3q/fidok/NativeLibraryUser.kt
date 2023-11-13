@@ -10,13 +10,14 @@ open class NativeLibraryUser(libraryPath: String) {
     protected val native: FIDOkNative
 
     init {
-        native = LibraryLoader.loadLibrary(
-            FIDOkNative::class.java,
-            mapOf(
-                LibraryOption.LoadNow to true,
-            ),
-            libraryPath,
-        )
+        native =
+            LibraryLoader.loadLibrary(
+                FIDOkNative::class.java,
+                mapOf(
+                    LibraryOption.LoadNow to true,
+                ),
+                libraryPath,
+            )
     }
 
     protected fun toBB(data: ByteArray): ByteBuffer {
@@ -26,7 +27,10 @@ open class NativeLibraryUser(libraryPath: String) {
         return ret
     }
 
-    protected fun toBA(data: ByteBuffer, len: Int? = null): ByteArray {
+    protected fun toBA(
+        data: ByteBuffer,
+        len: Int? = null,
+    ): ByteArray {
         return ByteArray(len ?: data.capacity()) {
             data[it]
         }
@@ -41,6 +45,7 @@ interface FIDOkNative {
         outX: ByteBuffer,
         outY: ByteBuffer,
     ): Long
+
     fun fidok_crypto_ecdh_kdf(
         state: Long,
         @In x: ByteBuffer,
@@ -54,8 +59,18 @@ interface FIDOkNative {
     ): Int
 
     fun fidok_crypto_ecdh_destroy(state: Long)
-    fun fidok_crypto_secure_random(numBytes: Int, out: ByteBuffer)
-    fun fidok_crypto_sha256(@In data: ByteBuffer, len: Int, out: ByteBuffer)
+
+    fun fidok_crypto_secure_random(
+        numBytes: Int,
+        out: ByteBuffer,
+    )
+
+    fun fidok_crypto_sha256(
+        @In data: ByteBuffer,
+        len: Int,
+        out: ByteBuffer,
+    )
+
     fun fidok_crypto_aes_256_cbc_encrypt(
         @In data: ByteBuffer,
         len: Int,
@@ -63,6 +78,7 @@ interface FIDOkNative {
         @In iv: ByteBuffer,
         out: ByteBuffer,
     )
+
     fun fidok_crypto_aes_256_cbc_decrypt(
         @In data: ByteBuffer,
         len: Int,
@@ -70,6 +86,7 @@ interface FIDOkNative {
         @In iv: ByteBuffer,
         out: ByteBuffer,
     )
+
     fun fidok_crypto_hmac_sha256(
         @In data: ByteBuffer,
         len: Int,
@@ -94,8 +111,11 @@ interface FIDOkNative {
     )
 
     fun fidok_device_list(): Pointer
+
     fun fidok_device_count(listing: Pointer): Int
+
     fun fidok_free_device_list(listing: Pointer): Int
+
     fun fidok_send_bytes(
         listing: Pointer,
         deviceNumber: Int,

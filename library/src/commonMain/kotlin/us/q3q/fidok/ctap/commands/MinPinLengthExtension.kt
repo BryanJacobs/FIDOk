@@ -11,8 +11,9 @@ import us.q3q.fidok.crypto.PinUVProtocol
  * @sample minPinLengthUsage
  */
 class MinPinLengthExtension : Extension {
-
-    private val NAME = "minPinLength"
+    companion object {
+        private const val NAME = "minPinLength"
+    }
 
     init {
         ExtensionSetup.register(NAME, creationParameterDeserializer = IntExtensionParameter.serializer())
@@ -28,7 +29,10 @@ class MinPinLengthExtension : Extension {
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
+    override fun makeCredential(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 
@@ -43,10 +47,11 @@ internal fun minPinLengthUsage() {
     val client = Examples.getCTAPClient()
 
     val minPinLengthExtension = MinPinLengthExtension()
-    val credential = client.makeCredential(
-        rpId = "some.good.example",
-        extensions = ExtensionSetup(listOf(minPinLengthExtension)),
-    )
+    val credential =
+        client.makeCredential(
+            rpId = "some.good.example",
+            extensions = ExtensionSetup(listOf(minPinLengthExtension)),
+        )
 
     val gottenMinPinLength = minPinLengthExtension.getLength()
 }

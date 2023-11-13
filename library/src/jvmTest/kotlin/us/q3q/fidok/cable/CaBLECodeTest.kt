@@ -7,15 +7,15 @@ import java.time.Instant
 import kotlin.test.assertEquals
 
 class CaBLECodeTest {
-
     @Test
     fun roundTrips() {
-        val code = CaBLECode(
-            publicKey = ByteArray(33) { 0xCD.toByte() },
-            secret = ByteArray(16) { 0x13 },
-            knownTunnelServerDomains = 9u,
-            currentEpochSeconds = Instant.now().toEpochMilli().toULong(),
-        )
+        val code =
+            CaBLECode(
+                publicKey = ByteArray(33) { 0xCD.toByte() },
+                secret = ByteArray(16) { 0x13 },
+                knownTunnelServerDomains = 9u,
+                currentEpochSeconds = Instant.now().toEpochMilli().toULong(),
+            )
 
         val encoder = CTAPCBOREncoder()
         encoder.encodeSerializableValue(CaBLECode.serializer(), code)

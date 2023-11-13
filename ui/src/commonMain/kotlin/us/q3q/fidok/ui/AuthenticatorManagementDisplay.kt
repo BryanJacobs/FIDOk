@@ -4,13 +4,10 @@ import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.Checkbox
@@ -18,7 +15,6 @@ import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
-import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,14 +24,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.min
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.crypto.NullCryptoProvider
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
@@ -53,7 +44,10 @@ import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
 import kotlin.random.Random
 
 @Composable
-fun AuthenticatorManagementDisplay(client: CTAPClient, onChangeTab: () -> Unit = {}) {
+fun AuthenticatorManagementDisplay(
+    client: CTAPClient,
+    onChangeTab: () -> Unit = {},
+) {
     var selection by remember { mutableStateOf(0) }
 
     Column {
@@ -106,7 +100,10 @@ fun InfoTab(client: CTAPClient) {
 }
 
 @Composable
-fun OneRPManagementView(rpWithHash: RPWithHash, onListCreds: () -> Unit = {}) {
+fun OneRPManagementView(
+    rpWithHash: RPWithHash,
+    onListCreds: () -> Unit = {},
+) {
     val rpName = (rpWithHash.rp.name ?: rpWithHash.rp.id) ?: "Unknown RP"
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(rpName, modifier = Modifier.padding(3.dp))
@@ -118,13 +115,17 @@ fun OneRPManagementView(rpWithHash: RPWithHash, onListCreds: () -> Unit = {}) {
 
 @OptIn(ExperimentalStdlibApi::class)
 @Composable
-fun OneCredView(cred: StoredCredentialData, onDelete: () -> Unit = {}) {
+fun OneCredView(
+    cred: StoredCredentialData,
+    onDelete: () -> Unit = {},
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        val userDesc = arrayOf(
-            cred.user.displayName ?: "",
-            if (cred.user.name != null) "(${cred.user.name})" else "",
-            if (cred.user.displayName == null && cred.user.name == null) cred.user.id.toHexString() else "",
-        ).joinToString(" ")
+        val userDesc =
+            arrayOf(
+                cred.user.displayName ?: "",
+                if (cred.user.name != null) "(${cred.user.name})" else "",
+                if (cred.user.displayName == null && cred.user.name == null) cred.user.id.toHexString() else "",
+            ).joinToString(" ")
         Text(userDesc)
         Button(onClick = onDelete) {
             Text("Delete")
@@ -168,14 +169,16 @@ fun CredentialsManagementTab(client: CTAPClient) {
             for (rpWithHash in rps) {
                 OneRPManagementView(rpWithHash, onListCreds = {
                     coroutineScope.launch {
-                        val pinToken = client.getPinUvTokenUsingAppropriateMethod(
-                            desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
-                            desiredRpId = rpWithHash.rp.id,
-                        )
-                        credList = client.credentialManagement().enumerateCredentials(
-                            rpIDHash = rpWithHash.rpIDHash,
-                            pinUVToken = pinToken,
-                        )
+                        val pinToken =
+                            client.getPinUvTokenUsingAppropriateMethod(
+                                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                                desiredRpId = rpWithHash.rp.id,
+                            )
+                        credList =
+                            client.credentialManagement().enumerateCredentials(
+                                rpIDHash = rpWithHash.rpIDHash,
+                                pinUVToken = pinToken,
+                            )
                     }
                     rpList = null
                     credMeta = null
@@ -189,10 +192,11 @@ fun CredentialsManagementTab(client: CTAPClient) {
             for (cred in creds) {
                 OneCredView(cred, onDelete = {
                     coroutineScope.launch {
-                        val pinToken = client.getPinUvTokenUsingAppropriateMethod(
-                            desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
-                            desiredRpId = chosenRP?.rp?.id,
-                        )
+                        val pinToken =
+                            client.getPinUvTokenUsingAppropriateMethod(
+                                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                                desiredRpId = chosenRP?.rp?.id,
+                            )
                         client.credentialManagement().deleteCredential(
                             cred.credentialID,
                             pinUVToken = pinToken,
@@ -255,10 +259,11 @@ fun ConfigTab(client: CTAPClient) {
         }
 
         Card(
-            modifier = Modifier.fillMaxWidth()
-                .padding(2.dp)
-                .border(BorderStroke(1.dp, Color.Black), shape = RoundedCornerShape(2.dp))
-                .padding(2.dp)
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(2.dp)
+                    .border(BorderStroke(1.dp, Color.Black), shape = RoundedCornerShape(2.dp))
+                    .padding(2.dp),
         ) {
             var minPinLength: UInt? by remember { mutableStateOf(null) }
             var forceChange: Boolean by remember { mutableStateOf(false) }
@@ -279,7 +284,7 @@ fun ConfigTab(client: CTAPClient) {
                     },
                     placeholder = { Text("Min Characters") },
                     singleLine = true,
-                    modifier = Modifier.padding(2.dp)
+                    modifier = Modifier.padding(2.dp),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Require PIN Change")
@@ -293,7 +298,7 @@ fun ConfigTab(client: CTAPClient) {
                         client.authenticatorConfig().setMinPINLength(
                             pinUVToken = uv,
                             newMinPINLength = minPinLength,
-                            forceChangePin = forceChange
+                            forceChangePin = forceChange,
                         )
                     }
                 }) {
@@ -314,6 +319,7 @@ internal fun fakeClient(): CTAPClient {
     return library.ctapClient(
         object : AuthenticatorDevice {
             override fun sendBytes(bytes: ByteArray) = byteArrayOf()
+
             override fun getTransports() = listOf<AuthenticatorTransport>()
         },
     )
@@ -354,9 +360,10 @@ internal fun pinTabPreview() {
 internal fun oneRPManagementPreview() {
     OneRPManagementView(
         RPWithHash(
-            rp = PublicKeyCredentialRpEntity(
-                name = "Some RP",
-            ),
+            rp =
+                PublicKeyCredentialRpEntity(
+                    name = "Some RP",
+                ),
             rpIDHash = byteArrayOf(),
         ),
     )
@@ -367,21 +374,24 @@ internal fun oneRPManagementPreview() {
 internal fun oneCredPreview() {
     OneCredView(
         StoredCredentialData(
-            user = PublicKeyCredentialUserEntity(
-                id = Random.nextBytes(32),
-                name = "someuser",
-                displayName = "Bob McBobs",
-            ),
-            credentialID = PublicKeyCredentialDescriptor(
-                Random.nextBytes(64),
-            ),
-            publicKey = COSEKey(
-                kty = 2,
-                alg = -7,
-                crv = 1,
-                x = Random.nextBytes(32),
-                y = Random.nextBytes(32),
-            ),
+            user =
+                PublicKeyCredentialUserEntity(
+                    id = Random.nextBytes(32),
+                    name = "someuser",
+                    displayName = "Bob McBobs",
+                ),
+            credentialID =
+                PublicKeyCredentialDescriptor(
+                    Random.nextBytes(64),
+                ),
+            publicKey =
+                COSEKey(
+                    kty = 2,
+                    alg = -7,
+                    crv = 1,
+                    x = Random.nextBytes(32),
+                    y = Random.nextBytes(32),
+                ),
             credProtect = 3u,
         ),
     )

@@ -110,7 +110,11 @@ class CTAPBLE {
          *         to send. If sent in sequence they will deliver the requested message over BLE
          */
         @JvmStatic
-        fun packetizeMessage(command: CTAPBLECommand, bytes: UByteArray, packetSize: Int): List<UByteArray> {
+        fun packetizeMessage(
+            command: CTAPBLECommand,
+            bytes: UByteArray,
+            packetSize: Int,
+        ): List<UByteArray> {
             val bytesForFirstPacket = bytes.copyOfRange(0, min(bytes.size, packetSize - 3))
             val lenHigh = (bytes.size and 0xFF00) shr 8
             val lenLow = bytes.size and 0x00FF

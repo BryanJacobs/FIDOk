@@ -13,7 +13,6 @@ const val NFC_TIMEOUT_MS = 5000
 class AndroidNFCDevice(
     private val tag: IsoDep,
 ) : AuthenticatorDevice {
-
     @Throws(DeviceCommunicationException::class)
     override fun sendBytes(bytes: ByteArray): ByteArray {
         if (!tag.isConnected) {

@@ -18,7 +18,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 
 @OptIn(ExperimentalStdlibApi::class)
 class UpdateUser : CliktCommand(help = "Change the user ID associated with a stored credential") {
-
     val client by requireObject<CTAPClient>()
 
     val library by requireObject<FIDOkLibrary>()
@@ -58,10 +57,11 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
         val credBytes = Base64.UrlSafe.decode(credential)
 
         runBlocking {
-            var token = client.getPinUvTokenUsingAppropriateMethod(
-                CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
-                desiredRpId = rpId,
-            )
+            var token =
+                client.getPinUvTokenUsingAppropriateMethod(
+                    CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                    desiredRpId = rpId,
+                )
 
             val credMgmt = client.credentialManagement()
 
@@ -72,10 +72,11 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
             if (userId == null || userName == null) {
                 // Get previous credential to read-modify-write the user info
                 val rpRawId = rpId ?: throw UsageError("Either the RPID must be provided, or both the user ID and name must be")
-                val creds = credMgmt.enumerateCredentials(
-                    rpIDHash = library.cryptoProvider.sha256(rpRawId.hexToByteArray()).hash,
-                    pinUVToken = token,
-                )
+                val creds =
+                    credMgmt.enumerateCredentials(
+                        rpIDHash = library.cryptoProvider.sha256(rpRawId.hexToByteArray()).hash,
+                        pinUVToken = token,
+                    )
                 var matched = false
                 for (cred in creds) {
                     if (cred.credentialID.id.contentEquals(credBytes)) {
@@ -96,10 +97,11 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
                     throw UsageError("User ID and/or name were not provided, but no discoverable credential matches the given one")
                 }
 
-                token = client.getPinUvTokenUsingAppropriateMethod(
-                    CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
-                    desiredRpId = rpId,
-                )
+                token =
+                    client.getPinUvTokenUsingAppropriateMethod(
+                        CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                        desiredRpId = rpId,
+                    )
             }
 
             if (effectiveUserId == null || effectiveUserName == null) {
@@ -108,11 +110,12 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
 
             credMgmt.updateUserInformation(
                 credentialID = PublicKeyCredentialDescriptor(credBytes),
-                user = PublicKeyCredentialUserEntity(
-                    id = effectiveUserId,
-                    name = effectiveUserName,
-                    displayName = effectiveUserDisplayName,
-                ),
+                user =
+                    PublicKeyCredentialUserEntity(
+                        id = effectiveUserId,
+                        name = effectiveUserName,
+                        displayName = effectiveUserDisplayName,
+                    ),
                 pinUVToken = token,
             )
         }

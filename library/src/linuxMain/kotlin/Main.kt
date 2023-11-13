@@ -5,10 +5,11 @@ import us.q3q.fidok.cli.DefaultCliCallbacks
 import us.q3q.fidok.cli.Main
 import us.q3q.fidok.ctap.FIDOkLibrary
 
-val PROVIDER_MAP = mapOf(
-    "hid" to LibHIDDevice,
-    "pcsc" to LibPCSCLiteDevice,
-)
+val PROVIDER_MAP =
+    mapOf(
+        "hid" to LibHIDDevice,
+        "pcsc" to LibPCSCLiteDevice,
+    )
 
 fun main(args: Array<String>) {
     Main(PROVIDER_MAP) {

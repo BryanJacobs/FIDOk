@@ -77,7 +77,6 @@ import kotlinx.cinterop.toKString
 import kotlinx.cinterop.value
 import platform.posix.size_tVar
 import platform.posix.uint32_t
-import platform.posix.uint8_tVar
 import us.q3q.fidok.crypto.AES256Key
 import us.q3q.fidok.crypto.CryptoProvider
 import us.q3q.fidok.crypto.KeyAgreementResult
@@ -88,8 +87,10 @@ import us.q3q.fidok.crypto.X509Info
 
 @OptIn(ExperimentalForeignApi::class)
 class BotanCryptoProvider : CryptoProvider {
-
-    private inline fun <reified T : CVariable, R> withBotanAlloc(destroy: (v: T) -> Unit, act: (v: T) -> R): R {
+    private inline fun <reified T : CVariable, R> withBotanAlloc(
+        destroy: (v: T) -> Unit,
+        act: (v: T) -> R,
+    ): R {
         memScoped {
             val ptr = this.alloc<T>()
             try {
@@ -109,33 +110,36 @@ class BotanCryptoProvider : CryptoProvider {
                     botan_privkey_create(privateKey.ptr, "ECDH", "secp256r1", rng)
                 }
 
-                val points = listOf("public_x", "public_y").map { fieldName ->
-                    withBotanAlloc<botan_mp_tVar, ByteArray>({ botan_mp_destroy(it.value) }) inner@{ mp ->
-                        botanSuccessCheck {
-                            botan_mp_init(mp.ptr)
-                        }
-                        botanSuccessCheck {
-                            botan_privkey_get_field(mp.value, privateKey.value, fieldName)
-                        }
-                        return@inner withOutBuffer(32) {
+                val points =
+                    listOf("public_x", "public_y").map { fieldName ->
+                        withBotanAlloc<botan_mp_tVar, ByteArray>({ botan_mp_destroy(it.value) }) inner@{ mp ->
                             botanSuccessCheck {
-                                botan_mp_to_bin(mp.value, it)
+                                botan_mp_init(mp.ptr)
+                            }
+                            botanSuccessCheck {
+                                botan_privkey_get_field(mp.value, privateKey.value, fieldName)
+                            }
+                            return@inner withOutBuffer(32) {
+                                botanSuccessCheck {
+                                    botan_mp_to_bin(mp.value, it)
+                                }
                             }
                         }
                     }
-                }
 
                 val exportBufferLen = 500
-                val trueExportedKey = memScoped {
-                    val exportBufferTrueLen = this.alloc<size_tVar>()
-                    exportBufferTrueLen.value = exportBufferLen.convert()
-                    val exportedKey = withOutBuffer(exportBufferLen) { keyOut ->
-                        botanSuccessCheck {
-                            botan_privkey_export(privateKey.value, keyOut, exportBufferTrueLen.ptr, 0u)
-                        }
+                val trueExportedKey =
+                    memScoped {
+                        val exportBufferTrueLen = this.alloc<size_tVar>()
+                        exportBufferTrueLen.value = exportBufferLen.convert()
+                        val exportedKey =
+                            withOutBuffer(exportBufferLen) { keyOut ->
+                                botanSuccessCheck {
+                                    botan_privkey_export(privateKey.value, keyOut, exportBufferTrueLen.ptr, 0u)
+                                }
+                            }
+                        exportedKey.copyOfRange(0, exportBufferTrueLen.value.toInt())
                     }
-                    exportedKey.copyOfRange(0, exportBufferTrueLen.value.toInt())
-                }
 
                 KeyAgreementState(points[0], points[1], PrivateKeyHolder(trueExportedKey))
             }
@@ -179,32 +183,34 @@ class BotanCryptoProvider : CryptoProvider {
                         botan_pk_op_key_agreement_size(ka.value, outLen.ptr)
                     }
 
-                    val rawKey = withOutBuffer(outLen.value.toInt()) { out ->
-                        botanSuccessCheck {
-                            botan_pk_op_key_agreement(
-                                ka.value,
-                                out,
-                                outLen.ptr,
-                                pkBuf,
-                                65u,
-                                null,
-                                0u,
-                            )
+                    val rawKey =
+                        withOutBuffer(outLen.value.toInt()) { out ->
+                            botanSuccessCheck {
+                                botan_pk_op_key_agreement(
+                                    ka.value,
+                                    out,
+                                    outLen.ptr,
+                                    pkBuf,
+                                    65u,
+                                    null,
+                                    0u,
+                                )
+                            }
                         }
-                    }
 
                     if (useHKDF) {
                         withInBuffer(rawKey) { rawKeyC ->
                             withInBuffer(info) { infoC ->
                                 withInBuffer(salt) { saltC ->
-                                    val res = withOutBuffer(32) { out ->
-                                        botan_kdf(
-                                            "HKDF(SHA-256)", out, 32u,
-                                            rawKeyC, rawKey.size.convert(),
-                                            saltC, salt.size.convert(),
-                                            infoC, info.size.convert(),
-                                        )
-                                    }
+                                    val res =
+                                        withOutBuffer(32) { out ->
+                                            botan_kdf(
+                                                "HKDF(SHA-256)", out, 32u,
+                                                rawKeyC, rawKey.size.convert(),
+                                                saltC, salt.size.convert(),
+                                                infoC, info.size.convert(),
+                                            )
+                                        }
                                     KeyAgreementResult(res)
                                 }
                             }
@@ -223,30 +229,31 @@ class BotanCryptoProvider : CryptoProvider {
     }
 
     override fun sha256(data: ByteArray): SHA256Result {
-        val ret = withBotanAlloc<botan_hash_tVar, ByteArray>({ botan_hash_destroy(it.value) }) { hash ->
-            botanSuccessCheck {
-                botan_hash_init(hash.ptr, "SHA-256", 0u)
-            }
-            memScoped {
-                val outputLength = this.alloc<size_tVar>()
+        val ret =
+            withBotanAlloc<botan_hash_tVar, ByteArray>({ botan_hash_destroy(it.value) }) { hash ->
                 botanSuccessCheck {
-                    botan_hash_output_length(hash.value, outputLength.ptr)
+                    botan_hash_init(hash.ptr, "SHA-256", 0u)
                 }
-
-                val inBuf = this.allocArray<UByteVar>(data.size)
-                for (i in data.indices) {
-                    inBuf[i] = data[i].toUByte()
-                }
-                botanSuccessCheck {
-                    botan_hash_update(hash.value, inBuf, data.size.convert())
-                }
-                withOutBuffer(outputLength.value.convert()) {
+                memScoped {
+                    val outputLength = this.alloc<size_tVar>()
                     botanSuccessCheck {
-                        botan_hash_final(hash.value, it)
+                        botan_hash_output_length(hash.value, outputLength.ptr)
+                    }
+
+                    val inBuf = this.allocArray<UByteVar>(data.size)
+                    for (i in data.indices) {
+                        inBuf[i] = data[i].toUByte()
+                    }
+                    botanSuccessCheck {
+                        botan_hash_update(hash.value, inBuf, data.size.convert())
+                    }
+                    withOutBuffer(outputLength.value.convert()) {
+                        botanSuccessCheck {
+                            botan_hash_final(hash.value, it)
+                        }
                     }
                 }
             }
-        }
         return SHA256Result(ret)
     }
 
@@ -259,7 +266,10 @@ class BotanCryptoProvider : CryptoProvider {
         }
     }
 
-    private fun withOutBuffer(numBytes: Int, f: (out: CArrayPointer<UByteVar>) -> Unit): ByteArray {
+    private fun withOutBuffer(
+        numBytes: Int,
+        f: (out: CArrayPointer<UByteVar>) -> Unit,
+    ): ByteArray {
         memScoped {
             val out = this.allocArray<UByteVar>(numBytes)
             f(out)
@@ -290,7 +300,11 @@ class BotanCryptoProvider : CryptoProvider {
         }
     }
 
-    private fun aes256(bytes: ByteArray, key: AES256Key, flags: uint32_t): ByteArray {
+    private fun aes256(
+        bytes: ByteArray,
+        key: AES256Key,
+        flags: uint32_t,
+    ): ByteArray {
         return withBotanAlloc<botan_cipher_tVar, ByteArray>({ botan_cipher_destroy(it.value) }) { bc ->
             botanSuccessCheck {
                 botan_cipher_init(bc.ptr, "AES-256/CBC/NoPadding", flags)
@@ -320,49 +334,59 @@ class BotanCryptoProvider : CryptoProvider {
                 outputLenBuffer.value = 0u
                 var previousConsumed: ULong = 0u
 
-                val ret = withInBuffer(bytes) { input ->
-                    withOutBuffer(outputLength) { output ->
-                        while (inputLenBuffer.value.toInt() != bytes.size) {
-                            botanSuccessCheck {
-                                botan_cipher_update(
-                                    bc.value,
-                                    BOTAN_CIPHER_UPDATE_FLAG_FINAL,
-                                    output,
-                                    outputLength.convert(),
-                                    outputLenBuffer.ptr,
-                                    input,
-                                    bytes.size.convert(),
-                                    inputLenBuffer.ptr,
-                                )
-                            }
+                val ret =
+                    withInBuffer(bytes) { input ->
+                        withOutBuffer(outputLength) { output ->
+                            while (inputLenBuffer.value.toInt() != bytes.size) {
+                                botanSuccessCheck {
+                                    botan_cipher_update(
+                                        bc.value,
+                                        BOTAN_CIPHER_UPDATE_FLAG_FINAL,
+                                        output,
+                                        outputLength.convert(),
+                                        outputLenBuffer.ptr,
+                                        input,
+                                        bytes.size.convert(),
+                                        inputLenBuffer.ptr,
+                                    )
+                                }
 
-                            Logger.v {
-                                "Stream cipher completed ${outputLenBuffer.value} bytes of $outputLength " +
-                                    "(input ${inputLenBuffer.value} of ${bytes.size})"
-                            }
+                                Logger.v {
+                                    "Stream cipher completed ${outputLenBuffer.value} bytes of $outputLength " +
+                                        "(input ${inputLenBuffer.value} of ${bytes.size})"
+                                }
 
-                            if (inputLenBuffer.value == previousConsumed) {
-                                throw IllegalStateException("Stream cipher failed to consume entire input!")
+                                if (inputLenBuffer.value == previousConsumed) {
+                                    throw IllegalStateException("Stream cipher failed to consume entire input!")
+                                }
+                                previousConsumed = inputLenBuffer.value
                             }
-                            previousConsumed = inputLenBuffer.value
                         }
                     }
-                }
 
                 ret
             }
         }
     }
 
-    override fun aes256CBCEncrypt(bytes: ByteArray, key: AES256Key): ByteArray {
+    override fun aes256CBCEncrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         return aes256(bytes, key, BOTAN_CIPHER_INIT_FLAG_ENCRYPT.convert())
     }
 
-    override fun aes256CBCDecrypt(bytes: ByteArray, key: AES256Key): ByteArray {
+    override fun aes256CBCDecrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         return aes256(bytes, key, BOTAN_CIPHER_INIT_FLAG_DECRYPT.convert())
     }
 
-    override fun hmacSHA256(bytes: ByteArray, key: AES256Key): SHA256Result {
+    override fun hmacSHA256(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): SHA256Result {
         return withBotanAlloc<botan_mac_tVar, SHA256Result>({ botan_mac_destroy(it.value) }) { mac ->
             botanSuccessCheck {
                 botan_mac_init(mac.ptr, "HMAC(SHA-256)", 0u)
@@ -386,9 +410,10 @@ class BotanCryptoProvider : CryptoProvider {
                     botan_mac_output_length(mac.value, outputLength.ptr)
                 }
 
-                val ret = withOutBuffer(outputLength.value.toInt()) {
-                    botan_mac_final(mac.value, it)
-                }
+                val ret =
+                    withOutBuffer(outputLength.value.toInt()) {
+                        botan_mac_final(mac.value, it)
+                    }
 
                 SHA256Result(ret)
             }
@@ -460,21 +485,22 @@ class BotanCryptoProvider : CryptoProvider {
                     botan_x509_cert_get_public_key(cert.value, pubKey.ptr)
                 }
 
-                val points = listOf("public_x", "public_y").map { fieldName ->
-                    withBotanAlloc<botan_mp_tVar, ByteArray>({ botan_mp_destroy(it.value) }) { mp ->
-                        botanSuccessCheck {
-                            botan_mp_init(mp.ptr)
-                        }
-                        botanSuccessCheck {
-                            botan_pubkey_get_field(mp.value, pubKey.value, fieldName)
-                        }
-                        withOutBuffer(32) {
+                val points =
+                    listOf("public_x", "public_y").map { fieldName ->
+                        withBotanAlloc<botan_mp_tVar, ByteArray>({ botan_mp_destroy(it.value) }) { mp ->
                             botanSuccessCheck {
-                                botan_mp_to_bin(mp.value, it)
+                                botan_mp_init(mp.ptr)
+                            }
+                            botanSuccessCheck {
+                                botan_pubkey_get_field(mp.value, pubKey.value, fieldName)
+                            }
+                            withOutBuffer(32) {
+                                botanSuccessCheck {
+                                    botan_mp_to_bin(mp.value, it)
+                                }
                             }
                         }
                     }
-                }
 
                 // TODO: also verify cert chain
                 // ... and get aaguid from extension OID 1.3.6.1.4.1.45724.1.1.4

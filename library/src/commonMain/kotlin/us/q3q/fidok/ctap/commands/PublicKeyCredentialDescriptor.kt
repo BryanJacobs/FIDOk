@@ -30,7 +30,11 @@ import us.q3q.fidok.ctap.AuthenticatorTransport
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = PublicKeyCredentialDescriptorSerializer::class)
-data class PublicKeyCredentialDescriptor(val type: String, @ByteString val id: ByteArray, val transports: List<String>? = null) {
+data class PublicKeyCredentialDescriptor(
+    val type: String,
+    @ByteString val id: ByteArray,
+    val transports: List<String>? = null,
+) {
     constructor(id: ByteArray) : this(PublicKeyCredentialType.PUBLIC_KEY.value, id)
 
     constructor(type: PublicKeyCredentialType, id: ByteArray, transports: List<AuthenticatorTransport>? = null) :
@@ -84,15 +88,16 @@ data class PublicKeyCredentialListParameter(override val v: List<PublicKeyCreden
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class PublicKeyCredentialDescriptorSerializer : KSerializer<PublicKeyCredentialDescriptor> {
     override val descriptor: SerialDescriptor
-        get() = buildSerialDescriptor("PublicKeyCredentialDescriptor", StructureKind.MAP) {
-            element("className", String.serializer().descriptor)
-            element("id_key", String.serializer().descriptor)
-            element("id", ByteArraySerializer().descriptor)
-            element("type_key", String.serializer().descriptor)
-            element("type", String.serializer().descriptor)
-            element("transports_key", String.serializer().descriptor, isOptional = true)
-            element("transports", ArraySerializer(String.serializer()).descriptor, isOptional = true)
-        }
+        get() =
+            buildSerialDescriptor("PublicKeyCredentialDescriptor", StructureKind.MAP) {
+                element("className", String.serializer().descriptor)
+                element("id_key", String.serializer().descriptor)
+                element("id", ByteArraySerializer().descriptor)
+                element("type_key", String.serializer().descriptor)
+                element("type", String.serializer().descriptor)
+                element("transports_key", String.serializer().descriptor, isOptional = true)
+                element("transports", ArraySerializer(String.serializer()).descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): PublicKeyCredentialDescriptor {
         val composite = decoder.beginStructure(descriptor)
@@ -141,7 +146,10 @@ class PublicKeyCredentialDescriptorSerializer : KSerializer<PublicKeyCredentialD
         )
     }
 
-    override fun serialize(encoder: Encoder, value: PublicKeyCredentialDescriptor) {
+    override fun serialize(
+        encoder: Encoder,
+        value: PublicKeyCredentialDescriptor,
+    ) {
         var size = 2
         if (value.transports != null) {
             size++

@@ -47,17 +47,18 @@ import us.q3q.fidok.pcsc.CTAPPCSC.Companion.sendAndReceive
 
 @OptIn(ExperimentalForeignApi::class)
 class MacPCSCLiteDevice(private val readerName: String, private val useExtendedMessages: Boolean = false) : AuthenticatorDevice {
-
     private var appletSelected = false
 
     @OptIn(ExperimentalStdlibApi::class, ExperimentalForeignApi::class)
     companion object : AuthenticatorListing {
-
         override fun providedTransports(): List<AuthenticatorTransport> {
             return listOf(AuthenticatorTransport.NFC, AuthenticatorTransport.SMART_CARD)
         }
 
-        private fun checkOp(msg: String, f: () -> platform.posix.int32_t): Boolean? {
+        private fun checkOp(
+            msg: String,
+            f: () -> platform.posix.int32_t,
+        ): Boolean? {
             val ret = f()
             if (ret != SCARD_S_SUCCESS) {
                 Logger.e(
@@ -95,14 +96,15 @@ class MacPCSCLiteDevice(private val readerName: String, private val useExtendedM
             memScoped {
                 val protocol = nativeHeap.alloc<uint32_tVar>()
                 val scard = nativeHeap.alloc<SCARDCONTEXTVar>()
-                val connectResult = SCardConnect(
-                    ctx,
-                    readerName,
-                    SCARD_SHARE_SHARED.convert(),
-                    SCARD_PROTOCOL_ANY.convert(),
-                    scard.ptr,
-                    protocol.ptr,
-                )
+                val connectResult =
+                    SCardConnect(
+                        ctx,
+                        readerName,
+                        SCARD_SHARE_SHARED.convert(),
+                        SCARD_PROTOCOL_ANY.convert(),
+                        scard.ptr,
+                        protocol.ptr,
+                    )
                 if (connectResult == SCARD_E_NO_SMARTCARD.toInt()) {
                     // oops, empty reader
                     Logger.d("No card in reader $readerName")
@@ -131,16 +133,17 @@ class MacPCSCLiteDevice(private val readerName: String, private val useExtendedM
             bytes: ByteArray,
             checkErrors: Boolean = true,
         ): ByteArray? {
-            val proto = when (protocol) {
-                SCARD_PROTOCOL_T0 ->
-                    SCARD_PCI_T0
-                SCARD_PROTOCOL_T1 ->
-                    SCARD_PCI_T1
-                SCARD_PROTOCOL_RAW ->
-                    SCARD_PCI_RAW
-                else ->
-                    throw NotImplementedError("Protocols other than T=0 and T=1 not supported!")
-            }
+            val proto =
+                when (protocol) {
+                    SCARD_PROTOCOL_T0 ->
+                        SCARD_PCI_T0
+                    SCARD_PROTOCOL_T1 ->
+                        SCARD_PCI_T1
+                    SCARD_PROTOCOL_RAW ->
+                        SCARD_PCI_RAW
+                    else ->
+                        throw NotImplementedError("Protocols other than T=0 and T=1 not supported!")
+                }
 
             val sendLength = bytes.size
             val sendBuffer = nativeHeap.allocArray<UByteVar>(sendLength)
@@ -184,7 +187,10 @@ class MacPCSCLiteDevice(private val readerName: String, private val useExtendedM
             return readBytes
         }
 
-        private fun checkReader(ctx: SCARDCONTEXT, readerName: String): Boolean {
+        private fun checkReader(
+            ctx: SCARDCONTEXT,
+            readerName: String,
+        ): Boolean {
             return withConnection(ctx, readerName) { conn, protocol ->
 
                 Logger.v("Selecting PC/SC applet on $readerName")
@@ -238,6 +244,7 @@ class MacPCSCLiteDevice(private val readerName: String, private val useExtendedM
             } ?: listOf()
         }
     }
+
     override fun sendBytes(bytes: ByteArray): ByteArray {
         return withContext { ctx ->
             return@withContext withConnection(ctx, readerName) { conn, protocol ->

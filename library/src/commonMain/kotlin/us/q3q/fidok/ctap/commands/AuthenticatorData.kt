@@ -82,20 +82,21 @@ data class AuthenticatorData(
  */
 class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("AuthenticatorData") {
-            element("rpIdHash", ByteArraySerializer().descriptor)
-            element("flags", UByte.serializer().descriptor)
-            element("signCount", UInt.serializer().descriptor)
-            element("attestedCredentialData", AttestedCredentialData.serializer().descriptor, isOptional = true)
-            element(
-                "extensions",
-                MapSerializer(
-                    ExtensionName.serializer(),
-                    ExtensionParameters.serializer(),
-                ).descriptor,
-                isOptional = true,
-            )
-        }
+        get() =
+            buildClassSerialDescriptor("AuthenticatorData") {
+                element("rpIdHash", ByteArraySerializer().descriptor)
+                element("flags", UByte.serializer().descriptor)
+                element("signCount", UInt.serializer().descriptor)
+                element("attestedCredentialData", AttestedCredentialData.serializer().descriptor, isOptional = true)
+                element(
+                    "extensions",
+                    MapSerializer(
+                        ExtensionName.serializer(),
+                        ExtensionParameters.serializer(),
+                    ).descriptor,
+                    isOptional = true,
+                )
+            }
 
     override fun deserialize(decoder: Decoder): AuthenticatorData {
         val rawAuthData = decoder.decodeSerializableValue(ByteArraySerializer())
@@ -107,22 +108,29 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
             rpIdHash.add(nestedDeserializer.decodeByteElement(descriptor, 0))
         }
         val flags = nestedDeserializer.decodeByteElement(descriptor, 1).toUByte()
-        val signCount = (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 24) +
-            (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 16) +
-            (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 8) +
-            nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt()
+        val signCount =
+            (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 24) +
+                (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 16) +
+                (nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt() shl 8) +
+                nestedDeserializer.decodeByteElement(descriptor, 2).toUByte().toUInt()
         var attestedCredentialData: AttestedCredentialData? = null
         if ((flags and FLAGS.ATTESTED.value) != 0.toUByte()) {
             attestedCredentialData = nestedDeserializer.decodeSerializableElement(descriptor, 3, AttestedCredentialData.serializer())
         }
         var extensions: Map<ExtensionName, ExtensionParameters>? = null
         if ((flags and FLAGS.EXTENSION_DATA.value) != 0.toUByte()) {
-            val serializer = if (attestedCredentialData != null) CreationExtensionResultsSerializer() else AssertionExtensionResultsSerializer()
-            val results = nestedDeserializer.decodeSerializableElement(
-                descriptor,
-                4,
-                serializer,
-            )
+            val serializer =
+                if (attestedCredentialData != null) {
+                    CreationExtensionResultsSerializer()
+                } else {
+                    AssertionExtensionResultsSerializer()
+                }
+            val results =
+                nestedDeserializer.decodeSerializableElement(
+                    descriptor,
+                    4,
+                    serializer,
+                )
             extensions = results.v
         }
 
@@ -136,11 +144,15 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
         )
     }
 
-    override fun serialize(encoder: Encoder, value: AuthenticatorData) {
-        val composite = encoder.beginCollection(
-            ByteArraySerializer().descriptor,
-            32 + 1 + 4,
-        )
+    override fun serialize(
+        encoder: Encoder,
+        value: AuthenticatorData,
+    ) {
+        val composite =
+            encoder.beginCollection(
+                ByteArraySerializer().descriptor,
+                32 + 1 + 4,
+            )
         for (i in value.rpIdHash.indices) {
             composite.encodeByteElement(descriptor, 0, value.rpIdHash[i])
         }

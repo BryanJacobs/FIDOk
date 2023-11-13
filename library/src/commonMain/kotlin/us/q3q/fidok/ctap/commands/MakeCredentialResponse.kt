@@ -91,7 +91,6 @@ data class MakeCredentialResponse(
     val epAtt: Boolean?,
     @ByteString val largeBlobKey: ByteArray?,
 ) {
-
     /**
      * Access the Credential itself.
      *
@@ -145,7 +144,9 @@ data class MakeCredentialResponse(
         if (largeBlobKey != null) {
             if (other.largeBlobKey == null) return false
             if (!largeBlobKey.contentEquals(other.largeBlobKey)) return false
-        } else if (other.largeBlobKey != null) return false
+        } else if (other.largeBlobKey != null) {
+            return false
+        }
 
         return true
     }
@@ -166,13 +167,14 @@ data class MakeCredentialResponse(
  */
 class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("MakeCredentialResponse") {
-            element("fmt", String.serializer().descriptor)
-            element("authData", AuthenticatorData.serializer().descriptor)
-            element("attStmt", MapSerializer(String.serializer(), ParameterValue.serializer()).descriptor, isOptional = true)
-            element("epAtt", Boolean.serializer().descriptor, isOptional = true)
-            element("largeBlobKey", ByteArraySerializer().descriptor, isOptional = true)
-        }
+        get() =
+            buildClassSerialDescriptor("MakeCredentialResponse") {
+                element("fmt", String.serializer().descriptor)
+                element("authData", AuthenticatorData.serializer().descriptor)
+                element("attStmt", MapSerializer(String.serializer(), ParameterValue.serializer()).descriptor, isOptional = true)
+                element("epAtt", Boolean.serializer().descriptor, isOptional = true)
+                element("largeBlobKey", ByteArraySerializer().descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): MakeCredentialResponse {
         val composite = decoder.beginStructure(descriptor)
@@ -192,12 +194,13 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
                     fmt = composite.decodeStringElement(descriptor, idx - 1)
                 }
                 0x02 -> {
-                    authData = composite.decodeSerializableElement(
-                        descriptor,
-                        idx - 1,
-                        AuthenticatorData.serializer(),
-                        null,
-                    )
+                    authData =
+                        composite.decodeSerializableElement(
+                            descriptor,
+                            idx - 1,
+                            AuthenticatorData.serializer(),
+                            null,
+                        )
                 }
                 0x03 -> {
                     if (fmt == null || authData == null) {
@@ -209,32 +212,35 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
                     val knownAttestationType = AttestationTypes.entries.find { it.value == fmt }
                     when (knownAttestationType) {
                         AttestationTypes.PACKED -> {
-                            val att = composite.decodeSerializableElement(
-                                descriptor,
-                                idx - 1,
-                                PackedAttestationStatement.serializer(),
-                            )
+                            val att =
+                                composite.decodeSerializableElement(
+                                    descriptor,
+                                    idx - 1,
+                                    PackedAttestationStatement.serializer(),
+                                )
                             rawAttStmt = att
-                            attStmt = if (att.x5c != null) {
-                                hashMapOf(
-                                    "alg" to att.alg,
-                                    "sig" to att.sig,
-                                    "x5c" to att.x5c,
-                                )
-                            } else {
-                                hashMapOf(
-                                    "alg" to att.alg,
-                                    "sig" to att.sig,
-                                )
-                            }
+                            attStmt =
+                                if (att.x5c != null) {
+                                    hashMapOf(
+                                        "alg" to att.alg,
+                                        "sig" to att.sig,
+                                        "x5c" to att.x5c,
+                                    )
+                                } else {
+                                    hashMapOf(
+                                        "alg" to att.alg,
+                                        "sig" to att.sig,
+                                    )
+                                }
                         }
                         AttestationTypes.NONE -> {
                             rawAttStmt = NoneAttestationStatement()
-                            val gottenMap = composite.decodeSerializableElement(
-                                descriptor,
-                                idx - 1,
-                                MapSerializer(String.serializer(), String.serializer()),
-                            )
+                            val gottenMap =
+                                composite.decodeSerializableElement(
+                                    descriptor,
+                                    idx - 1,
+                                    MapSerializer(String.serializer(), String.serializer()),
+                                )
                             if (gottenMap.isNotEmpty()) {
                                 throw SerializationException("None attestation type has non-empty data")
                             }
@@ -249,12 +255,13 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
                     epAtt = composite.decodeBooleanElement(descriptor, idx - 1)
                 }
                 0x05 -> {
-                    largeBlobKey = composite.decodeSerializableElement(
-                        ByteArraySerializer().descriptor,
-                        idx - 1,
-                        ByteArraySerializer(),
-                        null,
-                    )
+                    largeBlobKey =
+                        composite.decodeSerializableElement(
+                            ByteArraySerializer().descriptor,
+                            idx - 1,
+                            ByteArraySerializer(),
+                            null,
+                        )
                 }
                 else -> {
                     // Ignore - unknown element
@@ -277,7 +284,10 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
         )
     }
 
-    override fun serialize(encoder: Encoder, value: MakeCredentialResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: MakeCredentialResponse,
+    ) {
         throw NotImplementedError()
     }
 }

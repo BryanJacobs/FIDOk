@@ -20,24 +20,41 @@ import kotlin.time.TimeSource
 const val FIDOK_HID_PRODUCT = 0x27d9
 const val FIDOK_HID_VENDOR = 0x16c0
 const val FIDOK_HID_DEVICE_NAME = "FIDOk Virtual HID Device"
-val FIDOK_REPORT_DESCRIPTOR = byteArrayOf(
-    0x06, 0xD0.toByte(), 0xF1.toByte(), // Usage Page (FIDO = F1D0)
-    0x09, 0x01, // Usage (CTAPHID)
-    0xA1.toByte(), 0x01, // Collection (Application)
-    0x09, 0x20, // Usage (Data In)
-    0x15, 0x00, // Logical min (0)
-    0x26, 0xFF.toByte(), 0x00, // Logical max (255 = FF,00)
-    0x75, 0x08, // Report Size (8)
-    0x95.toByte(), 0x40, // Report count (64 bytes per packet = 0x40)
-    0x81.toByte(), 0x02, // Input(HID_Data | HID_Absolute | HID_Variable)
-    0x09, 0x21, // Usage (Data Out)
-    0x15, 0x00, // Logical min (0)
-    0x26, 0xFF.toByte(), 0x00, // Logical max (255 = FF,00)
-    0x75, 0x08, // Report Size (8)
-    0x95.toByte(), 0x40, // Report count (64 bytes per packet = 0x40)
-    0x91.toByte(), 0x02, // Output(HID_Data | HID_Absolute | HID_Variable)
-    0xc0.toByte(), // End Collection
-)
+val FIDOK_REPORT_DESCRIPTOR =
+    byteArrayOf(
+        // Usage Page (FIDO = F1D0)
+        0x06, 0xD0.toByte(), 0xF1.toByte(),
+        // Usage (CTAPHID)
+        0x09, 0x01,
+        // Collection (Application)
+        0xA1.toByte(), 0x01,
+        // Usage (Data In)
+        0x09, 0x20,
+        // Logical min (0)
+        0x15, 0x00,
+        // Logical max (255 = FF,00)
+        0x26, 0xFF.toByte(), 0x00,
+        // Report Size (8)
+        0x75, 0x08,
+        // Report count (64 bytes per packet = 0x40)
+        0x95.toByte(), 0x40,
+        // Input(HID_Data | HID_Absolute | HID_Variable)
+        0x81.toByte(), 0x02,
+        // Usage (Data Out)
+        0x09, 0x21,
+        // Logical min (0)
+        0x15, 0x00,
+        // Logical max (255 = FF,00)
+        0x26, 0xFF.toByte(), 0x00,
+        // Report Size (8)
+        0x75, 0x08,
+        // Report count (64 bytes per packet = 0x40)
+        0x95.toByte(), 0x40,
+        // Output(HID_Data | HID_Absolute | HID_Variable)
+        0x91.toByte(), 0x02,
+        // End Collection
+        0xc0.toByte(),
+    )
 
 val HID_TIMEOUT = 30.seconds
 val HID_POLL_DELAY = 500.milliseconds
@@ -45,8 +62,11 @@ val HID_RECV_DELAY = 25.milliseconds
 
 @OptIn(ExperimentalStdlibApi::class)
 interface HIDGatewayBase {
-
-    suspend fun handlePacket(gateway: HIDGateway, library: FIDOkLibrary, bytes: ByteArray) {
+    suspend fun handlePacket(
+        gateway: HIDGateway,
+        library: FIDOkLibrary,
+        bytes: ByteArray,
+    ) {
         if (bytes.size < 5) {
             throw DeviceCommunicationException("Received short packet: only ${bytes.size} bytes long")
         }
@@ -72,9 +92,10 @@ interface HIDGatewayBase {
 
             openOrResetChannel(gateway, channelId, len, bytes)
         } else {
-            val cmd = CTAPHIDCommand.entries.find {
-                it.value == seqOrCmd.toUByte()
-            }
+            val cmd =
+                CTAPHIDCommand.entries.find {
+                    it.value == seqOrCmd.toUByte()
+                }
             if (cmd == null) {
                 sendError(gateway, channelId, CTAPHIDError.INVALID_CMD)
                 throw DeviceCommunicationException("Unknown CTAPHID command $seqOrCmd")
@@ -85,15 +106,16 @@ interface HIDGatewayBase {
             val accumulator = arrayListOf<Byte>()
             accumulator.addAll(bytes.copyOfRange(7, min(len.toInt() + 7, bytes.size)).toList())
 
-            val read = try {
-                CTAPHID.continueReadingFromChannel(channelId, len, accumulator) {
-                    gateway.recv()
+            val read =
+                try {
+                    CTAPHID.continueReadingFromChannel(channelId, len, accumulator) {
+                        gateway.recv()
+                    }
+                } catch (e: IncorrectDataException) {
+                    Logger.e("Incorrect data reading from HID channel", e)
+                    sendError(gateway, channelId, CTAPHIDError.INVALID_CMD)
+                    return
                 }
-            } catch (e: IncorrectDataException) {
-                Logger.e("Incorrect data reading from HID channel", e)
-                sendError(gateway, channelId, CTAPHIDError.INVALID_CMD)
-                return
-            }
 
             Logger.i { "Read from HID channel: ${read.toHexString()}" }
 
@@ -151,7 +173,11 @@ interface HIDGatewayBase {
         sendError(gateway, channelId, CTAPHIDError.MSG_TIMEOUT)
     }
 
-    private suspend fun sendError(gateway: HIDGateway, channelId: UInt, error: CTAPHIDError) {
+    private suspend fun sendError(
+        gateway: HIDGateway,
+        channelId: UInt,
+        error: CTAPHIDError,
+    ) {
         CTAPHID.sendToChannel(CTAPHIDCommand.ERROR, channelId, byteArrayOf(error.value), HID_DEFAULT_PACKET_SIZE) {
             gateway.send(it)
         }
@@ -170,37 +196,45 @@ interface HIDGatewayBase {
             throw DeviceCommunicationException("HID INIT packet had invalid length: $len")
         }
 
-        val newChannel = if (channelId == HID_BROADCAST_CHANNEL) {
-            Random.nextBytes(4)
-        } else {
-            byteArrayOf(
-                ((channelId and 0xFF000000u) shr 24).toByte(),
-                ((channelId and 0x00FF0000u) shr 16).toByte(),
-                ((channelId and 0x0000FF00u) shr 8).toByte(),
-                (channelId and 0x000000FFu).toByte(),
-            )
-        }
+        val newChannel =
+            if (channelId == HID_BROADCAST_CHANNEL) {
+                Random.nextBytes(4)
+            } else {
+                byteArrayOf(
+                    ((channelId and 0xFF000000u) shr 24).toByte(),
+                    ((channelId and 0x00FF0000u) shr 16).toByte(),
+                    ((channelId and 0x0000FF00u) shr 8).toByte(),
+                    (channelId and 0x000000FFu).toByte(),
+                )
+            }
 
-        val pkt = byteArrayOf(
-            bytes[7],
-            bytes[8],
-            bytes[9],
-            bytes[10],
-            bytes[11],
-            bytes[12],
-            bytes[13],
-            bytes[14], // nonce
-            newChannel[0],
-            newChannel[1],
-            newChannel[2],
-            newChannel[3],
-            0x02, // protocol version
-            0x01, // device version (major)
-            0x00, // device version (minor)
-            0x00, // device version (point)
-            0x0C.toByte(), // CTAP capabilities bitfield - CBOR but no MSG or WINK.
-            // To implement CTAP1/U2F this would need to remove 0x08/NOMSG
-        )
+        val pkt =
+            byteArrayOf(
+                bytes[7],
+                bytes[8],
+                bytes[9],
+                bytes[10],
+                bytes[11],
+                bytes[12],
+                bytes[13],
+                bytes[14],
+                // nonce
+                newChannel[0],
+                newChannel[1],
+                newChannel[2],
+                newChannel[3],
+                // protocol version
+                0x02,
+                // device version (major)
+                0x01,
+                // device version (minor)
+                0x00,
+                // device version (point)
+                0x00,
+                // CTAP capabilities bitfield - CBOR but no MSG or WINK.
+                0x0C.toByte(),
+                // To implement CTAP1/U2F this would need to remove 0x08/NOMSG
+            )
 
         CTAPHID.sendToChannel(CTAPHIDCommand.INIT, channelId, pkt, HID_DEFAULT_PACKET_SIZE) {
             gateway.send(it)
@@ -210,7 +244,6 @@ interface HIDGatewayBase {
 
 @Suppress("UNUSED_PARAMETER")
 class StubHIDGateway() : HIDGatewayBase {
-
     suspend fun listenForever(library: FIDOkLibrary) {
         throw NotImplementedError()
     }
@@ -226,9 +259,9 @@ class StubHIDGateway() : HIDGatewayBase {
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 expect class HIDGateway() : HIDGatewayBase {
-
     suspend fun listenForever(library: FIDOkLibrary)
 
     suspend fun send(bytes: ByteArray)
+
     suspend fun recv(): ByteArray
 }

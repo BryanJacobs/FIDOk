@@ -19,16 +19,16 @@ import java.nio.ByteBuffer
  * @param libraryPath Fully-qualified path to the native FIDOk library file.
  */
 class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(libraryPath), CryptoProvider {
-
     override fun ecdhKeyAgreementInit(otherPublicKeyPoint: P256Point): KeyAgreementState {
         val outX = ByteBuffer.allocateDirect(32)
         val outY = ByteBuffer.allocateDirect(32)
-        val ret = native.fidok_crypto_ecdh_init(
-            toBB(otherPublicKeyPoint.x),
-            toBB(otherPublicKeyPoint.y),
-            outX,
-            outY,
-        )
+        val ret =
+            native.fidok_crypto_ecdh_init(
+                toBB(otherPublicKeyPoint.x),
+                toBB(otherPublicKeyPoint.y),
+                outX,
+                outY,
+            )
         return KeyAgreementState(toBA(outX), toBA(outY), ret)
     }
 
@@ -64,7 +64,10 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
         return toBA(buffer)
     }
 
-    override fun aes256CBCEncrypt(bytes: ByteArray, key: AES256Key): ByteArray {
+    override fun aes256CBCEncrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         if (key.iv == null) {
             throw IllegalArgumentException("AES encryption requires an IV")
         }
@@ -79,7 +82,10 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
         return toBA(ret)
     }
 
-    override fun aes256CBCDecrypt(bytes: ByteArray, key: AES256Key): ByteArray {
+    override fun aes256CBCDecrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         if (key.iv == null) {
             throw IllegalArgumentException("AES decryption requires an IV")
         }
@@ -94,7 +100,10 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
         return toBA(ret)
     }
 
-    override fun hmacSHA256(bytes: ByteArray, key: AES256Key): SHA256Result {
+    override fun hmacSHA256(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): SHA256Result {
         val ret = ByteBuffer.allocateDirect(32)
         native.fidok_crypto_hmac_sha256(
             toBB(bytes),

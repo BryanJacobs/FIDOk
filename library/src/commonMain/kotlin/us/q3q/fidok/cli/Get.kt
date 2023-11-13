@@ -20,7 +20,6 @@ import kotlin.random.Random
 
 @OptIn(ExperimentalEncodingApi::class, ExperimentalStdlibApi::class)
 class Get : CliktCommand(help = "Get (use) an existing webauthn credential") {
-
     private val library by requireObject<FIDOkLibrary>()
 
     private val rpId by option("--rp")
@@ -74,18 +73,20 @@ class Get : CliktCommand(help = "Get (use) an existing webauthn credential") {
         }
 
         runBlocking {
-            val assertion = library.webauthn().get(
-                PublicKeyCredentialRequestOptions(
-                    challenge = challenge.hexToByteArray(),
-                    rpId = rpId,
-                    allowCredentials = credentials.map {
-                        PublicKeyCredentialDescriptor(
-                            id = Base64.UrlSafe.decode(it),
-                        )
-                    },
-                    extensions = extensions,
-                ),
-            )
+            val assertion =
+                library.webauthn().get(
+                    PublicKeyCredentialRequestOptions(
+                        challenge = challenge.hexToByteArray(),
+                        rpId = rpId,
+                        allowCredentials =
+                            credentials.map {
+                                PublicKeyCredentialDescriptor(
+                                    id = Base64.UrlSafe.decode(it),
+                                )
+                            },
+                        extensions = extensions,
+                    ),
+                )
 
             val realAssertionResponse = assertion.response as AuthenticatorAssertionResponse
 

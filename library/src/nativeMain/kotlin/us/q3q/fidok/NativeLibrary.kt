@@ -24,18 +24,20 @@ typealias PasswordCollectorFunction = CPointer<CFunction<(CValues<ByteVar>) -> C
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_init")
 fun fidok_init(passwordCollection: PasswordCollectorFunction = null): COpaquePointer {
-    val library = FIDOkLibrary.init(
-        cryptoProvider = BotanCryptoProvider(),
-        authenticatorAccessors = platformDeviceProviders(),
-        callbacks = object : FIDOkCallbacks {
-            override suspend fun collectPin(client: CTAPClient?): String? {
-                if (passwordCollection == null) {
-                    return null
-                }
-                return passwordCollection(client.toString().cstr)?.toKString()
-            }
-        },
-    )
+    val library =
+        FIDOkLibrary.init(
+            cryptoProvider = BotanCryptoProvider(),
+            authenticatorAccessors = platformDeviceProviders(),
+            callbacks =
+                object : FIDOkCallbacks {
+                    override suspend fun collectPin(client: CTAPClient?): String? {
+                        if (passwordCollection == null) {
+                            return null
+                        }
+                        return passwordCollection(client.toString().cstr)?.toKString()
+                    }
+                },
+        )
     return StableRef.create(library).asCPointer()
 }
 

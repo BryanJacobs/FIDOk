@@ -39,12 +39,18 @@ fun InnerCard(text: String) {
 }
 
 @Composable
-fun LabeledCard(label: String, text: String) {
+fun LabeledCard(
+    label: String,
+    text: String,
+) {
     CardsForList(label, arrayOf(text))
 }
 
 @Composable
-fun CardsForList(label: String, elements: Array<String>) {
+fun CardsForList(
+    label: String,
+    elements: Array<String>,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.height(28.dp),
@@ -61,7 +67,10 @@ fun CardsForList(label: String, elements: Array<String>) {
 }
 
 @Composable
-fun CardsForMap(label: String, elements: Map<String, Any>) {
+fun CardsForMap(
+    label: String,
+    elements: Map<String, Any>,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.height(54.dp),
@@ -86,9 +95,10 @@ fun InfoDisplay(info: GetInfoResponse?) {
     }
 
     Box(
-        modifier = Modifier.fillMaxSize()
-            .background(color = Color(180, 180, 180))
-            .padding(10.dp),
+        modifier =
+            Modifier.fillMaxSize()
+                .background(color = Color(180, 180, 180))
+                .padding(10.dp),
     ) {
         LazyColumn(
             Modifier.fillMaxSize(),
@@ -243,22 +253,24 @@ internal fun previewInfo() {
                 versions = arrayOf("FIDO_2_0", "FIDO_2_1_PRE"),
                 extensions = arrayOf("minPinLength"),
                 aaguid = Random.nextBytes(32),
-                options = hashMapOf(
-                    "clientPin" to true,
-                    "setMinPinLength" to true,
-                    "alwaysUv" to true,
-                ),
+                options =
+                    hashMapOf(
+                        "clientPin" to true,
+                        "setMinPinLength" to true,
+                        "alwaysUv" to true,
+                    ),
                 maxMsgSize = 2048u,
                 pinUvAuthProtocols = arrayOf(1u, 2u),
                 maxCredentialCountInList = 10u,
                 maxCredentialIdLength = 64u,
                 transports = arrayOf("nfc", "usb"),
-                algorithms = arrayOf(
-                    PublicKeyCredentialParameters(
-                        alg = COSEAlgorithmIdentifier.ES256,
-                        type = PublicKeyCredentialType.PUBLIC_KEY,
+                algorithms =
+                    arrayOf(
+                        PublicKeyCredentialParameters(
+                            alg = COSEAlgorithmIdentifier.ES256,
+                            type = PublicKeyCredentialType.PUBLIC_KEY,
+                        ),
                     ),
-                ),
                 maxSerializedLargeBlobArray = 1024u,
                 forcePINChange = true,
                 minPINLength = 3u,

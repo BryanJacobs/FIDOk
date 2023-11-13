@@ -17,7 +17,12 @@ private var keyAgreementStateCounter = 0L
 
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_crypto_ecdh_init")
-fun ecdh_init(x: COpaquePointer, y: COpaquePointer, outX: COpaquePointer, outY: COpaquePointer): Long {
+fun ecdh_init(
+    x: COpaquePointer,
+    y: COpaquePointer,
+    outX: COpaquePointer,
+    outY: COpaquePointer,
+): Long {
     val xB = inAsByteArray(x, 32)
     val yB = inAsByteArray(y, 32)
     val state = crypto.ecdhKeyAgreementInit(P256Point(xB, yB))
@@ -50,13 +55,14 @@ fun ecdh_kdf(
     val saltB = inAsByteArray(salt, saltLen)
     val infoB = inAsByteArray(info, infoLen)
 
-    val ret = crypto.ecdhKeyAgreementKDF(
-        retrievedState,
-        P256Point(xB, yB),
-        useHKDF,
-        saltB,
-        infoB,
-    )
+    val ret =
+        crypto.ecdhKeyAgreementKDF(
+            retrievedState,
+            P256Point(xB, yB),
+            useHKDF,
+            saltB,
+            infoB,
+        )
 
     outFill(ret.bytes, out)
     return 0
@@ -69,14 +75,21 @@ fun ecdh_destroy(state: Long) {
 
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_crypto_secure_random")
-fun secure_random(numBytes: Int, out: COpaquePointer) {
+fun secure_random(
+    numBytes: Int,
+    out: COpaquePointer,
+) {
     val ret = crypto.secureRandom(numBytes)
     outFill(ret, out)
 }
 
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_crypto_sha256")
-fun sha256(data: COpaquePointer, len: Int, out: COpaquePointer) {
+fun sha256(
+    data: COpaquePointer,
+    len: Int,
+    out: COpaquePointer,
+) {
     val inB = inAsByteArray(data, len)
     val ret = crypto.sha256(inB).hash
     outFill(ret, out)
@@ -120,7 +133,12 @@ fun aes_256_decrypt(
 
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_crypto_hmac_sha256")
-fun hmac_sha256(data: COpaquePointer, len: Int, key: COpaquePointer, out: COpaquePointer) {
+fun hmac_sha256(
+    data: COpaquePointer,
+    len: Int,
+    key: COpaquePointer,
+    out: COpaquePointer,
+) {
     val inB = inAsByteArray(data, len)
     val keyB = inAsByteArray(key, 32)
 

@@ -29,7 +29,10 @@ class BlessedBluezDeviceListing {
             if (central == null) {
                 val bluetoothCentralManagerCallback: BluetoothCentralManagerCallback =
                     object : BluetoothCentralManagerCallback() {
-                        override fun onDiscoveredPeripheral(peripheral: BluetoothPeripheral, scanResult: ScanResult) {
+                        override fun onDiscoveredPeripheral(
+                            peripheral: BluetoothPeripheral,
+                            scanResult: ScanResult,
+                        ) {
                             Logger.i { "Found BLE peripheral ${peripheral.name}" }
                             central?.stopScan()
                             devices[peripheral.address] = BlessedBluezDevice(central!!, peripheral)

@@ -14,7 +14,6 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalStdlibApi::class)
 class GetAssertion : SimulationTest() {
-
     lateinit var cred: ByteArray
     lateinit var publicKey: COSEKey
 
@@ -29,13 +28,15 @@ class GetAssertion : SimulationTest() {
     fun basicGetAssertion() {
         val challenge = Random.nextBytes(32)
 
-        val assertions = client.getAssertions(
-            clientDataHash = challenge,
-            rpId = rpId,
-            allowList = listOf(
-                PublicKeyCredentialDescriptor(id = cred),
-            ),
-        )
+        val assertions =
+            client.getAssertions(
+                clientDataHash = challenge,
+                rpId = rpId,
+                allowList =
+                    listOf(
+                        PublicKeyCredentialDescriptor(id = cred),
+                    ),
+            )
 
         assertEquals(1, assertions.size)
         val assertion = assertions.first()

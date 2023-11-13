@@ -9,7 +9,6 @@ import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.CTAPClient
 
 class PinChange : CliktCommand(name = "change", help = "Change an existing PIN") {
-
     private val client by requireObject<CTAPClient>()
 
     private val newPin by option()

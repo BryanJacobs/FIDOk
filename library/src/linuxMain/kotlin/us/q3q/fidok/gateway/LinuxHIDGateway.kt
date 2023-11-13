@@ -45,7 +45,6 @@ const val UHID_FILE_PATH = "/dev/uhid"
 
 @OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class, ExperimentalStdlibApi::class)
 class LinuxHIDGateway() : HIDGatewayBase {
-
     private var uhid: Int? = null
 
     suspend fun listenForever(library: FIDOkLibrary) {
@@ -126,7 +125,10 @@ class LinuxHIDGateway() : HIDGatewayBase {
         return null
     }
 
-    private fun <R> withUHIDEvent(type: uhid_event_type, f: (evt: uhid_event) -> R) {
+    private fun <R> withUHIDEvent(
+        type: uhid_event_type,
+        f: (evt: uhid_event) -> R,
+    ) {
         return memScoped {
             val evt = nativeHeap.alloc<uhid_event>()
             evt.type = type.value

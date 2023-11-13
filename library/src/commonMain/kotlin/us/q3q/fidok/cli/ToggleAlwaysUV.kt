@@ -9,7 +9,6 @@ import us.q3q.fidok.ctap.CTAPOption
 import us.q3q.fidok.ctap.CTAPPinPermission
 
 class ToggleAlwaysUV : CliktCommand(help = "Turn on (or off) the requirement for a PIN on all operations") {
-
     val client by requireObject<CTAPClient>()
 
     override fun run() {

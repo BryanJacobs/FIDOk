@@ -16,7 +16,6 @@ class Main(
     private val providerMap: Map<String, AuthenticatorListing>,
     private val libraryBuilder: (authenticatorAccessors: List<AuthenticatorListing>) -> FIDOkLibrary,
 ) : CliktCommand(name = "fidok") {
-
     init {
         subcommands(Cfg(), Create(), Cred(), Gateway(), Get(), HMAC(), Info(), Pin(), Reset())
     }

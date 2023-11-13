@@ -16,8 +16,9 @@ import us.q3q.fidok.crypto.PinUVProtocol
  * @sample largeBlobKeyExample
  */
 class LargeBlobKeyExtension : Extension {
-
-    private val NAME = "largeBlobKey"
+    companion object {
+        private const val NAME = "largeBlobKey"
+    }
 
     init {
         ExtensionSetup.register(NAME)
@@ -31,7 +32,10 @@ class LargeBlobKeyExtension : Extension {
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters? {
+    override fun makeCredential(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters? {
         return BooleanExtensionParameter(true)
     }
 
@@ -40,7 +44,10 @@ class LargeBlobKeyExtension : Extension {
         largeBlobKeys.addLast(response.largeBlobKey)
     }
 
-    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
+    override fun getAssertion(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 
@@ -65,10 +72,11 @@ internal fun largeBlobKeyExample() {
     val client = Examples.getCTAPClient()
 
     val largeBlobKeyExtension = LargeBlobKeyExtension()
-    val credential = client.makeCredential(
-        rpId = "some.neat.example",
-        extensions = ExtensionSetup(listOf(largeBlobKeyExtension)),
-    )
+    val credential =
+        client.makeCredential(
+            rpId = "some.neat.example",
+            extensions = ExtensionSetup(listOf(largeBlobKeyExtension)),
+        )
 
     val largeBlobKey = largeBlobKeyExtension.getKey()
 }

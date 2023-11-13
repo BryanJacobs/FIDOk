@@ -7,8 +7,11 @@ import us.q3q.fidok.ctap.commands.AuthenticatorConfigCommand
  * Allows access to CTAP Authenticator Config commands, changing the state of the Authenticator itself.
  */
 class AuthenticatorConfigClient internal constructor(private val client: CTAPClient) {
-
-    private fun withPinParameters(pinProtocol: UByte?, pinUVToken: PinUVToken, f: (pp: PinUVProtocol) -> AuthenticatorConfigCommand) {
+    private fun withPinParameters(
+        pinProtocol: UByte?,
+        pinUVToken: PinUVToken,
+        f: (pp: PinUVProtocol) -> AuthenticatorConfigCommand,
+    ) {
         val pp = client.getPinProtocol(pinProtocol)
         val command = f(pp)
         command.pinUvAuthParam = pp.authenticate(pinUVToken, command.getUvParamData())
@@ -27,7 +30,10 @@ class AuthenticatorConfigClient internal constructor(private val client: CTAPCli
      * @param pinUVToken A PIN/UV token obtained from the Authenticator
      * @param pinProtocol The PIN/UV protocol in use
      */
-    fun enableEnterpriseAttestation(pinUVToken: PinUVToken, pinProtocol: UByte? = null) {
+    fun enableEnterpriseAttestation(
+        pinUVToken: PinUVToken,
+        pinProtocol: UByte? = null,
+    ) {
         withPinParameters(pinProtocol, pinUVToken) {
             AuthenticatorConfigCommand.enableEnterpriseAttestation(
                 pinUvAuthProtocol = it.getVersion(),
@@ -47,7 +53,10 @@ class AuthenticatorConfigClient internal constructor(private val client: CTAPCli
      * @param pinUVToken A PIN/UV token obtained from the Authenticator
      * @param pinProtocol The PIN/UV protocol in use
      */
-    fun toggleAlwaysUv(pinUVToken: PinUVToken, pinProtocol: UByte? = null) {
+    fun toggleAlwaysUv(
+        pinUVToken: PinUVToken,
+        pinProtocol: UByte? = null,
+    ) {
         withPinParameters(pinProtocol, pinUVToken) {
             AuthenticatorConfigCommand.toggleAlwaysUv(
                 pinUvAuthProtocol = it.getVersion(),

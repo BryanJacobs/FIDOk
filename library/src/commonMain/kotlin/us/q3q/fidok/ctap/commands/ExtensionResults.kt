@@ -23,7 +23,6 @@ data class ExtensionResults(val v: Map<ExtensionName, ExtensionParameters>)
  * Base class for deserializing [ExtensionResults].
  */
 abstract class ExtensionResultsSerializer : KSerializer<ExtensionResults> {
-
     /**
      * Function looking up the correct parameter-type deserializer to use.
      *
@@ -33,10 +32,11 @@ abstract class ExtensionResultsSerializer : KSerializer<ExtensionResults> {
     abstract fun getApplicableSerializer(extensionName: ExtensionName): DeserializationStrategy<ExtensionParameters>
 
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("ExtensionResults") {
-            element("key", String.serializer().descriptor)
-            element("value", ExtensionParameters.serializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("ExtensionResults") {
+                element("key", String.serializer().descriptor)
+                element("value", ExtensionParameters.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): ExtensionResults {
         val composite = decoder.beginStructure(descriptor)
@@ -58,7 +58,10 @@ abstract class ExtensionResultsSerializer : KSerializer<ExtensionResults> {
         return ExtensionResults(ret)
     }
 
-    override fun serialize(encoder: Encoder, value: ExtensionResults) {
+    override fun serialize(
+        encoder: Encoder,
+        value: ExtensionResults,
+    ) {
         throw NotImplementedError("Cannot serialize extension RESULTS")
     }
 }

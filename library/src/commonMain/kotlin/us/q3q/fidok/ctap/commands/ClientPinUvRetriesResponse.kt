@@ -23,9 +23,10 @@ data class ClientPinUvRetriesResponse(val uvRetries: UInt)
  */
 class ClientPinUvRetriesResponseSerializer : KSerializer<ClientPinUvRetriesResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("ClientPinUvRetriesResponse") {
-            element("uvRetries", UInt.serializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("ClientPinUvRetriesResponse") {
+                element("uvRetries", UInt.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): ClientPinUvRetriesResponse {
         val composite = decoder.beginStructure(descriptor)
@@ -45,7 +46,10 @@ class ClientPinUvRetriesResponseSerializer : KSerializer<ClientPinUvRetriesRespo
         )
     }
 
-    override fun serialize(encoder: Encoder, value: ClientPinUvRetriesResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: ClientPinUvRetriesResponse,
+    ) {
         throw NotImplementedError("Cannot serialize a response")
     }
 }

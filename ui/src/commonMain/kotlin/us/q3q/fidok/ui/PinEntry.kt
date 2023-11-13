@@ -16,10 +16,11 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PinEntry(onSet: (pin: String) -> Unit = {}) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .padding(16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .padding(16.dp),
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

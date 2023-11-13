@@ -36,23 +36,25 @@ data class PublicKeyCredentialRpEntityParameter(override val v: PublicKeyCredent
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class PKCredentialRpEntitySerializer : KSerializer<PublicKeyCredentialRpEntity> {
     override val descriptor: SerialDescriptor
-        get() = buildSerialDescriptor("PublicKeyCredentialRpEntity", StructureKind.MAP) {
-            element("className", String.serializer().descriptor)
-            element("id_key", String.serializer().descriptor)
-            element("id", String.serializer().descriptor)
-            element("icon_key", String.serializer().descriptor, isOptional = true)
-            element("icon", String.serializer().descriptor, isOptional = true)
-            element("name_key", String.serializer().descriptor, isOptional = true)
-            element("name", String.serializer().descriptor, isOptional = true)
-        }
+        get() =
+            buildSerialDescriptor("PublicKeyCredentialRpEntity", StructureKind.MAP) {
+                element("className", String.serializer().descriptor)
+                element("id_key", String.serializer().descriptor)
+                element("id", String.serializer().descriptor)
+                element("icon_key", String.serializer().descriptor, isOptional = true)
+                element("icon", String.serializer().descriptor, isOptional = true)
+                element("name_key", String.serializer().descriptor, isOptional = true)
+                element("name", String.serializer().descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): PublicKeyCredentialRpEntity {
-        val map = decoder.decodeSerializableValue(
-            MapSerializer(
-                String.serializer(),
-                String.serializer(),
-            ),
-        )
+        val map =
+            decoder.decodeSerializableValue(
+                MapSerializer(
+                    String.serializer(),
+                    String.serializer(),
+                ),
+            )
         val id = map["id"]
         return PublicKeyCredentialRpEntity(
             id = id,
@@ -61,7 +63,10 @@ class PKCredentialRpEntitySerializer : KSerializer<PublicKeyCredentialRpEntity> 
         )
     }
 
-    override fun serialize(encoder: Encoder, value: PublicKeyCredentialRpEntity) {
+    override fun serialize(
+        encoder: Encoder,
+        value: PublicKeyCredentialRpEntity,
+    ) {
         if (value.id == null) {
             throw IllegalArgumentException("Cannot serialize a PublicKeyCredentialRpEntity with a null ID")
         }

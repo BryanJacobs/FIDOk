@@ -10,7 +10,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class CaBLESupportTest {
-
     companion object {
         lateinit var caBLESupport: CaBLESupport
 
@@ -58,11 +57,12 @@ class CaBLESupportTest {
 
     @Test
     fun testBuildingCaBLEURL() {
-        val code = CaBLECode(
-            publicKey = ByteArray(33) { 0xFE.toByte() },
-            secret = ByteArray(16) { 0xCD.toByte() },
-            knownTunnelServerDomains = 2u,
-        )
+        val code =
+            CaBLECode(
+                publicKey = ByteArray(33) { 0xFE.toByte() },
+                secret = ByteArray(16) { 0xCD.toByte() },
+                knownTunnelServerDomains = 2u,
+            )
         val url = caBLESupport.buildCaBLEURL(code)
 
         assertTrue(url.startsWith("FIDO:/"))

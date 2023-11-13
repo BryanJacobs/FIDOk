@@ -8,20 +8,20 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class PinUVProtocolV1Test {
-
     private lateinit var pinUVProtocolV1: PinUVProtocolV1
     private lateinit var platformKey: KeyAgreementPlatformKey
 
     @BeforeTest
     fun setUpPP() {
         pinUVProtocolV1 = PinUVProtocolV1(PureJVMCryptoProvider())
-        platformKey = KeyAgreementPlatformKey(
-            Random.nextBytes(32),
-            Random.nextBytes(32),
-            Random.nextBytes(32),
-            Random.nextBytes(32),
-            Random.nextBytes(32),
-        )
+        platformKey =
+            KeyAgreementPlatformKey(
+                Random.nextBytes(32),
+                Random.nextBytes(32),
+                Random.nextBytes(32),
+                Random.nextBytes(32),
+                Random.nextBytes(32),
+            )
     }
 
     @Test

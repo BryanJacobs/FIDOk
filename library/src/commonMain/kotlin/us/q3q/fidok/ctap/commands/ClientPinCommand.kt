@@ -34,7 +34,6 @@ class ClientPinCommand private constructor(
     override val cmdByte: Byte = 0x06
 
     companion object {
-
         /**
          * Get a command for knowing how many times a PIN can be retried before locking the Authenticator
          *
@@ -132,7 +131,11 @@ class ClientPinCommand private constructor(
          * @see [ClientPinGetTokenResponse]
          */
         @JvmStatic
-        fun getPinToken(pinUvAuthProtocol: UByte, keyAgreement: COSEKey, pinHashEnc: ByteArray): ClientPinCommand {
+        fun getPinToken(
+            pinUvAuthProtocol: UByte,
+            keyAgreement: COSEKey,
+            pinHashEnc: ByteArray,
+        ): ClientPinCommand {
             return ClientPinCommand(
                 subCommand = 0x05u,
                 pinUvAuthProtocol = pinUvAuthProtocol,
@@ -215,30 +218,31 @@ class ClientPinCommand private constructor(
         }
     }
 
-    override val params = HashMap<UByte, ParameterValue>().apply {
-        if (pinUvAuthProtocol != null) {
-            this[0x01u] = UByteParameter(pinUvAuthProtocol)
+    override val params =
+        HashMap<UByte, ParameterValue>().apply {
+            if (pinUvAuthProtocol != null) {
+                this[0x01u] = UByteParameter(pinUvAuthProtocol)
+            }
+            this[0x02u] = UByteParameter(subCommand)
+            if (keyAgreement != null) {
+                this[0x03u] = COSEKeyParameter(keyAgreement)
+            }
+            if (pinUvAuthParam != null) {
+                this[0x04u] = ByteArrayParameter(pinUvAuthParam)
+            }
+            if (newPinEnc != null) {
+                this[0x05u] = ByteArrayParameter(newPinEnc)
+            }
+            if (pinHashEnc != null) {
+                this[0x06u] = ByteArrayParameter(pinHashEnc)
+            }
+            if (permissions != null) {
+                this[0x09u] = UByteParameter(permissions)
+            }
+            if (rpId != null) {
+                this[0x0Au] = StringParameter(rpId)
+            }
         }
-        this[0x02u] = UByteParameter(subCommand)
-        if (keyAgreement != null) {
-            this[0x03u] = COSEKeyParameter(keyAgreement)
-        }
-        if (pinUvAuthParam != null) {
-            this[0x04u] = ByteArrayParameter(pinUvAuthParam)
-        }
-        if (newPinEnc != null) {
-            this[0x05u] = ByteArrayParameter(newPinEnc)
-        }
-        if (pinHashEnc != null) {
-            this[0x06u] = ByteArrayParameter(pinHashEnc)
-        }
-        if (permissions != null) {
-            this[0x09u] = UByteParameter(permissions)
-        }
-        if (rpId != null) {
-            this[0x0Au] = StringParameter(rpId)
-        }
-    }
 }
 
 @Serializable

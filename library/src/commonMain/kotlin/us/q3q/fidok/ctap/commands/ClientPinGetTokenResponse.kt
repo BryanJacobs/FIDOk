@@ -39,9 +39,10 @@ data class ClientPinGetTokenResponse(val pinUvAuthToken: ByteArray) {
  */
 class ClientPinGetTokenResponseSerializer : KSerializer<ClientPinGetTokenResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("ClientPinGetTokenResponse") {
-            element("pinUvAuthToken", ByteArraySerializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("ClientPinGetTokenResponse") {
+                element("pinUvAuthToken", ByteArraySerializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): ClientPinGetTokenResponse {
         val composite = decoder.beginStructure(descriptor)
@@ -58,7 +59,10 @@ class ClientPinGetTokenResponseSerializer : KSerializer<ClientPinGetTokenRespons
         return ClientPinGetTokenResponse(pinUvAuthToken)
     }
 
-    override fun serialize(encoder: Encoder, value: ClientPinGetTokenResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: ClientPinGetTokenResponse,
+    ) {
         throw NotImplementedError("Cannot serialize a response")
     }
 }

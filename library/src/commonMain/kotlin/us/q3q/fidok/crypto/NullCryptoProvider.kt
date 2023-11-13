@@ -30,15 +30,24 @@ class NullCryptoProvider : CryptoProvider {
         throw NotImplementedError("Null crypto provider")
     }
 
-    override fun aes256CBCEncrypt(bytes: ByteArray, key: AES256Key): ByteArray {
+    override fun aes256CBCEncrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         throw NotImplementedError("Null crypto provider")
     }
 
-    override fun aes256CBCDecrypt(bytes: ByteArray, key: AES256Key): ByteArray {
+    override fun aes256CBCDecrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         throw NotImplementedError("Null crypto provider")
     }
 
-    override fun hmacSHA256(bytes: ByteArray, key: AES256Key): SHA256Result {
+    override fun hmacSHA256(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): SHA256Result {
         throw NotImplementedError("Null crypto provider")
     }
 

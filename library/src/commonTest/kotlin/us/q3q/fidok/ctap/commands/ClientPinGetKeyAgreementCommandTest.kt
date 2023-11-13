@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalStdlibApi::class)
 class ClientPinGetKeyAgreementCommandTest {
-
     @Test
     fun canSerialize() {
         val cmd = ClientPinCommand.getKeyAgreement(2u)

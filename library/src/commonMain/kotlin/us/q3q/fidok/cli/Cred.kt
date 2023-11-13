@@ -9,7 +9,6 @@ import us.q3q.fidok.ctap.CTAPOption
 import us.q3q.fidok.ctap.FIDOkLibrary
 
 class Cred : CliktCommand("Manage discoverable credentials") {
-
     init {
         subcommands(CredList(), Delete(), UpdateUser())
     }

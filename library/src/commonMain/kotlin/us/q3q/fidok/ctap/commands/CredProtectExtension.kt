@@ -24,8 +24,9 @@ import us.q3q.fidok.crypto.PinUVProtocol
  * @sample credProtectExtensionUse
  */
 class CredProtectExtension(private val requestedLevel: UByte) : Extension {
-
-    private val NAME = "credProtect"
+    companion object {
+        private const val NAME = "credProtect"
+    }
 
     init {
         ExtensionSetup.register(NAME, creationParameterDeserializer = IntExtensionParameter.serializer())
@@ -41,7 +42,10 @@ class CredProtectExtension(private val requestedLevel: UByte) : Extension {
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
+    override fun makeCredential(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters {
         return IntExtensionParameter(requestedLevel.toInt())
     }
 
@@ -56,10 +60,11 @@ internal fun credProtectExtensionUse() {
     val client = Examples.getCTAPClient()
 
     val credProtectExtension = CredProtectExtension(3u)
-    val credential = client.makeCredential(
-        rpId = "some.rpid.example",
-        extensions = ExtensionSetup(listOf(credProtectExtension)),
-    )
+    val credential =
+        client.makeCredential(
+            rpId = "some.rpid.example",
+            extensions = ExtensionSetup(listOf(credProtectExtension)),
+        )
 
     val credProtectLevel = credProtectExtension.getLevel()
 }

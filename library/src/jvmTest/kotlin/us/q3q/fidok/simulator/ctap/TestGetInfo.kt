@@ -6,7 +6,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 class TestGetInfo : SimulationTest() {
-
     @Test
     fun getsInfo() {
         val res = client.getInfo()

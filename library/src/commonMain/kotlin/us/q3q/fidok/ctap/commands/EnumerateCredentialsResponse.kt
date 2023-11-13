@@ -55,7 +55,9 @@ data class EnumerateCredentialsResponse(
         if (largeBlobKey != null) {
             if (other.largeBlobKey == null) return false
             if (!largeBlobKey.contentEquals(other.largeBlobKey)) return false
-        } else if (other.largeBlobKey != null) return false
+        } else if (other.largeBlobKey != null) {
+            return false
+        }
 
         return true
     }
@@ -76,14 +78,15 @@ data class EnumerateCredentialsResponse(
  */
 class EnumerateCredentialsResponseSerializer : KSerializer<EnumerateCredentialsResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("EnumerateRPsResponse") {
-            element("user", PublicKeyCredentialUserEntity.serializer().descriptor)
-            element("credentialID", ByteArraySerializer().descriptor)
-            element("publicKey", COSEKey.serializer().descriptor)
-            element("totalCredentials", UInt.serializer().descriptor, isOptional = true)
-            element("credProtect", UByte.serializer().descriptor, isOptional = true)
-            element("largeBlobKey", ByteArraySerializer().descriptor, isOptional = true)
-        }
+        get() =
+            buildClassSerialDescriptor("EnumerateRPsResponse") {
+                element("user", PublicKeyCredentialUserEntity.serializer().descriptor)
+                element("credentialID", ByteArraySerializer().descriptor)
+                element("publicKey", COSEKey.serializer().descriptor)
+                element("totalCredentials", UInt.serializer().descriptor, isOptional = true)
+                element("credProtect", UByte.serializer().descriptor, isOptional = true)
+                element("largeBlobKey", ByteArraySerializer().descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): EnumerateCredentialsResponse {
         val composite = decoder.beginStructure(descriptor)
@@ -134,7 +137,10 @@ class EnumerateCredentialsResponseSerializer : KSerializer<EnumerateCredentialsR
         )
     }
 
-    override fun serialize(encoder: Encoder, value: EnumerateCredentialsResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: EnumerateCredentialsResponse,
+    ) {
         throw NotImplementedError("Cannot serialize a response")
     }
 }

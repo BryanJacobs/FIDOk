@@ -13,7 +13,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 
 @OptIn(ExperimentalEncodingApi::class, ExperimentalStdlibApi::class)
 class Decrypt : CliktCommand(help = "Symmetrically decrypt data using the hmac-secret extension") {
-
     private val ezhmac by requireObject<EZHmac>()
 
     val setup by option("--setup")
@@ -46,11 +45,12 @@ class Decrypt : CliktCommand(help = "Symmetrically decrypt data using the hmac-s
     override fun run() {
         runBlocking {
             val gottenSalt = salt
-            val ret = if (gottenSalt == null) {
-                ezhmac.decrypt(Base64.UrlSafe.decode(setup), Base64.decode(data))
-            } else {
-                ezhmac.decrypt(Base64.UrlSafe.decode(setup), Base64.decode(data), gottenSalt.hexToByteArray())
-            }
+            val ret =
+                if (gottenSalt == null) {
+                    ezhmac.decrypt(Base64.UrlSafe.decode(setup), Base64.decode(data))
+                } else {
+                    ezhmac.decrypt(Base64.UrlSafe.decode(setup), Base64.decode(data), gottenSalt.hexToByteArray())
+                }
             echo(Base64.encode(ret))
         }
     }

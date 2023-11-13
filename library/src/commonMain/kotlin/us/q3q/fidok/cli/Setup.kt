@@ -9,7 +9,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 
 @OptIn(ExperimentalEncodingApi::class)
 class Setup : CliktCommand(help = "Set up a credential for use encrypting/decrypting data") {
-
     private val ezhmac by requireObject<EZHmac>()
 
     override fun run() {

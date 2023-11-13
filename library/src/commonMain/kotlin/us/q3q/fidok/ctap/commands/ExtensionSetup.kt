@@ -14,7 +14,6 @@ import us.q3q.fidok.crypto.PinUVProtocol
  * prior to use (such as in an `init` method).
  */
 interface Extension {
-
     /**
      * The canonical FIDO name of this extension
      */
@@ -27,7 +26,10 @@ interface Extension {
      * @param pinUVProtocol The PIN/UV protocol in use, if one is being used
      * @return Parameters to attach to the outgoing request to the Authenticator from the Platform
      */
-    fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters? = null
+    fun makeCredential(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters? = null
 
     /**
      * Declare what the extension should put into an outgoing [GetAssertionCommand].
@@ -36,7 +38,10 @@ interface Extension {
      * @param pinUVProtocol The PIN/UV protocol in use, if one is being used
      * @return Parameters to attach to the outgoing request to the Authenticator from the Platform
      */
-    fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters? = null
+    fun getAssertion(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters? = null
 
     /**
      * Take any extension-specific information from the Authenticator [MakeCredentialResponse].
@@ -76,7 +81,6 @@ interface Extension {
  * @property appliedExtensions [Extension] instances to be used
  */
 class ExtensionSetup(private val appliedExtensions: List<Extension>) {
-
     constructor(appliedExtension: Extension) : this(listOf(appliedExtension))
 
     companion object {
@@ -177,7 +181,10 @@ class ExtensionSetup(private val appliedExtensions: List<Extension>) {
      * @param pinUVProtocol The PIN/UV protocol in use, if required
      * @return A map keyed by each [Extension.getName], and values set to the result of [Extension.makeCredential].
      */
-    fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): Map<ExtensionName, ExtensionParameters> {
+    fun makeCredential(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): Map<ExtensionName, ExtensionParameters> {
         val ret = hashMapOf<ExtensionName, ExtensionParameters>()
         for (extension in appliedExtensions) {
             val params = extension.makeCredential(keyAgreement, pinUVProtocol)
@@ -196,7 +203,10 @@ class ExtensionSetup(private val appliedExtensions: List<Extension>) {
      * @param pinUVProtocol The PIN/UV protocol in use, if required
      * @return A map keyed by each [Extension.getName], and values set to the result of [Extension.getAssertion].
      */
-    fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): Map<ExtensionName, ExtensionParameters> {
+    fun getAssertion(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): Map<ExtensionName, ExtensionParameters> {
         val ret = hashMapOf<ExtensionName, ExtensionParameters>()
         for (extension in appliedExtensions) {
             val params = extension.getAssertion(keyAgreement, pinUVProtocol)

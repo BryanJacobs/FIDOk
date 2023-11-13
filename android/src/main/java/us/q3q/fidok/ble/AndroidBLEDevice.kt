@@ -17,12 +17,11 @@ import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.ctap.InvalidDeviceException
-import java.util.*
+import java.util.UUID
 import kotlin.experimental.and
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDevice) : AuthenticatorDevice {
-
     private val readResult = Channel<ByteArray>(Channel.BUFFERED)
     private val connectResult = Channel<Boolean>()
 
@@ -43,24 +42,26 @@ class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDe
         checkPermission(address)
 
         val s = g.getService(UUID.fromString(FIDO_BLE_SERVICE_UUID))
-        val controlPointChara = s.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_ATTRIBUTE))
-            ?: throw DeviceCommunicationException("Could not get FIDO control point for $address")
+        val controlPointChara =
+            s.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_ATTRIBUTE))
+                ?: throw DeviceCommunicationException("Could not get FIDO control point for $address")
 
         val statusAttribute = s.getCharacteristic(UUID.fromString(FIDO_STATUS_ATTRIBUTE))
         if (!g.setCharacteristicNotification(statusAttribute, true)) {
             throw DeviceCommunicationException("Could not enable BLE notifications on $address")
         }
 
-        val ret = CTAPBLE.sendAndReceive({
-            controlPointChara.setValue(it.toByteArray())
-            if (!g.writeCharacteristic(controlPointChara)) {
-                throw DeviceCommunicationException("Could not write message to BLE $address")
-            }
-        }, {
-            runBlocking {
-                readResult.receive().toUByteArray()
-            }
-        }, CTAPBLECommand.MSG, bytes.toUByteArray(), cpLen).toByteArray()
+        val ret =
+            CTAPBLE.sendAndReceive({
+                controlPointChara.setValue(it.toByteArray())
+                if (!g.writeCharacteristic(controlPointChara)) {
+                    throw DeviceCommunicationException("Could not write message to BLE $address")
+                }
+            }, {
+                runBlocking {
+                    readResult.receive().toUByteArray()
+                }
+            }, CTAPBLECommand.MSG, bytes.toUByteArray(), cpLen).toByteArray()
 
         if (!g.setCharacteristicNotification(statusAttribute, false)) {
             throw DeviceCommunicationException("Could not disable BLE notifications on $address")
@@ -76,61 +77,71 @@ class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDe
     private suspend fun connect(address: String?) {
         checkPermission(address)
 
-        val g = device.connectGatt(
-            ctx,
-            true,
-            object : BluetoothGattCallback() {
-                override fun onCharacteristicChanged(
-                    gatt: BluetoothGatt,
-                    characteristic: BluetoothGattCharacteristic,
-                    value: ByteArray,
-                ) {
-                    super.onCharacteristicChanged(gatt, characteristic, value)
-                    readResult.trySend(value)
-                }
-
-                override fun onCharacteristicRead(
-                    gatt: BluetoothGatt,
-                    characteristic: BluetoothGattCharacteristic,
-                    value: ByteArray,
-                    status: Int,
-                ) {
-                    Logger.v { "BLE characteristic read status: $status" }
-                    super.onCharacteristicRead(gatt, characteristic, value, status)
-                    if (status == BluetoothGatt.GATT_SUCCESS) {
+        val g =
+            device.connectGatt(
+                ctx,
+                true,
+                object : BluetoothGattCallback() {
+                    override fun onCharacteristicChanged(
+                        gatt: BluetoothGatt,
+                        characteristic: BluetoothGattCharacteristic,
+                        value: ByteArray,
+                    ) {
+                        super.onCharacteristicChanged(gatt, characteristic, value)
                         readResult.trySend(value)
                     }
-                }
 
-                override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-                    super.onServicesDiscovered(gatt, status)
-                    Logger.d { "BLE services discovered on '$address'" }
-                    connectResult.trySend(true)
-                }
-
-                override fun onConnectionStateChange(g: BluetoothGatt?, status: Int, newState: Int) {
-                    Logger.d { "BLE state change on '$address': $newState" }
-                    super.onConnectionStateChange(g, status, newState)
-                    if (newState == BluetoothProfile.STATE_CONNECTED) {
-                        try {
-                            g?.discoverServices()
-                        } catch (e: SecurityException) {
-                            throw IllegalStateException(e)
+                    override fun onCharacteristicRead(
+                        gatt: BluetoothGatt,
+                        characteristic: BluetoothGattCharacteristic,
+                        value: ByteArray,
+                        status: Int,
+                    ) {
+                        Logger.v { "BLE characteristic read status: $status" }
+                        super.onCharacteristicRead(gatt, characteristic, value, status)
+                        if (status == BluetoothGatt.GATT_SUCCESS) {
+                            readResult.trySend(value)
                         }
-                    } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                        gatt = null
                     }
-                }
-            },
-        )
+
+                    override fun onServicesDiscovered(
+                        gatt: BluetoothGatt?,
+                        status: Int,
+                    ) {
+                        super.onServicesDiscovered(gatt, status)
+                        Logger.d { "BLE services discovered on '$address'" }
+                        connectResult.trySend(true)
+                    }
+
+                    override fun onConnectionStateChange(
+                        g: BluetoothGatt?,
+                        status: Int,
+                        newState: Int,
+                    ) {
+                        Logger.d { "BLE state change on '$address': $newState" }
+                        super.onConnectionStateChange(g, status, newState)
+                        if (newState == BluetoothProfile.STATE_CONNECTED) {
+                            try {
+                                g?.discoverServices()
+                            } catch (e: SecurityException) {
+                                throw IllegalStateException(e)
+                            }
+                        } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                            gatt = null
+                        }
+                    }
+                },
+            )
 
         connectResult.receive()
 
-        val service = g.getService(UUID.fromString(FIDO_BLE_SERVICE_UUID))
-            ?: throw InvalidDeviceException("BLE device '$address' has no FIDO BLE service")
+        val service =
+            g.getService(UUID.fromString(FIDO_BLE_SERVICE_UUID))
+                ?: throw InvalidDeviceException("BLE device '$address' has no FIDO BLE service")
 
-        val cpLenChara = service.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE))
-            ?: throw InvalidDeviceException("BLE device '$address' has no control point length characteristic")
+        val cpLenChara =
+            service.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE))
+                ?: throw InvalidDeviceException("BLE device '$address' has no control point length characteristic")
         if (!g.readCharacteristic(cpLenChara)) {
             throw DeviceCommunicationException("BLE device '$address' could not read control point length")
         }
@@ -144,8 +155,9 @@ class AndroidBLEDevice(private val ctx: Context, private val device: BluetoothDe
             throw IncorrectDataException("Control point length out of bounds: $cpLen")
         }
 
-        val srevChara = service.getCharacteristic(UUID.fromString(FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE))
-            ?: throw InvalidDeviceException("BLE device '$address' has no service revision bitfield attribute")
+        val srevChara =
+            service.getCharacteristic(UUID.fromString(FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE))
+                ?: throw InvalidDeviceException("BLE device '$address' has no service revision bitfield attribute")
         if (!g.readCharacteristic(srevChara)) {
             throw DeviceCommunicationException("BLE device '$address' could not read service revision chara")
         }

@@ -7,7 +7,6 @@ import com.github.ajalt.clikt.core.subcommands
 import us.q3q.fidok.ctap.FIDOkLibrary
 
 class Cfg : CliktCommand("Manage Authenticator settings") {
-
     init {
         subcommands(EnableEnterpriseAttestation(), ToggleAlwaysUV())
     }

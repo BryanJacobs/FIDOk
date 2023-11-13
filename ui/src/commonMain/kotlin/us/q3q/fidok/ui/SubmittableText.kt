@@ -39,20 +39,22 @@ fun SubmittableText(
             placeholder = placeholder,
             onValueChange = { text = it },
             singleLine = true,
-            keyboardActions = KeyboardActions(
-                onDone = kbdWrap,
-                onSend = kbdWrap,
-                onGo = kbdWrap,
-            ),
-            modifier = Modifier.onKeyEvent {
-                if (it.key == Key.Enter) {
-                    onSubmit(text)
-                    text = ""
-                    true
-                } else {
-                    false
-                }
-            }.padding(12.dp),
+            keyboardActions =
+                KeyboardActions(
+                    onDone = kbdWrap,
+                    onSend = kbdWrap,
+                    onGo = kbdWrap,
+                ),
+            modifier =
+                Modifier.onKeyEvent {
+                    if (it.key == Key.Enter) {
+                        onSubmit(text)
+                        text = ""
+                        true
+                    } else {
+                        false
+                    }
+                }.padding(12.dp),
         )
         if (buttonContent != null) {
             Button(onClick = { onSubmit(text) }, content = buttonContent)

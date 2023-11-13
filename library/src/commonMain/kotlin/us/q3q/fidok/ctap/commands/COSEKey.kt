@@ -31,7 +31,13 @@ import kotlinx.serialization.encoding.Encoder
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = COSEKeySerializer::class)
-data class COSEKey(val kty: Int, val alg: Long, val crv: Int, @ByteString val x: ByteArray, @ByteString val y: ByteArray?) {
+data class COSEKey(
+    val kty: Int,
+    val alg: Long,
+    val crv: Int,
+    @ByteString val x: ByteArray,
+    @ByteString val y: ByteArray?,
+) {
     init {
         require(crv == 1 || (alg != -7L && alg != -25L)) // ES256 mandatory curve
         require(crv == 2 || alg != -35L) // ES384 mandatory curve
@@ -54,7 +60,9 @@ data class COSEKey(val kty: Int, val alg: Long, val crv: Int, @ByteString val x:
         if (y != null) {
             if (other.y == null) return false
             if (!y.contentEquals(other.y)) return false
-        } else if (other.y != null) return false
+        } else if (other.y != null) {
+            return false
+        }
 
         return true
     }
@@ -75,13 +83,14 @@ data class COSEKey(val kty: Int, val alg: Long, val crv: Int, @ByteString val x:
 @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 class COSEKeySerializer : KSerializer<COSEKey> {
     override val descriptor: SerialDescriptor
-        get() = buildSerialDescriptor("COSEKey", StructureKind.MAP) {
-            element("kty", Int.serializer().descriptor)
-            element("alg", Int.serializer().descriptor)
-            element("crv", Int.serializer().descriptor)
-            element("x", ByteArraySerializer().descriptor)
-            element("y", ByteArraySerializer().descriptor, isOptional = true)
-        }
+        get() =
+            buildSerialDescriptor("COSEKey", StructureKind.MAP) {
+                element("kty", Int.serializer().descriptor)
+                element("alg", Int.serializer().descriptor)
+                element("crv", Int.serializer().descriptor)
+                element("x", ByteArraySerializer().descriptor)
+                element("y", ByteArraySerializer().descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): COSEKey {
         val composite = decoder.beginStructure(descriptor)
@@ -125,7 +134,10 @@ class COSEKeySerializer : KSerializer<COSEKey> {
         return COSEKey(kty = kty, alg = alg, crv = crv, x = x, y = y)
     }
 
-    override fun serialize(encoder: Encoder, value: COSEKey) {
+    override fun serialize(
+        encoder: Encoder,
+        value: COSEKey,
+    ) {
         val composite = encoder.beginCollection(descriptor, if (value.y != null) 5 else 4)
         composite.encodeIntElement(descriptor, 0, 1)
         composite.encodeIntElement(descriptor, 0, value.kty)

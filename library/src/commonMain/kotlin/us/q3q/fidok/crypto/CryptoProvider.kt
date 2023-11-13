@@ -73,12 +73,18 @@ interface CryptoProvider {
      * @param key AES-256 key to use for encryption, including any applicable IV
      * @return Encrypted data
      */
-    fun aes256CBCEncrypt(bytes: ByteArray, key: AES256Key): ByteArray
+    fun aes256CBCEncrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray
 
     /**
      * See [aes256CBCEncrypt]; this is the same, but decrypting data instead of encrypting it
      */
-    fun aes256CBCDecrypt(bytes: ByteArray, key: AES256Key): ByteArray
+    fun aes256CBCDecrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray
 
     /**
      * Generate a Hashed Message Authentication Code using AES256 and SHA-256 for the input data
@@ -87,7 +93,10 @@ interface CryptoProvider {
      * @param key Key to use for the HMAC; any IV will be ignored
      * @return The resulting authenticated hash
      */
-    fun hmacSHA256(bytes: ByteArray, key: AES256Key): SHA256Result
+    fun hmacSHA256(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): SHA256Result
 
     /**
      * Validate an existing ECDSA signature on NIST P-256
@@ -97,7 +106,11 @@ interface CryptoProvider {
      * @param sig The bytes of the signature to validate, using BER encoding
      * @return true if the signature successfully validates; false otherwise
      */
-    fun es256SignatureValidate(signedBytes: ByteArray, key: P256Point, sig: ByteArray): Boolean
+    fun es256SignatureValidate(
+        signedBytes: ByteArray,
+        key: P256Point,
+        sig: ByteArray,
+    ): Boolean
 
     /**
      * Parse useful information from an X.509 certificate containing an ECDSA key on NIST P-256

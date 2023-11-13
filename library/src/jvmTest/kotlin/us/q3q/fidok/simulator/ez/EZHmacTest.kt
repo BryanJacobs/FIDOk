@@ -11,7 +11,6 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertNotEquals
 
 class EZHmacTest : SimulationTest() {
-
     private lateinit var ezHmac: EZHmac
 
     @BeforeEach
@@ -25,12 +24,13 @@ class EZHmacTest : SimulationTest() {
     fun roundTrips() {
         val toEncrypt = Random.nextBytes(12)
 
-        val decrypted = runBlocking {
-            val setup = ezHmac.setup()
+        val decrypted =
+            runBlocking {
+                val setup = ezHmac.setup()
 
-            val encrypted = ezHmac.encrypt(setup, toEncrypt)
-            ezHmac.decrypt(setup, encrypted)
-        }
+                val encrypted = ezHmac.encrypt(setup, toEncrypt)
+                ezHmac.decrypt(setup, encrypted)
+            }
 
         assertContentEquals(toEncrypt, decrypted)
     }

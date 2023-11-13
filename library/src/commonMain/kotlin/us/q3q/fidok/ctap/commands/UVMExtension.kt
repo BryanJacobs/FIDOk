@@ -24,8 +24,9 @@ import us.q3q.fidok.crypto.PinUVProtocol
  * @sample uvmExtensionUsage
  */
 class UVMExtension : Extension {
-
-    private val NAME = "uvm"
+    companion object {
+        private const val NAME = "uvm"
+    }
 
     init {
         ExtensionSetup.register(NAME, creationParameterDeserializer = UVMExtensionResultParameter.serializer())
@@ -41,7 +42,10 @@ class UVMExtension : Extension {
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
+    override fun makeCredential(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 
@@ -53,27 +57,30 @@ class UVMExtension : Extension {
 
 @Serializable(with = UVMEntrySerializer::class)
 data class UVMEntry(val userVerificationMethod: Int, val keyProtectionType: Int, val matcherProtectionType: Int) {
+    fun decodeKeyProtectionType(): KeyProtectionType? =
+        KeyProtectionType.entries.find {
+            it.v == keyProtectionType
+        }
 
-    fun decodeKeyProtectionType(): KeyProtectionType? = KeyProtectionType.entries.find {
-        it.v == keyProtectionType
-    }
+    fun decodeMatcherProtectionType(): MatcherProtectionType? =
+        MatcherProtectionType.entries.find {
+            it.v == matcherProtectionType
+        }
 
-    fun decodeMatcherProtectionType(): MatcherProtectionType? = MatcherProtectionType.entries.find {
-        it.v == matcherProtectionType
-    }
-
-    fun decodeUserVerificationMethod(): UserVerificationMethod? = UserVerificationMethod.entries.find {
-        it.v == userVerificationMethod
-    }
+    fun decodeUserVerificationMethod(): UserVerificationMethod? =
+        UserVerificationMethod.entries.find {
+            it.v == userVerificationMethod
+        }
 }
 
 class UVMEntrySerializer : KSerializer<UVMEntry> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("UVMEntry") {
-            element("userVerificationMethod", Int.serializer().descriptor)
-            element("keyProtectionType", Int.serializer().descriptor)
-            element("matcherProtectionType", Int.serializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("UVMEntry") {
+                element("userVerificationMethod", Int.serializer().descriptor)
+                element("keyProtectionType", Int.serializer().descriptor)
+                element("matcherProtectionType", Int.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): UVMEntry {
         val elements = decoder.decodeSerializableValue(ListSerializer(Int.serializer()))
@@ -83,7 +90,10 @@ class UVMEntrySerializer : KSerializer<UVMEntry> {
         return UVMEntry(elements[0], elements[1], elements[2])
     }
 
-    override fun serialize(encoder: Encoder, value: UVMEntry) {
+    override fun serialize(
+        encoder: Encoder,
+        value: UVMEntry,
+    ) {
         throw NotImplementedError("Cannot serialize a UVMEntry")
     }
 }
@@ -226,7 +236,10 @@ class UVMExtensionResultSerializer : KSerializer<UVMExtensionResultParameter> {
         return UVMExtensionResultParameter(v)
     }
 
-    override fun serialize(encoder: Encoder, value: UVMExtensionResultParameter) {
+    override fun serialize(
+        encoder: Encoder,
+        value: UVMExtensionResultParameter,
+    ) {
         throw NotImplementedError("Cannot serialize a UVM *result*")
     }
 }
@@ -236,13 +249,15 @@ internal fun uvmExtensionUsage(): String {
     val client = Examples.getCTAPClient()
 
     val uvmExtension = UVMExtension()
-    val credential = client.makeCredential(
-        rpId = "some.groovy.example",
-        extensions = ExtensionSetup(listOf(uvmExtension)),
-    )
+    val credential =
+        client.makeCredential(
+            rpId = "some.groovy.example",
+            extensions = ExtensionSetup(listOf(uvmExtension)),
+        )
 
-    val entries = uvmExtension.getUVMEntries()
-        ?: return "credential unprotected"
+    val entries =
+        uvmExtension.getUVMEntries()
+            ?: return "credential unprotected"
 
     for (entry in entries) {
         println("Key protection: ${entry.decodeKeyProtectionType()}")

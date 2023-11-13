@@ -4,23 +4,22 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class PackedAttestationSerializerTest {
-
-    private val MINIMAL =
+    private val minimal =
         PackedAttestationStatement(42, byteArrayOf(0x00, 0x09, 0x00, 0x13))
-    private val MAXIMAL =
+    private val maximal =
         PackedAttestationStatement(42, byteArrayOf(0x00, 0x09, 0x00, 0x13), arrayOf(byteArrayOf(0x29, 0x28)))
 
     @Test
     fun maximalRoundTrip() {
-        val roundTripped = Utils.roundTripSerialize(MAXIMAL, PackedAttestationStatement.serializer())
+        val roundTripped = Utils.roundTripSerialize(maximal, PackedAttestationStatement.serializer())
 
-        assertEquals(MAXIMAL, roundTripped)
+        assertEquals(maximal, roundTripped)
     }
 
     @Test
     fun minimalRoundTrip() {
-        val roundTripped = Utils.roundTripSerialize(MINIMAL, PackedAttestationStatement.serializer())
+        val roundTripped = Utils.roundTripSerialize(minimal, PackedAttestationStatement.serializer())
 
-        assertEquals(MINIMAL, roundTripped)
+        assertEquals(minimal, roundTripped)
     }
 }

@@ -22,7 +22,9 @@ data class AES256Key(val key: ByteArray, val iv: ByteArray? = null) {
         if (iv != null) {
             if (other.iv == null) return false
             if (!iv.contentEquals(other.iv)) return false
-        } else if (other.iv != null) return false
+        } else if (other.iv != null) {
+            return false
+        }
 
         return true
     }

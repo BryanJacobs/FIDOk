@@ -24,7 +24,9 @@ sealed class ParameterValue {
 
 @OptIn(ExperimentalSerializationApi::class, ExperimentalStdlibApi::class)
 @Serializable
-data class ByteArrayParameter(@ByteString override val v: ByteArray) : ParameterValue() {
+data class ByteArrayParameter(
+    @ByteString override val v: ByteArray,
+) : ParameterValue() {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -68,16 +70,20 @@ class MapParameterSerializer : KSerializer<MapParameter> {
         get() = buildSerialDescriptor("params", StructureKind.MAP)
 
     override fun deserialize(decoder: Decoder): MapParameter {
-        val ret = decoder.decodeSerializableValue(
-            MapSerializer(
-                UByte.serializer(),
-                ParameterValue.serializer(),
-            ),
-        )
+        val ret =
+            decoder.decodeSerializableValue(
+                MapSerializer(
+                    UByte.serializer(),
+                    ParameterValue.serializer(),
+                ),
+            )
         return MapParameter(ret)
     }
 
-    override fun serialize(encoder: Encoder, value: MapParameter) {
+    override fun serialize(
+        encoder: Encoder,
+        value: MapParameter,
+    ) {
         encoder.encodeSerializableValue(
             MapSerializer(
                 UByte.serializer(),
@@ -90,17 +96,22 @@ class MapParameterSerializer : KSerializer<MapParameter> {
 
 @Serializable(with = UByteParameterSerializer::class)
 data class UByteParameter(override val v: UByte) : ParameterValue()
+
 class UByteParameterSerializer : KSerializer<UByteParameter> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("UByteParameter") {
-            element("value", UByte.serializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("UByteParameter") {
+                element("value", UByte.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): UByteParameter {
         return UByteParameter(decoder.decodeInt().toUByte())
     }
 
-    override fun serialize(encoder: Encoder, value: UByteParameter) {
+    override fun serialize(
+        encoder: Encoder,
+        value: UByteParameter,
+    ) {
         encoder.encodeInt(value.v.toInt())
     }
 }

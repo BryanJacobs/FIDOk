@@ -37,7 +37,10 @@ class ExtensionParameterValueSerializer : KSerializer<ExtensionParameterValues> 
         TODO("Not yet implemented")
     }
 
-    override fun serialize(encoder: Encoder, value: ExtensionParameterValues) {
+    override fun serialize(
+        encoder: Encoder,
+        value: ExtensionParameterValues,
+    ) {
         encoder.encodeSerializableValue(
             MapSerializer(
                 ExtensionName.serializer(),
@@ -51,16 +54,17 @@ class ExtensionParameterValueSerializer : KSerializer<ExtensionParameterValues> 
 /**
  * Registry of different serializers available for the different types of [ExtensionParameters].
  */
-val extensionSerializers = SerializersModule {
-    polymorphic(ExtensionParameters::class) {
-        subclass(BooleanExtensionParameter::class, BooleanExtensionParameter.serializer())
-        subclass(StringExtensionParameter::class, StringExtensionParameter.serializer())
-        subclass(ByteArrayExtensionParameter::class, ByteArrayExtensionParameter.serializer())
-        subclass(IntExtensionParameter::class, IntExtensionParameter.serializer())
-        subclass(MapExtensionParameter::class, MapExtensionParameter.serializer())
-        subclass(HMACSecretExtensionParameter::class, HMACSecretExtensionParameter.serializer())
+val extensionSerializers =
+    SerializersModule {
+        polymorphic(ExtensionParameters::class) {
+            subclass(BooleanExtensionParameter::class, BooleanExtensionParameter.serializer())
+            subclass(StringExtensionParameter::class, StringExtensionParameter.serializer())
+            subclass(ByteArrayExtensionParameter::class, ByteArrayExtensionParameter.serializer())
+            subclass(IntExtensionParameter::class, IntExtensionParameter.serializer())
+            subclass(MapExtensionParameter::class, MapExtensionParameter.serializer())
+            subclass(HMACSecretExtensionParameter::class, HMACSecretExtensionParameter.serializer())
+        }
     }
-}
 
 @Serializable
 @SerialName("ExtensionParameters")
@@ -74,7 +78,9 @@ data class StringExtensionParameter(val v: String) : ExtensionParameters()
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
-data class ByteArrayExtensionParameter(@ByteString val v: ByteArray) : ExtensionParameters() {
+data class ByteArrayExtensionParameter(
+    @ByteString val v: ByteArray,
+) : ExtensionParameters() {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -103,7 +109,10 @@ class MapExtensionParameterValueSerializer : KSerializer<MapExtensionParameter> 
         TODO("Not yet implemented")
     }
 
-    override fun serialize(encoder: Encoder, value: MapExtensionParameter) {
+    override fun serialize(
+        encoder: Encoder,
+        value: MapExtensionParameter,
+    ) {
         encoder.encodeSerializableValue(
             MapSerializer(
                 String.serializer(),

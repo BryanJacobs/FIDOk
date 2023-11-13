@@ -113,14 +113,15 @@ data class CaBLECode(
  */
 class CaBLECodeSerializer : KSerializer<CaBLECode> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("CaBLECode") {
-            element("publicKey", ByteArraySerializer().descriptor)
-            element("secret", ByteArraySerializer().descriptor)
-            element("knownTunnelServerDomains", UByte.serializer().descriptor)
-            element("currentEpochSeconds", Int.serializer().descriptor, isOptional = true)
-            element("canPerformStateAssist", Boolean.serializer().descriptor, isOptional = true)
-            element("operationHint", String.serializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("CaBLECode") {
+                element("publicKey", ByteArraySerializer().descriptor)
+                element("secret", ByteArraySerializer().descriptor)
+                element("knownTunnelServerDomains", UByte.serializer().descriptor)
+                element("currentEpochSeconds", Int.serializer().descriptor, isOptional = true)
+                element("canPerformStateAssist", Boolean.serializer().descriptor, isOptional = true)
+                element("operationHint", String.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): CaBLECode {
         val composite = decoder.beginStructure(descriptor)
@@ -180,13 +181,17 @@ class CaBLECodeSerializer : KSerializer<CaBLECode> {
         )
     }
 
-    override fun serialize(encoder: Encoder, value: CaBLECode) {
-        val params = hashMapOf(
-            0x00.toUByte() to ByteArrayParameter(value.publicKey),
-            0x01.toUByte() to ByteArrayParameter(value.secret),
-            0x02.toUByte() to UByteParameter(value.knownTunnelServerDomains),
-            0x05.toUByte() to StringParameter(value.operationHint.v),
-        )
+    override fun serialize(
+        encoder: Encoder,
+        value: CaBLECode,
+    ) {
+        val params =
+            hashMapOf(
+                0x00.toUByte() to ByteArrayParameter(value.publicKey),
+                0x01.toUByte() to ByteArrayParameter(value.secret),
+                0x02.toUByte() to UByteParameter(value.knownTunnelServerDomains),
+                0x05.toUByte() to StringParameter(value.operationHint.v),
+            )
         if (value.currentEpochSeconds != null) {
             params[0x03.toUByte()] = ULongParameter(value.currentEpochSeconds)
         }

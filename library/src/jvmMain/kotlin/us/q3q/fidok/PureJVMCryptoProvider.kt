@@ -35,20 +35,27 @@ import kotlin.random.Random
  * work fine. All cryptographic operations are delegated to the JVM's built-in implementations.
  */
 class PureJVMCryptoProvider : CryptoProvider {
-
-    private fun pointsToECPK(x: ByteArray, y: ByteArray, spec: ECParameterSpec): PublicKey {
-        val pubKeySpec = ECPublicKeySpec(
-            ECPoint(
-                BigInteger(1, x),
-                BigInteger(1, y),
-            ),
-            spec,
-        )
+    private fun pointsToECPK(
+        x: ByteArray,
+        y: ByteArray,
+        spec: ECParameterSpec,
+    ): PublicKey {
+        val pubKeySpec =
+            ECPublicKeySpec(
+                ECPoint(
+                    BigInteger(1, x),
+                    BigInteger(1, y),
+                ),
+                spec,
+            )
         val kf = KeyFactory.getInstance("EC")
         return kf.generatePublic(pubKeySpec)
     }
 
-    private fun fixedLengthByteArray(i: BigInteger, len: Int): ByteArray {
+    private fun fixedLengthByteArray(
+        i: BigInteger,
+        len: Int,
+    ): ByteArray {
         var variableLengthByteArray = i.toByteArray().toList()
         if (variableLengthByteArray.size > len + 1) {
             throw IllegalArgumentException(
@@ -79,11 +86,12 @@ class PureJVMCryptoProvider : CryptoProvider {
         val keyPair = keyGen.genKeyPair()
         val publicKey = keyPair.public
 
-        val otherPubKey = pointsToECPK(
-            otherPublicKeyPoint.x,
-            otherPublicKeyPoint.y,
-            (publicKey as ECPublicKey).params,
-        )
+        val otherPubKey =
+            pointsToECPK(
+                otherPublicKeyPoint.x,
+                otherPublicKeyPoint.y,
+                (publicKey as ECPublicKey).params,
+            )
 
         val ka = KeyAgreement.getInstance("ECDH")
         ka.init(keyPair.private)
@@ -127,22 +135,35 @@ class PureJVMCryptoProvider : CryptoProvider {
         return Random.nextBytes(numBytes)
     }
 
-    private fun aes256(mode: Int, bytes: ByteArray, key: AES256Key): ByteArray {
+    private fun aes256(
+        mode: Int,
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/NoPadding")
         val iv = key.iv?.let { IvParameterSpec(it) }
         cipher.init(mode, SecretKeySpec(key.key, "AES"), iv)
         return cipher.doFinal(bytes)
     }
 
-    override fun aes256CBCEncrypt(bytes: ByteArray, key: AES256Key): ByteArray {
+    override fun aes256CBCEncrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         return aes256(Cipher.ENCRYPT_MODE, bytes, key)
     }
 
-    override fun aes256CBCDecrypt(bytes: ByteArray, key: AES256Key): ByteArray {
+    override fun aes256CBCDecrypt(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): ByteArray {
         return aes256(Cipher.DECRYPT_MODE, bytes, key)
     }
 
-    override fun hmacSHA256(bytes: ByteArray, key: AES256Key): SHA256Result {
+    override fun hmacSHA256(
+        bytes: ByteArray,
+        key: AES256Key,
+    ): SHA256Result {
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(key.key, "AES"))
         return SHA256Result(mac.doFinal(bytes))
@@ -171,7 +192,8 @@ class PureJVMCryptoProvider : CryptoProvider {
         return X509Info(
             publicX = fixedLengthByteArray(pk.w.affineX, 32),
             publicY = fixedLengthByteArray(pk.w.affineY, 32),
-            aaguid = null, // TODO
+            // TODO
+            aaguid = null,
         )
     }
 }

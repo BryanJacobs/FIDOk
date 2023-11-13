@@ -25,13 +25,16 @@ class CaBLESupport(val library: FIDOkLibrary) {
         val KNOWN_TUNNEL_SERVER_DOMAINS = assignedTunnelServerDomains.size.toUByte()
         private val tlds = listOf(".com", ".org", ".net", ".info")
 
-        private const val base32Chars = "abcdefghijklmnopqrstuvwxyz234567"
-        private const val chunkSize = 7
-        private const val chunkDigits = 17
-        private const val partialChunkDigits = 0x0fda8530
+        private const val BASE_32_CHARS = "abcdefghijklmnopqrstuvwxyz234567"
+        private const val CHUNK_SIZE = 7
+        private const val CHUNK_DIGITS = 17
+        private const val PARTIAL_CHUNK_DIGITS = 0x0fda8530
     }
 
-    private fun bytesToULong(bytes: ByteArray, startOffset: Int = 0): ULong {
+    private fun bytesToULong(
+        bytes: ByteArray,
+        startOffset: Int = 0,
+    ): ULong {
         var v: ULong = 0u
         for (i in 0..7) {
             if (i + startOffset < bytes.size) {
@@ -65,13 +68,14 @@ class CaBLESupport(val library: FIDOkLibrary) {
             throw IllegalArgumentException("Encoded value is too large to be a valid tunnel domain!")
         }
 
-        val shaInput = byteArrayOf(
-            0x63, 0x61, 0x42, 0x4c, 0x45, 0x76, 0x32, 0x20,
-            0x74, 0x75, 0x6e, 0x6e, 0x65, 0x6c, 0x20, 0x73,
-            0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x64, 0x6f,
-            0x6d, 0x61, 0x69, 0x6e,
-            (encoded and 0x00FF).toByte(), (encoded shr 8).toByte(), 0x00,
-        )
+        val shaInput =
+            byteArrayOf(
+                0x63, 0x61, 0x42, 0x4c, 0x45, 0x76, 0x32, 0x20,
+                0x74, 0x75, 0x6e, 0x6e, 0x65, 0x6c, 0x20, 0x73,
+                0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x64, 0x6f,
+                0x6d, 0x61, 0x69, 0x6e,
+                (encoded and 0x00FF).toByte(), (encoded shr 8).toByte(), 0x00,
+            )
         val digest = library.cryptoProvider.sha256(shaInput).hash
 
         var v = bytesToULong(digest)
@@ -80,7 +84,7 @@ class CaBLESupport(val library: FIDOkLibrary) {
 
         var ret = "cable."
         while (v != 0.toULong()) {
-            ret += base32Chars[(v and 31u).toInt()]
+            ret += BASE_32_CHARS[(v and 31u).toInt()]
             v = v shr 5
         }
 
@@ -92,21 +96,28 @@ class CaBLESupport(val library: FIDOkLibrary) {
     private fun digitEncode(d: ByteArray): String {
         var ret = ""
         var offset = 0
-        while (offset + chunkSize < d.size) {
-            val chunk = ByteArray(chunkSize) { d[offset + it] }
+        while (offset + CHUNK_SIZE < d.size) {
+            val chunk = ByteArray(CHUNK_SIZE) { d[offset + it] }
             var vStr = bytesToULong(chunk).toString(10)
-            while (vStr.length < chunkDigits) {
+            while (vStr.length < CHUNK_DIGITS) {
                 vStr = "0$vStr"
             }
             ret += vStr
 
-            offset += chunkSize
+            offset += CHUNK_SIZE
         }
 
         if (offset < d.size) {
             val remaining = d.size - offset
-            val digits = 15 and (partialChunkDigits shr (4 * remaining))
-            val chunk = ByteArray(8) { if (offset + it < d.size) { d[offset + it] } else { 0x00 } }
+            val digits = 15 and (PARTIAL_CHUNK_DIGITS shr (4 * remaining))
+            val chunk =
+                ByteArray(8) {
+                    if (offset + it < d.size) {
+                        d[offset + it]
+                    } else {
+                        0x00
+                    }
+                }
             var vStr = bytesToULong(chunk).toString(10)
             while (vStr.length < digits) {
                 vStr = "0$vStr"

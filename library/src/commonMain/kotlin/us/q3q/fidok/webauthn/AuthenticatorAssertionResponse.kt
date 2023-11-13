@@ -19,11 +19,15 @@ data class AuthenticatorAssertionResponse(
         if (userHandle != null) {
             if (other.userHandle == null) return false
             if (!userHandle.contentEquals(other.userHandle)) return false
-        } else if (other.userHandle != null) return false
+        } else if (other.userHandle != null) {
+            return false
+        }
         if (attestationObject != null) {
             if (other.attestationObject == null) return false
             if (!attestationObject.contentEquals(other.attestationObject)) return false
-        } else if (other.attestationObject != null) return false
+        } else if (other.attestationObject != null) {
+            return false
+        }
 
         return true
     }

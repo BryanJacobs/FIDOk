@@ -16,9 +16,10 @@ import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.modules.SerializersModule
 
-val customSerializers = SerializersModule {
-    include(extensionSerializers)
-}
+val customSerializers =
+    SerializersModule {
+        include(extensionSerializers)
+    }
 
 /**
  * An extremely horrible class that turns CTAP objects into canonical CBOR byte arrays
@@ -40,7 +41,10 @@ open class CTAPCBOREncoder : AbstractEncoder() {
         return this
     }
 
-    override fun encodeElement(descriptor: SerialDescriptor, index: Int): Boolean {
+    override fun encodeElement(
+        descriptor: SerialDescriptor,
+        index: Int,
+    ): Boolean {
         return true
     }
 
@@ -65,7 +69,10 @@ open class CTAPCBOREncoder : AbstractEncoder() {
         super.encodeSerializableElement(descriptor, index, serializer, value)
     }
 
-    override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
+    override fun beginCollection(
+        descriptor: SerialDescriptor,
+        collectionSize: Int,
+    ): CompositeEncoder {
         if (descriptor.kind == StructureKind.LIST &&
             descriptor.getElementDescriptor(0).kind == PrimitiveKind.BYTE
         ) {
@@ -129,7 +136,6 @@ open class CTAPCBOREncoder : AbstractEncoder() {
 }
 
 open class ParentFeedingEncoder(val parentEncoder: CTAPCBOREncoder) : CTAPCBOREncoder() {
-
     fun feedParent() {
         for (x in accumulatedBytes) {
             parentEncoder.encodeByte(x)
@@ -144,7 +150,10 @@ open class ParentFeedingEncoder(val parentEncoder: CTAPCBOREncoder) : CTAPCBOREn
 
 @OptIn(ExperimentalSerializationApi::class)
 class SealedEncoder(parentEncoder: CTAPCBOREncoder) : ParentFeedingEncoder(parentEncoder) {
-    override fun encodeElement(descriptor: SerialDescriptor, index: Int): Boolean {
+    override fun encodeElement(
+        descriptor: SerialDescriptor,
+        index: Int,
+    ): Boolean {
         // class name is at index 0 - skip
         return index != 0
     }
@@ -161,7 +170,6 @@ class SealedEncoder(parentEncoder: CTAPCBOREncoder) : ParentFeedingEncoder(paren
 
 @OptIn(ExperimentalSerializationApi::class, ExperimentalStdlibApi::class)
 class ClassEncoder(parentEncoder: CTAPCBOREncoder) : ParentFeedingEncoder(parentEncoder) {
-
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         if (descriptor.kind == StructureKind.LIST) {
             // Sub-lists should be handled as children of this class
@@ -242,7 +250,6 @@ class ListEncoder(parentEncoder: CTAPCBOREncoder, private val numElements: Int) 
 }
 
 class MapEncoder(parentEncoder: CTAPCBOREncoder, private val numElements: Int) : ParentFeedingEncoder(parentEncoder) {
-
     private val bufferedValues: ArrayList<List<Byte>> = arrayListOf()
 
     private fun stashResult(f: () -> Any) {
@@ -312,22 +319,23 @@ class MapEncoder(parentEncoder: CTAPCBOREncoder, private val numElements: Int) :
         if (bufferedValues.size % 2 != 0) {
             throw SerializationException("Map contains an odd number of entries: ${bufferedValues.size}")
         }
-        val emissionOrder = (0..<bufferedValues.size step 2).sortedWith {
-                a, b ->
-            if (bufferedValues[a].size == bufferedValues[b].size) {
-                // equal key lengths: compare key values
-                for (i in 0..bufferedValues[a].size) {
-                    if (bufferedValues[a][i] < bufferedValues[b][i]) {
-                        return@sortedWith -1
-                    } else if (bufferedValues[a][i] > bufferedValues[b][i]) {
-                        return@sortedWith 1
+        val emissionOrder =
+            (0..<bufferedValues.size step 2).sortedWith {
+                    a, b ->
+                if (bufferedValues[a].size == bufferedValues[b].size) {
+                    // equal key lengths: compare key values
+                    for (i in 0..bufferedValues[a].size) {
+                        if (bufferedValues[a][i] < bufferedValues[b][i]) {
+                            return@sortedWith -1
+                        } else if (bufferedValues[a][i] > bufferedValues[b][i]) {
+                            return@sortedWith 1
+                        }
                     }
+                    0
+                } else {
+                    bufferedValues[a].size - bufferedValues[b].size
                 }
-                0
-            } else {
-                bufferedValues[a].size - bufferedValues[b].size
             }
-        }
 
         emissionOrder.forEach { i ->
             // emit key, then value

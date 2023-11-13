@@ -14,7 +14,6 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 class Delete : CliktCommand(help = "Remove a stored discoverable credential") {
-
     val client by requireObject<CTAPClient>()
 
     val rpId by option("--rp")
@@ -32,10 +31,11 @@ class Delete : CliktCommand(help = "Remove a stored discoverable credential") {
     @OptIn(ExperimentalEncodingApi::class)
     override fun run() {
         runBlocking {
-            val token = client.getPinUvTokenUsingAppropriateMethod(
-                CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
-                desiredRpId = rpId,
-            )
+            val token =
+                client.getPinUvTokenUsingAppropriateMethod(
+                    CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                    desiredRpId = rpId,
+                )
 
             val credMgmt = client.credentialManagement()
 

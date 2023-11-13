@@ -12,7 +12,6 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 class CredList : CliktCommand(name = "list", help = "List discoverable credentials") {
-
     val client by requireObject<CTAPClient>()
 
     val rpId by option("--rp")

@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class PublicKeyCredentialUserEntityTest {
-
     @Test
     fun roundTrips() {
         val u = PublicKeyCredentialUserEntity(id = byteArrayOf(0x1A), displayName = "Bobby")

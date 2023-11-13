@@ -89,13 +89,14 @@ data class PublicKeyCredentialParameters(
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class PublicKeyCredentialsParametersSerializer : KSerializer<PublicKeyCredentialParameters> {
     override val descriptor: SerialDescriptor
-        get() = buildSerialDescriptor("PublicKeyCredentialsParameters", StructureKind.MAP) {
-            element("className", String.serializer().descriptor)
-            element("alg_key", String.serializer().descriptor)
-            element("alg", Int.serializer().descriptor)
-            element("type_key", String.serializer().descriptor)
-            element("type", String.serializer().descriptor)
-        }
+        get() =
+            buildSerialDescriptor("PublicKeyCredentialsParameters", StructureKind.MAP) {
+                element("className", String.serializer().descriptor)
+                element("alg_key", String.serializer().descriptor)
+                element("alg", Int.serializer().descriptor)
+                element("type_key", String.serializer().descriptor)
+                element("type", String.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): PublicKeyCredentialParameters {
         val composite = decoder.beginStructure(descriptor)
@@ -117,7 +118,10 @@ class PublicKeyCredentialsParametersSerializer : KSerializer<PublicKeyCredential
         return PublicKeyCredentialParameters(alg = alg, type = type)
     }
 
-    override fun serialize(encoder: Encoder, value: PublicKeyCredentialParameters) {
+    override fun serialize(
+        encoder: Encoder,
+        value: PublicKeyCredentialParameters,
+    ) {
         val subEncoder = encoder.beginCollection(descriptor, 2)
         subEncoder.encodeStringElement(descriptor, 1, "alg")
         subEncoder.encodeLongElement(descriptor, 2, value.alg)

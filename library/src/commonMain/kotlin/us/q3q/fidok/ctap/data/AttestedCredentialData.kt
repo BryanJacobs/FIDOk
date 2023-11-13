@@ -62,12 +62,13 @@ data class AttestedCredentialData(
  */
 class AttestedCredentialDataSerializer : KSerializer<AttestedCredentialData> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("AttestedCredentialData") {
-            element("aaguid", ByteArraySerializer().descriptor)
-            element("credentialIdLength", UShort.serializer().descriptor)
-            element("credentialId", ByteArraySerializer().descriptor)
-            element("credentialPublicKey", COSEKey.serializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("AttestedCredentialData") {
+                element("aaguid", ByteArraySerializer().descriptor)
+                element("credentialIdLength", UShort.serializer().descriptor)
+                element("credentialId", ByteArraySerializer().descriptor)
+                element("credentialPublicKey", COSEKey.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): AttestedCredentialData {
         // val composite = decoder.beginStructure(ByteArraySerializer().descriptor)
@@ -92,7 +93,10 @@ class AttestedCredentialDataSerializer : KSerializer<AttestedCredentialData> {
         )
     }
 
-    override fun serialize(encoder: Encoder, value: AttestedCredentialData) {
+    override fun serialize(
+        encoder: Encoder,
+        value: AttestedCredentialData,
+    ) {
         for (i in value.aaguid.indices) {
             encoder.encodeByte(value.aaguid[i])
         }

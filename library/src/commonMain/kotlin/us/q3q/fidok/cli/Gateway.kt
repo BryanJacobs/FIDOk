@@ -4,7 +4,6 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 
 class Gateway : CliktCommand(help = "Proxy an Authenticator via a different attachment method") {
-
     init {
         subcommands(HID())
     }

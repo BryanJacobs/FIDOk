@@ -28,13 +28,11 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.time.Duration.Companion.milliseconds
 
 class WebauthnClient(private val library: FIDOkLibrary) {
-
     private fun isUVCapable(info: GetInfoResponse): Boolean =
         info.options?.get(CTAPOption.CLIENT_PIN.value) == true ||
             info.options?.get(CTAPOption.INTERNAL_USER_VERIFICATION.value) == true
 
-    private fun isRKCapable(info: GetInfoResponse): Boolean =
-        info.options?.get(CTAPOption.DISCOVERABLE_CREDENTIALS.value) == true
+    private fun isRKCapable(info: GetInfoResponse): Boolean = info.options?.get(CTAPOption.DISCOVERABLE_CREDENTIALS.value) == true
 
     private fun getAttachment(info: GetInfoResponse): AuthenticatorAttachment =
         if (info.options?.get(CTAPOption.PLATFORM_AUTHENTICATOR.value) == true) {
@@ -58,7 +56,11 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         CTAPError::class,
         kotlin.coroutines.cancellation.CancellationException::class,
     )
-    suspend fun create(origin: String? = null, options: CredentialCreationOptions, sameOriginWithAncestors: Boolean = true): PublicKeyCredential {
+    suspend fun create(
+        origin: String? = null,
+        options: CredentialCreationOptions,
+        sameOriginWithAncestors: Boolean = true,
+    ): PublicKeyCredential {
         val effectiveOrigin = origin ?: options.publicKey.rp.id
 
         Logger.d { "Creating a credential for RP '${options.publicKey.rp.name}'" }
@@ -68,109 +70,119 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val enforceCredProtect = options.publicKey.extensions?.get("enforceCredentialProtectionPolicy") == true
         val credProtectLevel = options.publicKey.extensions?.get("credentialProtectionPolicy") as Int?
 
-        val selectedClient = library.waitForUsableAuthenticator({ client ->
-            val info = client.getInfoIfUnset()
+        val selectedClient =
+            library.waitForUsableAuthenticator({ client ->
+                val info = client.getInfoIfUnset()
 
-            if ((
+                if ((
+                        (
+                            options.publicKey.authenticatorSelectionCriteria?.residentKey == null &&
+                                options.publicKey.authenticatorSelectionCriteria?.requireResidentKey == true
+                        ) ||
+                            options.publicKey.authenticatorSelectionCriteria?.residentKey == ResidentKeyRequirement.REQUIRED.value
+                    ) &&
+                    !isRKCapable(info)
+                ) {
+                    Logger.i { "Ignoring $client because it does not support discoverable credentials" }
+                    return@waitForUsableAuthenticator false
+                }
+
+                if (options.publicKey.authenticatorSelectionCriteria?.userVerification
+                    == UserVerificationRequirement.REQUIRED.value && !isUVCapable(info)
+                ) {
+                    Logger.i { "Ignoring $client because it does not have a means of user verification available" }
+                    return@waitForUsableAuthenticator false
+                }
+
+                if (options.publicKey.authenticatorSelectionCriteria?.authenticatorAttachment != null &&
+                    options.publicKey.authenticatorSelectionCriteria.authenticatorAttachment != getAttachment(info).value
+                ) {
+                    Logger.i { "Ignoring $client because it doesn't match the desired attachment modality" }
+                    return@waitForUsableAuthenticator false
+                }
+
+                val supportedAlgorithms = info.algorithms?.toList() ?: listOf(PublicKeyCredentialParameters(COSEAlgorithmIdentifier.ES256))
+                if (options.publicKey.pubKeyCredParams.find { supportedAlgorithms.contains(it) } == null) {
+                    Logger.i { "Ignoring $client because it doesn't support any of the requested algorithms" }
+                    return@waitForUsableAuthenticator false
+                }
+
+                if (enforceCredProtect && credProtectLevel != null && credProtectLevel > 1 &&
+                    info.extensions?.contains("credProtect") != true
+                ) {
+                    Logger.i { "Ignoring $client because it doesn't support required credential protection policy" }
+                    return@waitForUsableAuthenticator false
+                }
+
+                true
+            }, { client ->
+                try {
+                    while (true) {
+                        val res = client.select()
+                        if (res == true) {
+                            return@waitForUsableAuthenticator true
+                        }
+                        if (res == false) {
+                            break
+                        }
+                        delay(500.milliseconds)
+                    }
+                } catch (e: DeviceCommunicationException) {
+                    Logger.d { "Device communication exception during select: $e" }
+                } catch (e: CTAPError) {
+                    if (e.code == CTAPResponse.INVALID_COMMAND.value) {
+                        // This authenticator does not support selection
+                        // TODO: use "silent" authentication instead
+                        Logger.d { "Device $client does not support selection so is auto-used" }
+                        return@waitForUsableAuthenticator true
+                    }
+                }
+                return@waitForUsableAuthenticator false
+            }, timeout)
+
+        val infoForSelected = selectedClient.getInfoIfUnset()
+        val usingUV =
+            isUVCapable(infoForSelected) && (
+                options.publicKey.authenticatorSelectionCriteria?.userVerification == UserVerificationRequirement.REQUIRED.value ||
+                    options.publicKey.authenticatorSelectionCriteria?.userVerification == UserVerificationRequirement.PREFERRED.value
+            )
+        val usingDisco =
+            isRKCapable(infoForSelected) &&
+                (
                     (
                         options.publicKey.authenticatorSelectionCriteria?.residentKey == null &&
                             options.publicKey.authenticatorSelectionCriteria?.requireResidentKey == true
-                        ) ||
-                        options.publicKey.authenticatorSelectionCriteria?.residentKey == ResidentKeyRequirement.REQUIRED.value
-                    ) &&
-                !isRKCapable(info)
-            ) {
-                Logger.i { "Ignoring $client because it does not support discoverable credentials" }
-                return@waitForUsableAuthenticator false
-            }
-
-            if (options.publicKey.authenticatorSelectionCriteria?.userVerification
-                == UserVerificationRequirement.REQUIRED.value && !isUVCapable(info)
-            ) {
-                Logger.i { "Ignoring $client because it does not have a means of user verification available" }
-                return@waitForUsableAuthenticator false
-            }
-
-            if (options.publicKey.authenticatorSelectionCriteria?.authenticatorAttachment != null &&
-                options.publicKey.authenticatorSelectionCriteria.authenticatorAttachment != getAttachment(info).value
-            ) {
-                Logger.i { "Ignoring $client because it doesn't match the desired attachment modality" }
-                return@waitForUsableAuthenticator false
-            }
-
-            val supportedAlgorithms = info.algorithms?.toList() ?: listOf(PublicKeyCredentialParameters(COSEAlgorithmIdentifier.ES256))
-            if (options.publicKey.pubKeyCredParams.find { supportedAlgorithms.contains(it) } == null) {
-                Logger.i { "Ignoring $client because it doesn't support any of the requested algorithms" }
-                return@waitForUsableAuthenticator false
-            }
-
-            if (enforceCredProtect && credProtectLevel != null && credProtectLevel > 1 && info.extensions?.contains("credProtect") != true) {
-                Logger.i { "Ignoring $client because it doesn't support required credential protection policy" }
-                return@waitForUsableAuthenticator false
-            }
-
-            true
-        }, { client ->
-            try {
-                while (true) {
-                    val res = client.select()
-                    if (res == true) {
-                        return@waitForUsableAuthenticator true
-                    }
-                    if (res == false) {
-                        break
-                    }
-                    delay(500.milliseconds)
-                }
-            } catch (e: DeviceCommunicationException) {
-                Logger.d { "Device communication exception during select: $e" }
-            } catch (e: CTAPError) {
-                if (e.code == CTAPResponse.INVALID_COMMAND.value) {
-                    // This authenticator does not support selection
-                    // TODO: use "silent" authentication instead
-                    Logger.d { "Device $client does not support selection so is auto-used" }
-                    return@waitForUsableAuthenticator true
-                }
-            }
-            return@waitForUsableAuthenticator false
-        }, timeout)
-
-        val infoForSelected = selectedClient.getInfoIfUnset()
-        val usingUV = isUVCapable(infoForSelected) && (
-            options.publicKey.authenticatorSelectionCriteria?.userVerification == UserVerificationRequirement.REQUIRED.value ||
-                options.publicKey.authenticatorSelectionCriteria?.userVerification == UserVerificationRequirement.PREFERRED.value
-            )
-        val usingDisco = isRKCapable(infoForSelected) &&
-            (
-                (
-                    options.publicKey.authenticatorSelectionCriteria?.residentKey == null &&
-                        options.publicKey.authenticatorSelectionCriteria?.requireResidentKey == true
                     ) ||
-                    options.publicKey.authenticatorSelectionCriteria?.residentKey == ResidentKeyRequirement.REQUIRED.value ||
-                    options.publicKey.authenticatorSelectionCriteria?.residentKey == ResidentKeyRequirement.PREFERRED.value ||
-                    infoForSelected.options?.get(CTAPOption.ALWAYS_UV.value) == true
+                        options.publicKey.authenticatorSelectionCriteria?.residentKey == ResidentKeyRequirement.REQUIRED.value ||
+                        options.publicKey.authenticatorSelectionCriteria?.residentKey == ResidentKeyRequirement.PREFERRED.value ||
+                        infoForSelected.options?.get(CTAPOption.ALWAYS_UV.value) == true
                 )
 
         var pinUvToken: PinUVToken? = null
         if (usingUV) {
-            pinUvToken = selectedClient.getPinUvTokenUsingAppropriateMethod(
-                desiredPermissions = CTAPPinPermission.MAKE_CREDENTIAL.value,
-                desiredRpId = options.publicKey.rp.id,
-            )
+            pinUvToken =
+                selectedClient.getPinUvTokenUsingAppropriateMethod(
+                    desiredPermissions = CTAPPinPermission.MAKE_CREDENTIAL.value,
+                    desiredRpId = options.publicKey.rp.id,
+                )
         }
 
-        val usingEP = options.publicKey.attestation == AttestationConveyancePreference.ENTERPRISE.value &&
-            infoForSelected.options?.get(CTAPOption.ENTERPRISE_ATTESTATION.value) == true
+        val usingEP =
+            options.publicKey.attestation == AttestationConveyancePreference.ENTERPRISE.value &&
+                infoForSelected.options?.get(CTAPOption.ENTERPRISE_ATTESTATION.value) == true
 
-        val supportedAlgorithms = infoForSelected.algorithms?.toList() ?: listOf(PublicKeyCredentialParameters(COSEAlgorithmIdentifier.ES256))
+        val supportedAlgorithms =
+            infoForSelected.algorithms?.toList()
+                ?: listOf(PublicKeyCredentialParameters(COSEAlgorithmIdentifier.ES256))
         val effectivePubKeyCredParams = options.publicKey.pubKeyCredParams.filter { supportedAlgorithms.contains(it) }
 
-        val clientData = mutableMapOf(
-            "type" to JsonPrimitive("webauthn.create"),
-            "challenge" to JsonPrimitive(Base64.UrlSafe.encode(options.publicKey.challenge)),
-            "origin" to JsonPrimitive(effectiveOrigin),
-            "crossOrigin" to JsonPrimitive(!sameOriginWithAncestors),
-        )
+        val clientData =
+            mutableMapOf(
+                "type" to JsonPrimitive("webauthn.create"),
+                "challenge" to JsonPrimitive(Base64.UrlSafe.encode(options.publicKey.challenge)),
+                "origin" to JsonPrimitive(effectiveOrigin),
+                "crossOrigin" to JsonPrimitive(!sameOriginWithAncestors),
+            )
         if (!sameOriginWithAncestors) {
             clientData["topOrigin"] = JsonPrimitive(effectiveOrigin) // TODO this for real
         }
@@ -192,35 +204,39 @@ class WebauthnClient(private val library: FIDOkLibrary) {
 
         val extensionSetup = ExtensionSetup(extensions)
 
-        val rawResult = selectedClient.makeCredentialRaw(
-            rpId = options.publicKey.rp.id!!,
-            rpName = options.publicKey.rp.name,
-            clientDataHash = clientDataHash,
-            userId = options.publicKey.user.id,
-            userName = options.publicKey.user.name,
-            userDisplayName = options.publicKey.user.displayName,
-            discoverableCredential = usingDisco,
-            userVerification = false, // TODO: CTAP2.0
-            pubKeyCredParams = effectivePubKeyCredParams,
-            excludeList = options.publicKey.excludeCredentials,
-            pinUvToken = pinUvToken,
-            enterpriseAttestation = if (usingEP) 1u else null,
-            extensions = extensionSetup,
-        )
+        val rawResult =
+            selectedClient.makeCredentialRaw(
+                rpId = options.publicKey.rp.id!!,
+                rpName = options.publicKey.rp.name,
+                clientDataHash = clientDataHash,
+                userId = options.publicKey.user.id,
+                userName = options.publicKey.user.name,
+                userDisplayName = options.publicKey.user.displayName,
+                discoverableCredential = usingDisco,
+                // TODO: CTAP2.0
+                userVerification = false,
+                pubKeyCredParams = effectivePubKeyCredParams,
+                excludeList = options.publicKey.excludeCredentials,
+                pinUvToken = pinUvToken,
+                enterpriseAttestation = if (usingEP) 1u else null,
+                extensions = extensionSetup,
+            )
 
-        val ret = CTAPCBORDecoder(rawResult).decodeSerializableValue(
-            MakeCredentialResponse.serializer(),
-        )
+        val ret =
+            CTAPCBORDecoder(rawResult).decodeSerializableValue(
+                MakeCredentialResponse.serializer(),
+            )
 
         extensionSetup.makeCredentialResponse(ret)
 
-        val filteredTransports = infoForSelected.transports?.mapNotNull { transportName ->
-            if (AuthenticatorTransport.entries.find { it.value == transportName } != null) {
-                transportName
-            } else {
-                null
-            }
-        }?.sortedBy { it }?.toList() ?: listOf()
+        val filteredTransports =
+            infoForSelected.transports?.mapNotNull { transportName ->
+                if (AuthenticatorTransport.entries.find { it.value == transportName } != null) {
+                    transportName
+                } else {
+                    null
+                }
+            }?.sortedBy { it }?.toList() ?: listOf()
 
         val extensionResults = hashMapOf<String, Any>()
         if (hmacSecretExtension != null) {
@@ -237,11 +253,12 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             id = Base64.UrlSafe.encode(ret.getCredentialID()),
             rawId = ret.getCredentialID(),
             authenticatorAttachment = getAttachment(infoForSelected).value,
-            response = AuthenticatorAttestationResponse(
-                clientDataJson,
-                attestationObject = rawResult,
-                transports = filteredTransports,
-            ),
+            response =
+                AuthenticatorAttestationResponse(
+                    clientDataJson,
+                    attestationObject = rawResult,
+                    transports = filteredTransports,
+                ),
             clientExtensionResults = extensionResults,
         )
     }
@@ -268,7 +285,11 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         CTAPError::class,
         kotlin.coroutines.cancellation.CancellationException::class,
     )
-    suspend fun get(origin: String, options: CredentialRequestOptions, sameOriginWithAncestors: Boolean = true): PublicKeyCredential {
+    suspend fun get(
+        origin: String,
+        options: CredentialRequestOptions,
+        sameOriginWithAncestors: Boolean = true,
+    ): PublicKeyCredential {
         Logger.d { "Getting a credential for RP ID '${options.publicKey.rpId}'" }
 
         val timeout = (options.publicKey.timeout ?: 10_000UL).toLong().milliseconds
@@ -277,26 +298,29 @@ class WebauthnClient(private val library: FIDOkLibrary) {
 
         val infoForSelected = client.getInfoIfUnset()
 
-        val usingUV = isUVCapable(infoForSelected) && (
-            options.publicKey.userVerification == UserVerificationRequirement.REQUIRED.value ||
-                options.publicKey.userVerification == UserVerificationRequirement.PREFERRED.value ||
-                infoForSelected.options?.get(CTAPOption.ALWAYS_UV.value) == true
+        val usingUV =
+            isUVCapable(infoForSelected) && (
+                options.publicKey.userVerification == UserVerificationRequirement.REQUIRED.value ||
+                    options.publicKey.userVerification == UserVerificationRequirement.PREFERRED.value ||
+                    infoForSelected.options?.get(CTAPOption.ALWAYS_UV.value) == true
             )
 
         var pinUvToken: PinUVToken? = null
         if (usingUV) {
-            pinUvToken = client.getPinUvTokenUsingAppropriateMethod(
-                desiredPermissions = CTAPPinPermission.GET_ASSERTION.value,
-                desiredRpId = options.publicKey.rpId,
-            )
+            pinUvToken =
+                client.getPinUvTokenUsingAppropriateMethod(
+                    desiredPermissions = CTAPPinPermission.GET_ASSERTION.value,
+                    desiredRpId = options.publicKey.rpId,
+                )
         }
 
-        val clientData = mutableMapOf(
-            "type" to JsonPrimitive("webauthn.get"),
-            "challenge" to JsonPrimitive(Base64.UrlSafe.encode(options.publicKey.challenge)),
-            "origin" to JsonPrimitive(origin),
-            "crossOrigin" to JsonPrimitive(!sameOriginWithAncestors),
-        )
+        val clientData =
+            mutableMapOf(
+                "type" to JsonPrimitive("webauthn.get"),
+                "challenge" to JsonPrimitive(Base64.UrlSafe.encode(options.publicKey.challenge)),
+                "origin" to JsonPrimitive(origin),
+                "crossOrigin" to JsonPrimitive(!sameOriginWithAncestors),
+            )
         if (!sameOriginWithAncestors) {
             clientData["topOrigin"] = JsonPrimitive(origin) // TODO this for real
         }
@@ -308,32 +332,36 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val hmacSecretParams = options.publicKey.extensions?.get("hmacGetSecret") as Map<*, *>?
         var hmacSecretExtension: HMACSecretExtension? = null
         if (hmacSecretParams != null) {
-            hmacSecretExtension = HMACSecretExtension(
-                salt1 = hmacSecretParams["salt1"] as ByteArray?,
-                salt2 = hmacSecretParams["salt2"] as ByteArray?,
-            )
+            hmacSecretExtension =
+                HMACSecretExtension(
+                    salt1 = hmacSecretParams["salt1"] as ByteArray?,
+                    salt2 = hmacSecretParams["salt2"] as ByteArray?,
+                )
             extensions.add(hmacSecretExtension)
         }
 
         val extensionSetup = ExtensionSetup(extensions)
 
-        val effectiveCredentials = options.publicKey.allowCredentials.filter { cred ->
-            (infoForSelected.maxCredentialIdLength == null || cred.id.size <= infoForSelected.maxCredentialIdLength.toInt()) &&
-                (
-                    infoForSelected.algorithms == null ||
-                        infoForSelected.algorithms.find { supportedAlg ->
-                            supportedAlg.type == cred.type
-                        } != null
+        val effectiveCredentials =
+            options.publicKey.allowCredentials.filter { cred ->
+                (infoForSelected.maxCredentialIdLength == null || cred.id.size <= infoForSelected.maxCredentialIdLength.toInt()) &&
+                    (
+                        infoForSelected.algorithms == null ||
+                            infoForSelected.algorithms.find { supportedAlg ->
+                                supportedAlg.type == cred.type
+                            } != null
                     )
-        }
+            }
 
-        val assertionBytes = client.getAssertionRaw(
-            rpId = options.publicKey.rpId ?: "", // TODO: default origin?
-            clientDataHash = clientDataHash,
-            allowList = effectiveCredentials,
-            extensions = extensionSetup,
-            pinUvToken = pinUvToken,
-        )
+        val assertionBytes =
+            client.getAssertionRaw(
+                // TODO: default origin?
+                rpId = options.publicKey.rpId ?: "",
+                clientDataHash = clientDataHash,
+                allowList = effectiveCredentials,
+                extensions = extensionSetup,
+                pinUvToken = pinUvToken,
+            )
 
         val ret = CTAPCBORDecoder(assertionBytes).decodeSerializableValue(GetAssertionResponse.serializer())
 
@@ -358,13 +386,15 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             id = Base64.UrlSafe.encode(ret.credential.id),
             rawId = ret.credential.id,
             authenticatorAttachment = getAttachment(infoForSelected).value,
-            response = AuthenticatorAssertionResponse(
-                clientDataJson,
-                authenticatorData = assertionBytes,
-                signature = ret.signature,
-                userHandle = ret.user?.id,
-                attestationObject = null, // Why would this ever be set?
-            ),
+            response =
+                AuthenticatorAssertionResponse(
+                    clientDataJson,
+                    authenticatorData = assertionBytes,
+                    signature = ret.signature,
+                    userHandle = ret.user?.id,
+                    // TODO: handle CTAP2.2 attested assertions
+                    attestationObject = null,
+                ),
             clientExtensionResults = extensionResults,
         )
     }

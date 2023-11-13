@@ -8,7 +8,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PublicKeyCredentialDescriptorTest {
-
     @Test
     fun roundTripSerializationBare() {
         val pk = PublicKeyCredentialDescriptor(type = "foo", id = byteArrayOf(0x50))

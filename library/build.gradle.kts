@@ -10,17 +10,21 @@ val submodulesDir = project.layout.projectDirectory.dir("submodules")
 val botanDir = submodulesDir.dir("botan")
 val hidDir = submodulesDir.dir("hidapi")
 
-fun hidAPITasks(platform: String, cmakeExtraArgs: List<String> = listOf()) {
+fun hidAPITasks(
+    platform: String,
+    cmakeExtraArgs: List<String> = listOf(),
+) {
     val lcPlatform = platform.lowercase()
     val hidBuild = project.layout.buildDirectory.dir("hidapi-$lcPlatform").get()
     hidBuild.asFile.mkdirs()
 
-    val output = when (platform) {
-        "Linux" -> hidBuild.dir("src").dir(lcPlatform).file("libhidapi-hidraw.a")
-        "Windows" -> hidBuild.dir("src").dir(lcPlatform).file("libhidapi.a")
-        "Macos" -> hidBuild.dir("src").dir("mac").file("libhidapi.a")
-        else -> throw NotImplementedError("Platform $platform not handled in HIDAPI build")
-    }
+    val output =
+        when (platform) {
+            "Linux" -> hidBuild.dir("src").dir(lcPlatform).file("libhidapi-hidraw.a")
+            "Windows" -> hidBuild.dir("src").dir(lcPlatform).file("libhidapi.a")
+            "Macos" -> hidBuild.dir("src").dir("mac").file("libhidapi.a")
+            else -> throw NotImplementedError("Platform $platform not handled in HIDAPI build")
+        }
 
     task<Exec>("configureHID$platform") {
         workingDir(hidBuild)
@@ -67,7 +71,11 @@ task<Exec>("buildEmbeddedAuthenticatorJar") {
     )
 }
 
-fun botanTasks(platform: String, extraArgs: List<String> = listOf(), dlSuffix: String = "so") {
+fun botanTasks(
+    platform: String,
+    extraArgs: List<String> = listOf(),
+    dlSuffix: String = "so",
+) {
     val buildDir = project.layout.buildDirectory.dir("botan-${platform.lowercase()}").get()
     buildDir.asFile.mkdirs()
     task<Exec>("configureBotan$platform") {
@@ -114,18 +122,22 @@ botanTasks(
 
 botanTasks("Linux")
 
-fun nativeBuild(target: KotlinNativeTarget, platform: String) {
+fun nativeBuild(
+    target: KotlinNativeTarget,
+    platform: String,
+) {
     val hidBuild = tasks.getByName("buildHID$platform")
     val botanBuild = tasks.getByName("buildBotan$platform")
     val lcPlatform = platform.lowercase()
     val hidFile = hidBuild.outputs.files.singleFile
     val hidLibName = hidFile.name.replace(Regex("^lib"), "").replace(Regex("\\..*$"), "")
-    val linkerOpts = arrayListOf(
-        "-L${hidFile.parent}",
-        "-l$hidLibName",
-        "-L${botanBuild.outputs.files.singleFile.parent}",
-        "-lbotan-3",
-    )
+    val linkerOpts =
+        arrayListOf(
+            "-L${hidFile.parent}",
+            "-l$hidLibName",
+            "-L${botanBuild.outputs.files.singleFile.parent}",
+            "-lbotan-3",
+        )
     when (platform) {
         "Linux" -> {
             linkerOpts.add("-l${submodulesDir.dir("pcsc").file("libpcsclite.so.1.0.0").asFile.absolutePath}")
@@ -135,11 +147,16 @@ fun nativeBuild(target: KotlinNativeTarget, platform: String) {
             linkerOpts.add("-lwinscard")
         }
         "Macos" -> {
-            linkerOpts.addAll(arrayOf(
-                "-framework", "IOKit",
-                "-framework", "AppKit",
-                "-framework", "PCSC",
-            ))
+            linkerOpts.addAll(
+                arrayOf(
+                    "-framework",
+                    "IOKit",
+                    "-framework",
+                    "AppKit",
+                    "-framework",
+                    "PCSC",
+                ),
+            )
         }
     }
 
@@ -259,10 +276,11 @@ fun determineMacOsArch(): String {
 
     val arch = System.getProperty("os.arch").lowercase()
     if (arch.contains("aarch64")) {
-        val process = ProcessBuilder("sysctl", "-in", "sysctl.proc_translated")
-            .redirectOutput(ProcessBuilder.Redirect.PIPE)
-            .redirectError(ProcessBuilder.Redirect.INHERIT)
-            .start()
+        val process =
+            ProcessBuilder("sysctl", "-in", "sysctl.proc_translated")
+                .redirectOutput(ProcessBuilder.Redirect.PIPE)
+                .redirectError(ProcessBuilder.Redirect.INHERIT)
+                .start()
 
         process.waitFor(5, TimeUnit.SECONDS)
         val xlated = process.inputStream.bufferedReader().readText().toIntOrNull()

@@ -25,9 +25,7 @@ class FIDOkLibrary private constructor(
     private var authenticatorAccessors: List<AuthenticatorListing>,
     private val callbacks: FIDOkCallbacks? = null,
 ) {
-
     companion object {
-
         /**
          * Create a library instance.
          *
@@ -148,18 +146,19 @@ class FIDOkLibrary private constructor(
                 try {
                     withTimeout(remainingTime) {
                         val receiver = Channel<CTAPClient?>(capacity = potentialCTAPClients.size)
-                        val jobs = potentialCTAPClients.map {
-                            launch {
-                                callbacks?.authenticatorWaitingForSelection(it)
-                                val working = activeSelection(it)
+                        val jobs =
+                            potentialCTAPClients.map {
+                                launch {
+                                    callbacks?.authenticatorWaitingForSelection(it)
+                                    val working = activeSelection(it)
 
-                                if (working) {
-                                    receiver.send(it)
-                                } else {
-                                    receiver.send(null)
+                                    if (working) {
+                                        receiver.send(it)
+                                    } else {
+                                        receiver.send(null)
+                                    }
                                 }
                             }
-                        }
 
                         for (i in 1..potentialCTAPClients.size) {
                             val clientOrNull = receiver.receive()
@@ -195,9 +194,10 @@ class FIDOkLibrary private constructor(
      * @param transport Transport to exclude
      */
     fun disableTransport(transport: AuthenticatorTransport) {
-        authenticatorAccessors = authenticatorAccessors.filter {
-            !it.providedTransports().contains(transport)
-        }
+        authenticatorAccessors =
+            authenticatorAccessors.filter {
+                !it.providedTransports().contains(transport)
+            }
     }
 
     /**
@@ -226,8 +226,18 @@ class FIDOkLibrary private constructor(
      * the library's [callbacks]
      * @return Object for CTAP interaction with the given [device]
      */
-    fun ctapClient(device: AuthenticatorDevice, collectPinFromUser: (suspend (client: CTAPClient?) -> String?)? = null): CTAPClient {
-        val callback = collectPinFromUser ?: (if (callbacks != null) callbacks::collectPin else { { null } })
+    fun ctapClient(
+        device: AuthenticatorDevice,
+        collectPinFromUser: (suspend (client: CTAPClient?) -> String?)? = null,
+    ): CTAPClient {
+        val callback =
+            collectPinFromUser ?: (
+                if (callbacks != null) {
+                    callbacks::collectPin
+                } else {
+                    { null }
+                }
+            )
         return CTAPClient(this, device, callback)
     }
 

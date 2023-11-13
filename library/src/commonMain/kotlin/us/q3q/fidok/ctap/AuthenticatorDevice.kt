@@ -45,7 +45,6 @@ enum class AuthenticatorTransport(val value: String) {
  * Represents an Authenticator with which the Platform can communicate
  */
 interface AuthenticatorDevice {
-
     /**
      * Send bytes to the Authenticator, and receive bytes back
      *

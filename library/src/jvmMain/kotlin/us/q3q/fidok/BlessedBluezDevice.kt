@@ -87,17 +87,19 @@ class BlessedBluezDevice(
         if (!connected) {
             central.connectPeripheral(peripheral, callback)
             connectResult.receive()
-            val service = peripheral.services.find {
-                it.uuid.toString() == FIDO_BLE_SERVICE_UUID
-            } ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no FIDO service")
+            val service =
+                peripheral.services.find {
+                    it.uuid.toString() == FIDO_BLE_SERVICE_UUID
+                } ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no FIDO service")
 
             /*if (!peripheral.createBond(callback)) {
                 throw DeviceCommunicationException("Could not bond with BLE device ${peripheral.name}")
             }
             bondResult.receive()*/
 
-            val cpLenChara = service.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE))
-                ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no control point length characteristic")
+            val cpLenChara =
+                service.getCharacteristic(UUID.fromString(FIDO_CONTROL_POINT_LENGTH_ATTRIBUTE))
+                    ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no control point length characteristic")
             if (!peripheral.readCharacteristic(cpLenChara)) {
                 throw DeviceCommunicationException("BLE device '${peripheral.name}' could not read control point length")
             }
@@ -111,8 +113,9 @@ class BlessedBluezDevice(
                 throw IncorrectDataException("Control point length out of bounds: $cpLen")
             }
 
-            val srevChara = service.getCharacteristic(UUID.fromString(FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE))
-                ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no service revision bitfield attribute")
+            val srevChara =
+                service.getCharacteristic(UUID.fromString(FIDO_SERVICE_REVISION_BITFIELD_ATTRIBUTE))
+                    ?: throw InvalidDeviceException("BLE device '${peripheral.name}' has no service revision bitfield attribute")
             if (!peripheral.readCharacteristic(srevChara)) {
                 throw DeviceCommunicationException("BLE device '${peripheral.name}' could not read service revision chara")
             }
@@ -140,11 +143,12 @@ class BlessedBluezDevice(
             connect()
         }
 
-        val controlPointChara = peripheral.getCharacteristic(
-            UUID.fromString(FIDO_BLE_SERVICE_UUID),
-            UUID.fromString(FIDO_CONTROL_POINT_ATTRIBUTE),
-        )
-            ?: throw InvalidDeviceException("Could not get FIDO control point for ${peripheral.name}")
+        val controlPointChara =
+            peripheral.getCharacteristic(
+                UUID.fromString(FIDO_BLE_SERVICE_UUID),
+                UUID.fromString(FIDO_CONTROL_POINT_ATTRIBUTE),
+            )
+                ?: throw InvalidDeviceException("Could not get FIDO control point for ${peripheral.name}")
 
         peripheral.setNotify(
             UUID.fromString(FIDO_BLE_SERVICE_UUID),
@@ -152,15 +156,21 @@ class BlessedBluezDevice(
             true,
         )
 
-        val ret = CTAPBLE.sendAndReceive({
-            if (!peripheral.writeCharacteristic(controlPointChara, it.toByteArray(), BluetoothGattCharacteristic.WriteType.WITH_RESPONSE)) {
-                throw DeviceCommunicationException("Could not write message to peripheral ${peripheral.name}")
-            }
-        }, {
-            runBlocking {
-                readResult.receive().toUByteArray()
-            }
-        }, CTAPBLECommand.MSG, bytes.toUByteArray(), cpLen).toByteArray()
+        val ret =
+            CTAPBLE.sendAndReceive({
+                if (!peripheral.writeCharacteristic(
+                        controlPointChara,
+                        it.toByteArray(),
+                        BluetoothGattCharacteristic.WriteType.WITH_RESPONSE,
+                    )
+                ) {
+                    throw DeviceCommunicationException("Could not write message to peripheral ${peripheral.name}")
+                }
+            }, {
+                runBlocking {
+                    readResult.receive().toUByteArray()
+                }
+            }, CTAPBLECommand.MSG, bytes.toUByteArray(), cpLen).toByteArray()
 
         peripheral.setNotify(UUID.fromString(FIDO_BLE_SERVICE_UUID), UUID.fromString(FIDO_STATUS_ATTRIBUTE), false)
 

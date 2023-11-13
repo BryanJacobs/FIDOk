@@ -250,11 +250,12 @@ class CTAPClient(
     private val device: AuthenticatorDevice,
     private val collectPinFromUser: suspend (client: CTAPClient) -> String? = { null },
 ) {
-    private val PP_2_AES_INFO = "CTAP2 AES key".encodeToByteArray()
-    private val PP_2_HMAC_INFO = "CTAP2 HMAC key".encodeToByteArray()
-    private val DEFAULT_CREDENTIAL_ALGORITHMS = listOf(
-        PublicKeyCredentialParameters(alg = COSEAlgorithmIdentifier.ES256),
-    )
+    private val pp2AesInfo = "CTAP2 AES key".encodeToByteArray()
+    private val pp2HmacInfo = "CTAP2 HMAC key".encodeToByteArray()
+    private val defaultCredentialAlgorithms =
+        listOf(
+            PublicKeyCredentialParameters(alg = COSEAlgorithmIdentifier.ES256),
+        )
 
     private var platformKey: KeyAgreementPlatformKey? = null
     private var pinUvProtocolInUse: UByte = 0u
@@ -282,7 +283,10 @@ class CTAPClient(
         return result
     }
 
-    internal fun <T> xmit(command: CtapCommand, deserializationStrategy: DeserializationStrategy<T>): T {
+    internal fun <T> xmit(
+        command: CtapCommand,
+        deserializationStrategy: DeserializationStrategy<T>,
+    ): T {
         val result = xmit(command)
 
         return CTAPCBORDecoder(result).decodeSerializableValue(
@@ -369,7 +373,7 @@ class CTAPClient(
         userDisplayName: String? = null,
         discoverableCredential: Boolean = false,
         userVerification: Boolean = false,
-        pubKeyCredParams: List<PublicKeyCredentialParameters> = DEFAULT_CREDENTIAL_ALGORITHMS,
+        pubKeyCredParams: List<PublicKeyCredentialParameters> = defaultCredentialAlgorithms,
         excludeList: List<PublicKeyCredentialDescriptor>? = null,
         pinUvProtocol: UByte? = null,
         pinUvToken: PinUVToken? = null,
@@ -406,16 +410,17 @@ class CTAPClient(
         Logger.d { "Making credential with effective client data hash ${clientDataHash.toHexString()}" }
 
         var pinUvProtocolVersion: UByte? = null
-        val pinUvAuthParam = if (pinUvToken != null) {
-            val pp = getPinProtocol(pinUvProtocol)
-            pinUvProtocolVersion = pp.getVersion()
+        val pinUvAuthParam =
+            if (pinUvToken != null) {
+                val pp = getPinProtocol(pinUvProtocol)
+                pinUvProtocolVersion = pp.getVersion()
 
-            Logger.d { "Authenticating request using PIN protocol $pinUvProtocolVersion" }
+                Logger.d { "Authenticating request using PIN protocol $pinUvProtocolVersion" }
 
-            pp.authenticate(pinUvToken, clientDataHash)
-        } else {
-            null
-        }
+                pp.authenticate(pinUvToken, clientDataHash)
+            } else {
+                null
+            }
 
         var ka: KeyAgreementPlatformKey? = null
         var pp: PinUVProtocol? = null
@@ -424,34 +429,37 @@ class CTAPClient(
             ka = getKeyAgreement(pp.getVersion())
         }
 
-        val request = MakeCredentialCommand(
-            clientDataHash,
-            PublicKeyCredentialRpEntity(
-                id = rpId,
-                name = effectiveRpName,
-            ),
-            user = PublicKeyCredentialUserEntity(
-                id = effectiveUserId,
-                displayName = userDisplayName,
-                name = userName,
-            ),
-            pubKeyCredParams = pubKeyCredParams,
-            options = options,
-            excludeList = excludeList,
-            pinUvAuthProtocol = pinUvProtocolVersion,
-            pinUvAuthParam = pinUvAuthParam,
-            enterpriseAttestation = enterpriseAttestation,
-            extensions = extensions?.makeCredential(ka, pp),
-        )
+        val request =
+            MakeCredentialCommand(
+                clientDataHash,
+                PublicKeyCredentialRpEntity(
+                    id = rpId,
+                    name = effectiveRpName,
+                ),
+                user =
+                    PublicKeyCredentialUserEntity(
+                        id = effectiveUserId,
+                        displayName = userDisplayName,
+                        name = userName,
+                    ),
+                pubKeyCredParams = pubKeyCredParams,
+                options = options,
+                excludeList = excludeList,
+                pinUvAuthProtocol = pinUvProtocolVersion,
+                pinUvAuthParam = pinUvAuthParam,
+                enterpriseAttestation = enterpriseAttestation,
+                extensions = extensions?.makeCredential(ka, pp),
+            )
 
-        val ret = try {
-            xmit(request)
-        } catch (e: CTAPError) {
-            if (e.code == CTAPResponse.CREDENTIAL_EXCLUDED.value) {
-                throw CredentialExcludedError()
+        val ret =
+            try {
+                xmit(request)
+            } catch (e: CTAPError) {
+                if (e.code == CTAPResponse.CREDENTIAL_EXCLUDED.value) {
+                    throw CredentialExcludedError()
+                }
+                throw e
             }
-            throw e
-        }
 
         return ret
     }
@@ -509,7 +517,7 @@ class CTAPClient(
         userDisplayName: String? = null,
         discoverableCredential: Boolean = false,
         userVerification: Boolean = false,
-        pubKeyCredParams: List<PublicKeyCredentialParameters> = DEFAULT_CREDENTIAL_ALGORITHMS,
+        pubKeyCredParams: List<PublicKeyCredentialParameters> = defaultCredentialAlgorithms,
         excludeList: List<PublicKeyCredentialDescriptor>? = null,
         pinUvProtocol: UByte? = null,
         pinUvToken: PinUVToken? = null,
@@ -521,26 +529,28 @@ class CTAPClient(
 
         val effectiveClientDataHash = clientDataHash ?: Random.nextBytes(32)
 
-        val rawResult = makeCredentialRaw(
-            rpId,
-            effectiveClientDataHash,
-            rpName,
-            userId,
-            userName,
-            userDisplayName,
-            discoverableCredential,
-            userVerification,
-            pubKeyCredParams,
-            excludeList,
-            pinUvProtocol,
-            pinUvToken,
-            enterpriseAttestation,
-            extensions,
-        )
+        val rawResult =
+            makeCredentialRaw(
+                rpId,
+                effectiveClientDataHash,
+                rpName,
+                userId,
+                userName,
+                userDisplayName,
+                discoverableCredential,
+                userVerification,
+                pubKeyCredParams,
+                excludeList,
+                pinUvProtocol,
+                pinUvToken,
+                enterpriseAttestation,
+                extensions,
+            )
 
-        val ret = CTAPCBORDecoder(rawResult).decodeSerializableValue(
-            MakeCredentialResponse.serializer(),
-        )
+        val ret =
+            CTAPCBORDecoder(rawResult).decodeSerializableValue(
+                MakeCredentialResponse.serializer(),
+            )
 
         if (validateAttestation) {
             validateCredentialAttestation(ret, effectiveClientDataHash)
@@ -623,7 +633,10 @@ class CTAPClient(
      * @param clientDataHash The 32 bytes given to a [makeCredential] operation
      */
     @Throws(InvalidAttestationError::class)
-    fun validateCredentialAttestation(makeCredentialResponse: MakeCredentialResponse, clientDataHash: ByteArray) {
+    fun validateCredentialAttestation(
+        makeCredentialResponse: MakeCredentialResponse,
+        clientDataHash: ByteArray,
+    ) {
         when (makeCredentialResponse.fmt) {
             AttestationTypes.PACKED.value -> {
                 val alg = makeCredentialResponse.attStmt["alg"] as Long
@@ -654,7 +667,11 @@ class CTAPClient(
      *                  validating the assertion's signature
      */
     @Throws(InvalidSignatureError::class)
-    fun validateAssertionSignature(getAssertionResponse: GetAssertionResponse, clientDataHash: ByteArray, publicKey: COSEKey) {
+    fun validateAssertionSignature(
+        getAssertionResponse: GetAssertionResponse,
+        clientDataHash: ByteArray,
+        publicKey: COSEKey,
+    ) {
         if (publicKey.alg != COSEAlgorithmIdentifier.ES256.value) {
             throw NotImplementedError("Only ES256 signatures are currently implemented")
         }
@@ -699,13 +716,14 @@ class CTAPClient(
         }
 
         var pinUvProtocolVersion: UByte? = null
-        val pinUvAuthParam = if (pinUvToken != null) {
-            val pp = getPinProtocol(pinUvProtocol)
-            pinUvProtocolVersion = pp.getVersion()
-            pp.authenticate(pinUvToken, clientDataHash)
-        } else {
-            null
-        }
+        val pinUvAuthParam =
+            if (pinUvToken != null) {
+                val pp = getPinProtocol(pinUvProtocol)
+                pinUvProtocolVersion = pp.getVersion()
+                pp.authenticate(pinUvToken, clientDataHash)
+            } else {
+                null
+            }
 
         var ka: KeyAgreementPlatformKey? = null
         var pp: PinUVProtocol? = null
@@ -716,9 +734,10 @@ class CTAPClient(
 
         var options: HashMap<GetAssertionOption, Boolean>? = null
         if (userPresence == false) {
-            options = hashMapOf(
-                GetAssertionOption.UP to false,
-            )
+            options =
+                hashMapOf(
+                    GetAssertionOption.UP to false,
+                )
         }
 
         val numAllowListEntriesPerBatch = info.maxCredentialCountInList?.toInt() ?: 10000
@@ -727,26 +746,28 @@ class CTAPClient(
             val thisRequestAllowList =
                 allowList?.subList(allowListSent, min(allowListSent + numAllowListEntriesPerBatch, allowList.size))
 
-            val request = GetAssertionCommand(
-                clientDataHash = clientDataHash,
-                rpId = rpId,
-                allowList = thisRequestAllowList,
-                extensions = extensions?.getAssertion(keyAgreement = ka, pinUVProtocol = pp),
-                options = options,
-                pinUvAuthParam = pinUvAuthParam,
-                pinUvAuthProtocol = pinUvProtocolVersion,
-            )
+            val request =
+                GetAssertionCommand(
+                    clientDataHash = clientDataHash,
+                    rpId = rpId,
+                    allowList = thisRequestAllowList,
+                    extensions = extensions?.getAssertion(keyAgreement = ka, pinUVProtocol = pp),
+                    options = options,
+                    pinUvAuthParam = pinUvAuthParam,
+                    pinUvAuthProtocol = pinUvProtocolVersion,
+                )
 
-            val rawFirstResponse = try {
-                xmit(request)
-            } catch (e: CTAPError) {
-                if (e.code == CTAPResponse.NO_CREDENTIALS.value) {
-                    // OK, fine, try some other creds
-                    allowListSent += thisRequestAllowList?.size ?: 1
-                    continue
+            val rawFirstResponse =
+                try {
+                    xmit(request)
+                } catch (e: CTAPError) {
+                    if (e.code == CTAPResponse.NO_CREDENTIALS.value) {
+                        // OK, fine, try some other creds
+                        allowListSent += thisRequestAllowList?.size ?: 1
+                        continue
+                    }
+                    throw e
                 }
-                throw e
-            }
 
             return rawFirstResponse
         }
@@ -808,27 +829,29 @@ class CTAPClient(
             val thisRequestAllowList =
                 allowList?.subList(allowListSent, min(allowListSent + numAllowListEntriesPerBatch, allowList.size))
 
-            val rawFirstResponse = try {
-                getAssertionRaw(
-                    rpId = rpId,
-                    clientDataHash = effectiveClientDataHash,
-                    allowList = thisRequestAllowList,
-                    extensions = extensions,
-                    userPresence = userPresence,
-                    pinUvProtocol = pinUvProtocol,
-                    pinUvToken = pinUvToken,
-                )
-            } catch (e: CTAPError) {
-                if (e.code == CTAPResponse.NO_CREDENTIALS.value) {
-                    // OK, fine, try some other creds
-                    allowListSent += thisRequestAllowList?.size ?: 1
-                    continue
+            val rawFirstResponse =
+                try {
+                    getAssertionRaw(
+                        rpId = rpId,
+                        clientDataHash = effectiveClientDataHash,
+                        allowList = thisRequestAllowList,
+                        extensions = extensions,
+                        userPresence = userPresence,
+                        pinUvProtocol = pinUvProtocol,
+                        pinUvToken = pinUvToken,
+                    )
+                } catch (e: CTAPError) {
+                    if (e.code == CTAPResponse.NO_CREDENTIALS.value) {
+                        // OK, fine, try some other creds
+                        allowListSent += thisRequestAllowList?.size ?: 1
+                        continue
+                    }
+                    throw e
                 }
-                throw e
-            }
 
-            val firstResponse = CTAPCBORDecoder(rawFirstResponse)
-                .decodeSerializableValue(GetAssertionResponse.serializer())
+            val firstResponse =
+                CTAPCBORDecoder(rawFirstResponse)
+                    .decodeSerializableValue(GetAssertionResponse.serializer())
 
             extensions?.getAssertionResponse(firstResponse)
 
@@ -869,42 +892,47 @@ class CTAPClient(
 
         val crypto = library.cryptoProvider
 
-        val decoded = xmit(
-            ClientPinCommand.getKeyAgreement(pinUvProtocol),
-            ClientPinGetKeyAgreementResponse.serializer(),
-        )
+        val decoded =
+            xmit(
+                ClientPinCommand.getKeyAgreement(pinUvProtocol),
+                ClientPinGetKeyAgreementResponse.serializer(),
+            )
 
         val otherPublic = P256Point(decoded.key.x, decoded.key.y!!)
         val state = crypto.ecdhKeyAgreementInit(otherPublic)
         try {
-            val pp1Key = crypto.ecdhKeyAgreementKDF(
-                state,
-                otherPublic,
-                false,
-                byteArrayOf(),
-                byteArrayOf(),
-            ).bytes
-            val pp2AES = crypto.ecdhKeyAgreementKDF(
-                state,
-                otherPublic,
-                true,
-                ByteArray(32) { 0x00 },
-                PP_2_AES_INFO,
-            ).bytes
-            val pp2HMAC = crypto.ecdhKeyAgreementKDF(
-                state,
-                otherPublic,
-                true,
-                ByteArray(32) { 0x00 },
-                PP_2_HMAC_INFO,
-            ).bytes
-            val key = KeyAgreementPlatformKey(
-                state.localPublicX,
-                state.localPublicY,
-                pinUvProtocol1Key = pp1Key,
-                pinUvProtocol2HMACKey = pp2HMAC,
-                pinUvProtocol2AESKey = pp2AES,
-            )
+            val pp1Key =
+                crypto.ecdhKeyAgreementKDF(
+                    state,
+                    otherPublic,
+                    false,
+                    byteArrayOf(),
+                    byteArrayOf(),
+                ).bytes
+            val pp2AES =
+                crypto.ecdhKeyAgreementKDF(
+                    state,
+                    otherPublic,
+                    true,
+                    ByteArray(32) { 0x00 },
+                    pp2AesInfo,
+                ).bytes
+            val pp2HMAC =
+                crypto.ecdhKeyAgreementKDF(
+                    state,
+                    otherPublic,
+                    true,
+                    ByteArray(32) { 0x00 },
+                    pp2HmacInfo,
+                ).bytes
+            val key =
+                KeyAgreementPlatformKey(
+                    state.localPublicX,
+                    state.localPublicY,
+                    pinUvProtocol1Key = pp1Key,
+                    pinUvProtocol2HMACKey = pp2HMAC,
+                    pinUvProtocol2AESKey = pp2AES,
+                )
             platformKey = key
             return key
         } finally {
@@ -930,7 +958,10 @@ class CTAPClient(
      * @param pinUvProtocol PIN/UV protocol version number to use
      */
     @Throws(DeviceCommunicationException::class, CTAPError::class)
-    fun setPIN(newPinUnicode: String, pinUvProtocol: UByte? = null) {
+    fun setPIN(
+        newPinUnicode: String,
+        pinUvProtocol: UByte? = null,
+    ) {
         val pp = getPinProtocol(pinUvProtocol)
         val pk = ensurePlatformKey(pp)
 
@@ -938,12 +969,13 @@ class CTAPClient(
         val newPinEnc = pp.encrypt(pk, newPINBytes)
         val pinHashEnc = pp.authenticate(pk, newPinEnc)
 
-        val command = ClientPinCommand.setPIN(
-            pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pk.getCOSE(),
-            newPinEnc = newPinEnc,
-            pinUvAuthParam = pinHashEnc,
-        )
+        val command =
+            ClientPinCommand.setPIN(
+                pinUvAuthProtocol = pp.getVersion(),
+                keyAgreement = pk.getCOSE(),
+                newPinEnc = newPinEnc,
+                pinUvAuthParam = pinHashEnc,
+            )
 
         val res = device.sendBytes(command.getCBOR())
         checkResponseStatus(res)
@@ -986,12 +1018,16 @@ class CTAPClient(
         PinNotAvailableException::class,
         CancellationException::class,
     )
-    suspend fun setOrChangePIN(newPinUnicode: String, pinUvProtocol: UByte? = null) {
+    suspend fun setOrChangePIN(
+        newPinUnicode: String,
+        pinUvProtocol: UByte? = null,
+    ) {
         Logger.v { "Changing/setting PIN to new ${newPinUnicode.length} character value" }
 
         val info = getInfoIfUnset()
-        val cpOption = info.options?.get(CTAPOption.CLIENT_PIN.value)
-            ?: throw IllegalStateException("Authenticator does not support PINs!")
+        val cpOption =
+            info.options?.get(CTAPOption.CLIENT_PIN.value)
+                ?: throw IllegalStateException("Authenticator does not support PINs!")
 
         if (cpOption) {
             changePIN(newPinUnicode, pinUvProtocol)
@@ -1012,12 +1048,16 @@ class CTAPClient(
         PinNotAvailableException::class,
         CancellationException::class,
     )
-    suspend fun changePIN(newPinUnicode: String, pinUvProtocol: UByte? = null) {
+    suspend fun changePIN(
+        newPinUnicode: String,
+        pinUvProtocol: UByte? = null,
+    ) {
         val pp = getPinProtocol(pinUvProtocol)
         val pk = ensurePlatformKey(pp)
 
-        val pin = (if (cachedPin != null) cachedPin else collectPinFromUser(this))
-            ?: throw PinNotAvailableException()
+        val pin =
+            (if (cachedPin != null) cachedPin else collectPinFromUser(this))
+                ?: throw PinNotAvailableException()
 
         val newPINBytes = checkAndPadPIN(newPinUnicode)
         val newPinEnc = pp.encrypt(pk, newPINBytes)
@@ -1029,13 +1069,14 @@ class CTAPClient(
 
         val pinUvAuthParam = pp.authenticate(pk, authBlob)
 
-        val command = ClientPinCommand.changePIN(
-            pinHashEnc = pinHashEnc,
-            pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pk.getCOSE(),
-            newPinEnc = newPinEnc,
-            pinUvAuthParam = pinUvAuthParam,
-        )
+        val command =
+            ClientPinCommand.changePIN(
+                pinHashEnc = pinHashEnc,
+                pinUvAuthProtocol = pp.getVersion(),
+                keyAgreement = pk.getCOSE(),
+                newPinEnc = newPinEnc,
+                pinUvAuthParam = pinUvAuthParam,
+            )
 
         val res = device.sendBytes(command.getCBOR())
         checkResponseStatus(res)
@@ -1131,7 +1172,7 @@ class CTAPClient(
                 (
                     CTAPPinPermission.MAKE_CREDENTIAL.value.toUInt()
                         or CTAPPinPermission.GET_ASSERTION.value.toUInt()
-                    ) != 0u
+                ) != 0u
             ) {
                 // we're asking for MC or GA...
                 if (info.options[CTAPOption.NO_MC_GA_PERMISSIONS_WITH_CLIENT_PIN.value] == true) {
@@ -1144,8 +1185,9 @@ class CTAPClient(
             }
 
             // try PIN (with permissions)
-            val pin = (if (cachedPin != null) cachedPin else collectPinFromUser(this))
-                ?: throw PinNotAvailableException()
+            val pin =
+                (if (cachedPin != null) cachedPin else collectPinFromUser(this))
+                    ?: throw PinNotAvailableException()
             cachedPin = pin
 
             return getPinTokenWithPermissions(
@@ -1159,8 +1201,9 @@ class CTAPClient(
         // if we're here, we don't support permissions
         Logger.i { "Authenticator $device does not support permissions, so using CTAP2.0 getPinToken method" }
 
-        val pin = (if (cachedPin != null) cachedPin else collectPinFromUser(this))
-            ?: throw PinNotAvailableException()
+        val pin =
+            (if (cachedPin != null) cachedPin else collectPinFromUser(this))
+                ?: throw PinNotAvailableException()
         cachedPin = pin
 
         return getPinToken(
@@ -1186,12 +1229,13 @@ class CTAPClient(
         val pp = getPinProtocol(pinUvProtocol)
         val pk = ensurePlatformKey(pp)
 
-        val command = ClientPinCommand.getPinUvAuthTokenUsingUvWithPermissions(
-            pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pk.getCOSE(),
-            permissions = permissions,
-            rpId = rpId,
-        )
+        val command =
+            ClientPinCommand.getPinUvAuthTokenUsingUvWithPermissions(
+                pinUvAuthProtocol = pp.getVersion(),
+                keyAgreement = pk.getCOSE(),
+                permissions = permissions,
+                rpId = rpId,
+            )
 
         val ret = xmit(command, ClientPinGetTokenResponse.serializer())
 
@@ -1212,18 +1256,22 @@ class CTAPClient(
     }
 
     @Throws(DeviceCommunicationException::class, CTAPError::class)
-    fun getPinToken(currentPinUnicode: String, pinUvProtocol: UByte? = null): PinUVToken {
+    fun getPinToken(
+        currentPinUnicode: String,
+        pinUvProtocol: UByte? = null,
+    ): PinUVToken {
         val pp = getPinProtocol(pinUvProtocol)
         val pk = ensurePlatformKey(pp)
 
         val left16 = library.cryptoProvider.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
         val pinHashEnc = pp.encrypt(pk, left16)
 
-        val command = ClientPinCommand.getPinToken(
-            pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pk.getCOSE(),
-            pinHashEnc = pinHashEnc,
-        )
+        val command =
+            ClientPinCommand.getPinToken(
+                pinUvAuthProtocol = pp.getVersion(),
+                keyAgreement = pk.getCOSE(),
+                pinHashEnc = pinHashEnc,
+            )
 
         val ret = xmit(command, ClientPinGetTokenResponse.serializer())
 
@@ -1245,13 +1293,14 @@ class CTAPClient(
         val left16 = library.cryptoProvider.sha256(currentPinUnicode.encodeToByteArray()).hash.copyOfRange(0, 16)
         val pinHashEnc = pp.encrypt(pk, left16)
 
-        val command = ClientPinCommand.getPinUvAuthTokenUsingPinWithPermissions(
-            pinUvAuthProtocol = pp.getVersion(),
-            keyAgreement = pk.getCOSE(),
-            pinHashEnc = pinHashEnc,
-            permissions = permissions,
-            rpId = rpId,
-        )
+        val command =
+            ClientPinCommand.getPinUvAuthTokenUsingPinWithPermissions(
+                pinUvAuthProtocol = pp.getVersion(),
+                keyAgreement = pk.getCOSE(),
+                pinHashEnc = pinHashEnc,
+                permissions = permissions,
+                rpId = rpId,
+            )
 
         val ret = xmit(command, ClientPinGetTokenResponse.serializer())
 
@@ -1334,18 +1383,20 @@ internal fun ctapClientExample() {
     val devices = library.listDevices()
     val client = library.ctapClient(devices.first())
 
-    val credential = client.makeCredential(
-        rpId = "my.great.example",
-    )
+    val credential =
+        client.makeCredential(
+            rpId = "my.great.example",
+        )
 }
 
 @OptIn(ExperimentalStdlibApi::class)
 internal fun getAssertionsExample() {
     val client = Examples.getCTAPClient()
 
-    val assertions = client.getAssertions(
-        rpId = "my.assertion.example",
-    )
+    val assertions =
+        client.getAssertions(
+            rpId = "my.assertion.example",
+        )
 
     for (assertion in assertions) {
         println("Credential ID ${assertion.credential.id.toHexString()}")

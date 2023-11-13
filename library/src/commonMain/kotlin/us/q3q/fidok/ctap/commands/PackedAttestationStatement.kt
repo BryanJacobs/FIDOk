@@ -49,7 +49,9 @@ data class PackedAttestationStatement(
         if (x5c != null) {
             if (other.x5c == null) return false
             if (!x5c.contentDeepEquals(other.x5c)) return false
-        } else if (other.x5c != null) return false
+        } else if (other.x5c != null) {
+            return false
+        }
 
         return true
     }
@@ -68,14 +70,15 @@ data class PackedAttestationStatement(
 @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 class PackedAttestationSerializer : KSerializer<PackedAttestationStatement> {
     override val descriptor: SerialDescriptor
-        get() = buildSerialDescriptor("PackedAttestationStatement", StructureKind.MAP) {
-            element("alg_key", String.serializer().descriptor)
-            element("alg", Long.serializer().descriptor)
-            element("sig_key", String.serializer().descriptor)
-            element("sig", ByteArraySerializer().descriptor)
-            element("x5c_key", String.serializer().descriptor, isOptional = true)
-            element("x5c", ArraySerializer(ByteArray::class, ByteArraySerializer()).descriptor, isOptional = true)
-        }
+        get() =
+            buildSerialDescriptor("PackedAttestationStatement", StructureKind.MAP) {
+                element("alg_key", String.serializer().descriptor)
+                element("alg", Long.serializer().descriptor)
+                element("sig_key", String.serializer().descriptor)
+                element("sig", ByteArraySerializer().descriptor)
+                element("x5c_key", String.serializer().descriptor, isOptional = true)
+                element("x5c", ArraySerializer(ByteArray::class, ByteArraySerializer()).descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): PackedAttestationStatement {
         val composite = decoder.beginStructure(descriptor)
@@ -96,7 +99,10 @@ class PackedAttestationSerializer : KSerializer<PackedAttestationStatement> {
         return PackedAttestationStatement(alg = alg, sig = sig, x5c = x5c?.toTypedArray())
     }
 
-    override fun serialize(encoder: Encoder, value: PackedAttestationStatement) {
+    override fun serialize(
+        encoder: Encoder,
+        value: PackedAttestationStatement,
+    ) {
         val composite = encoder.beginCollection(descriptor, if (value.x5c == null) 2 else 3)
         composite.encodeStringElement(descriptor, 0, "alg")
         composite.encodeLongElement(descriptor, 1, value.alg)

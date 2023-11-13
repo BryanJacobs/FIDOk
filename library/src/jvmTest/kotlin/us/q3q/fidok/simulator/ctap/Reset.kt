@@ -10,22 +10,23 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class Reset : SimulationTest() {
-
     @Test
     fun resetInvalidatesCredential() {
         val credRes = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName)
 
         client.authenticatorReset()
 
-        val exception = assertFailsWith<CTAPError> {
-            client.getAssertions(
-                clientDataHash = Random.nextBytes(32),
-                rpId = rpId,
-                allowList = listOf(
-                    PublicKeyCredentialDescriptor(id = credRes.authData.attestedCredentialData!!.credentialId),
-                ),
-            )
-        }
+        val exception =
+            assertFailsWith<CTAPError> {
+                client.getAssertions(
+                    clientDataHash = Random.nextBytes(32),
+                    rpId = rpId,
+                    allowList =
+                        listOf(
+                            PublicKeyCredentialDescriptor(id = credRes.authData.attestedCredentialData!!.credentialId),
+                        ),
+                )
+            }
         assertEquals(CTAPResponse.NO_CREDENTIALS.value, exception.code)
     }
 }

@@ -24,10 +24,11 @@ class AndroidBTClassicHIDServer(private val ctx: Context, private val bluetoothA
             throw IllegalStateException("Bluetooth not given permission!")
         }
 
-        val listener = bluetoothAdapter.listenUsingRfcommWithServiceRecord(
-            "FIDO Authenticator",
-            UUID.fromString("486b38c2-71d4-4a80-b215-d7b6554fa59c"),
-        )
+        val listener =
+            bluetoothAdapter.listenUsingRfcommWithServiceRecord(
+                "FIDO Authenticator",
+                UUID.fromString("486b38c2-71d4-4a80-b215-d7b6554fa59c"),
+            )
 
         val socket = listener.accept()
         if (!socket.isConnected) {

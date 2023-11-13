@@ -8,7 +8,6 @@ import com.github.ajalt.clikt.parameters.options.prompt
 import us.q3q.fidok.ctap.CTAPClient
 
 class PinSet : CliktCommand(name = "set", help = "Set a new PIN") {
-
     private val client by requireObject<CTAPClient>()
 
     private val newPin by option()

@@ -6,14 +6,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class PublicKeyCredentialRpEntityTest {
-
     @Test
     fun roundTripSerializationWithFields() {
-        val entity = PublicKeyCredentialRpEntity(
-            id = "something",
-            name = "bobby",
-            icon = "data:foo",
-        )
+        val entity =
+            PublicKeyCredentialRpEntity(
+                id = "something",
+                name = "bobby",
+                icon = "data:foo",
+            )
         val result = roundTripSerialize(entity, PublicKeyCredentialRpEntity.serializer())
 
         assertEquals(entity, result)
@@ -22,9 +22,10 @@ class PublicKeyCredentialRpEntityTest {
 
     @Test
     fun roundTripSerializationBare() {
-        val entity = PublicKeyCredentialRpEntity(
-            id = "something",
-        )
+        val entity =
+            PublicKeyCredentialRpEntity(
+                id = "something",
+            )
         val result = roundTripSerialize(entity, PublicKeyCredentialRpEntity.serializer())
 
         assertEquals(entity, result)

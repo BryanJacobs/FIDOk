@@ -15,8 +15,9 @@ import us.q3q.fidok.crypto.PinUVProtocol
  * @sample credBlobExtensionRetrieve
  */
 class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension {
-
-    private val NAME = "credBlob"
+    companion object {
+        private const val NAME = "credBlob"
+    }
 
     init {
         ExtensionSetup.register(
@@ -46,7 +47,10 @@ class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension 
         return NAME
     }
 
-    override fun makeCredential(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters? {
+    override fun makeCredential(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters? {
         if (blobToStore != null) {
             return ByteArrayExtensionParameter(blobToStore)
         }
@@ -58,7 +62,10 @@ class CredBlobExtension(private val blobToStore: ByteArray? = null) : Extension 
         created = (gotten as BooleanExtensionParameter).v
     }
 
-    override fun getAssertion(keyAgreement: KeyAgreementPlatformKey?, pinUVProtocol: PinUVProtocol?): ExtensionParameters {
+    override fun getAssertion(
+        keyAgreement: KeyAgreementPlatformKey?,
+        pinUVProtocol: PinUVProtocol?,
+    ): ExtensionParameters {
         return BooleanExtensionParameter(true)
     }
 
@@ -90,10 +97,11 @@ fun credBlobExtensionStore() {
     val client = Examples.getCTAPClient()
 
     val credBlobExtension = CredBlobExtension(byteArrayOf(0x34, 0x12))
-    val credential = client.makeCredential(
-        rpId = "some.cool.example",
-        extensions = ExtensionSetup(listOf(credBlobExtension)),
-    )
+    val credential =
+        client.makeCredential(
+            rpId = "some.cool.example",
+            extensions = ExtensionSetup(listOf(credBlobExtension)),
+        )
 
     if (credBlobExtension.wasCreated()) {
         println("And there was much rejoicing.")
@@ -105,10 +113,11 @@ internal fun credBlobExtensionRetrieve() {
     val client = Examples.getCTAPClient()
 
     val credBlobExtension = CredBlobExtension()
-    val assertions = client.getAssertions(
-        rpId = "some.cool.example",
-        extensions = ExtensionSetup(listOf(credBlobExtension)),
-    )
+    val assertions =
+        client.getAssertions(
+            rpId = "some.cool.example",
+            extensions = ExtensionSetup(listOf(credBlobExtension)),
+        )
 
     for (assertion in assertions) {
         val gottenBlob = credBlobExtension.getBlob()

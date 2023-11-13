@@ -23,7 +23,6 @@ import kotlin.random.Random
 
 @OptIn(ExperimentalStdlibApi::class)
 class Create : CliktCommand(help = "Create a new webauthn credential") {
-
     private val library by requireObject<FIDOkLibrary>()
 
     private val rpId by option("--rp")
@@ -77,19 +76,21 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
         .help("CTAP credProtect level - 2 for UV-unless-cred-provided, 3 for always-UV")
 
     override fun run() {
-        val selectionCriteria = AuthenticatorSelectionCriteria(
-            residentKey = if (discoverable) ResidentKeyRequirement.REQUIRED.value else ResidentKeyRequirement.DISCOURAGED.value,
-        )
+        val selectionCriteria =
+            AuthenticatorSelectionCriteria(
+                residentKey = if (discoverable) ResidentKeyRequirement.REQUIRED.value else ResidentKeyRequirement.DISCOURAGED.value,
+            )
 
-        val chosenAlgorithm = algorithm?.let {
-            COSEAlgorithmIdentifier.entries.find { cose -> cose.name.lowercase() == it }
-        }.let {
-            if (it != null) {
-                listOf(PublicKeyCredentialParameters(it))
-            } else {
-                null
+        val chosenAlgorithm =
+            algorithm?.let {
+                COSEAlgorithmIdentifier.entries.find { cose -> cose.name.lowercase() == it }
+            }.let {
+                if (it != null) {
+                    listOf(PublicKeyCredentialParameters(it))
+                } else {
+                    null
+                }
             }
-        }
 
         val extensions = hashMapOf<String, Any>()
 
@@ -104,23 +105,26 @@ class Create : CliktCommand(help = "Create a new webauthn credential") {
         }
 
         runBlocking {
-            val cred = library.webauthn().create(
-                PublicKeyCredentialCreationOptions(
-                    rp = PublicKeyCredentialRpEntity(
-                        id = rpId,
-                        name = rpName ?: rpId,
+            val cred =
+                library.webauthn().create(
+                    PublicKeyCredentialCreationOptions(
+                        rp =
+                            PublicKeyCredentialRpEntity(
+                                id = rpId,
+                                name = rpName ?: rpId,
+                            ),
+                        user =
+                            PublicKeyCredentialUserEntity(
+                                id = userId.hexToByteArray(),
+                                name = userName,
+                                displayName = userDisplayName ?: userName,
+                            ),
+                        challenge = challenge.hexToByteArray(),
+                        authenticatorSelectionCriteria = selectionCriteria,
+                        pubKeyCredParams = chosenAlgorithm ?: DEFAULT_PUB_KEY_CRED_PARAMS,
+                        extensions = extensions,
                     ),
-                    user = PublicKeyCredentialUserEntity(
-                        id = userId.hexToByteArray(),
-                        name = userName,
-                        displayName = userDisplayName ?: userName,
-                    ),
-                    challenge = challenge.hexToByteArray(),
-                    authenticatorSelectionCriteria = selectionCriteria,
-                    pubKeyCredParams = chosenAlgorithm ?: DEFAULT_PUB_KEY_CRED_PARAMS,
-                    extensions = extensions,
-                ),
-            )
+                )
 
             echo("Credential created: ${cred.id}")
             if (hmacSecret) {

@@ -27,10 +27,11 @@ data class CredentialManagementGetMetadataResponse(
  */
 class CredentialManagementGetMetadataResponseSerializer : KSerializer<CredentialManagementGetMetadataResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("CredentialManagementGetMetadataResponse") {
-            element("existingDiscoverableCredentialsCount", UInt.serializer().descriptor)
-            element("maxPossibleRemainingCredentialsCount", UInt.serializer().descriptor)
-        }
+        get() =
+            buildClassSerialDescriptor("CredentialManagementGetMetadataResponse") {
+                element("existingDiscoverableCredentialsCount", UInt.serializer().descriptor)
+                element("maxPossibleRemainingCredentialsCount", UInt.serializer().descriptor)
+            }
 
     override fun deserialize(decoder: Decoder): CredentialManagementGetMetadataResponse {
         val composite = decoder.beginStructure(descriptor)
@@ -56,7 +57,10 @@ class CredentialManagementGetMetadataResponseSerializer : KSerializer<Credential
         )
     }
 
-    override fun serialize(encoder: Encoder, value: CredentialManagementGetMetadataResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: CredentialManagementGetMetadataResponse,
+    ) {
         throw NotImplementedError("Cannot serialize a response")
     }
 }

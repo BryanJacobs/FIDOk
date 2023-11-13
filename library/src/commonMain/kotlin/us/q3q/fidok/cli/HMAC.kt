@@ -9,7 +9,6 @@ import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ez.EZHmac
 
 class HMAC : CliktCommand("Easily encrypt/decrypt data using FIDO Authenticators via hmac-secret") {
-
     init {
         subcommands(Setup(), Encrypt(), Decrypt())
     }

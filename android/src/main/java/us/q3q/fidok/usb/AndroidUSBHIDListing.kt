@@ -10,9 +10,11 @@ const val USB_TIMEOUT_MS = 15000
 
 @OptIn(ExperimentalStdlibApi::class)
 class AndroidUSBHIDListing {
-
     companion object {
-        fun listDevices(c: Context, permissionIntent: PendingIntent?): List<AndroidUSBHIDDevice> {
+        fun listDevices(
+            c: Context,
+            permissionIntent: PendingIntent?,
+        ): List<AndroidUSBHIDDevice> {
             val m = c.getSystemService(UsbManager::class.java)
 
             val ret = arrayListOf<AndroidUSBHIDDevice>()
@@ -95,16 +97,20 @@ class AndroidUSBHIDListing {
 
                     Logger.v { "Trying $interfaceNumber" }
 
-                    val bytesTransferred = conn.controlTransfer(
-                        UsbConstants.USB_DIR_IN or 0x01,
-                        0x00000006,
-                        0x00002200 + interfaceNumber,
-                        interfaceNumber,
-                        response,
-                        response.size,
-                        USB_TIMEOUT_MS,
-                    )
-                    Logger.v { "Transferred $bytesTransferred report descriptor bytes from $deviceAddr interface $interfaceNumber : ${response[0].toHexString()}" }
+                    val bytesTransferred =
+                        conn.controlTransfer(
+                            UsbConstants.USB_DIR_IN or 0x01,
+                            0x00000006,
+                            0x00002200 + interfaceNumber,
+                            interfaceNumber,
+                            response,
+                            response.size,
+                            USB_TIMEOUT_MS,
+                        )
+                    Logger.v {
+                        "Transferred $bytesTransferred report descriptor bytes " +
+                            "from $deviceAddr interface $interfaceNumber : ${response[0].toHexString()}"
+                    }
 
                     conn.releaseInterface(ifaceObj)
 

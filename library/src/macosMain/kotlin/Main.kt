@@ -15,7 +15,7 @@ fun main(args: Array<String>) {
             FIDOkLibrary.init(
                 BotanCryptoProvider(),
                 it,
-                callbacks = DefaultCliCallbacks()
+                callbacks = DefaultCliCallbacks(),
             )
         },
     ).main(args)

@@ -9,18 +9,30 @@ import kotlin.test.assertNull
 
 @OptIn(ExperimentalStdlibApi::class)
 class AssertionIteration : SimulationTest() {
-
     @Test
     fun iterateDiscoverable() {
-        val cred1 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName, discoverableCredential = true)
-        val cred2 = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName, discoverableCredential = true)
+        val cred1 =
+            client.makeCredential(
+                rpId = rpId,
+                userDisplayName = userDisplayName,
+                userName = userName,
+                discoverableCredential = true,
+            )
+        val cred2 =
+            client.makeCredential(
+                rpId = rpId,
+                userDisplayName = userDisplayName,
+                userName = userName,
+                discoverableCredential = true,
+            )
 
         val challenge = Random.nextBytes(32)
 
-        val assertions = client.getAssertions(
-            clientDataHash = challenge,
-            rpId = rpId,
-        )
+        val assertions =
+            client.getAssertions(
+                clientDataHash = challenge,
+                rpId = rpId,
+            )
 
         assertEquals(2, assertions.size)
         assertEquals(2, assertions[0].numberOfCredentials)
@@ -40,14 +52,16 @@ class AssertionIteration : SimulationTest() {
 
         val challenge = Random.nextBytes(32)
 
-        val assertions = client.getAssertions(
-            clientDataHash = challenge,
-            rpId = rpId,
-            allowList = listOf(
-                PublicKeyCredentialDescriptor(id = cred1.getCredentialID()),
-                PublicKeyCredentialDescriptor(id = cred2.getCredentialID()),
-            ),
-        )
+        val assertions =
+            client.getAssertions(
+                clientDataHash = challenge,
+                rpId = rpId,
+                allowList =
+                    listOf(
+                        PublicKeyCredentialDescriptor(id = cred1.getCredentialID()),
+                        PublicKeyCredentialDescriptor(id = cred2.getCredentialID()),
+                    ),
+            )
 
         // Authenticator allowed to return just one entry in this case - the first one
         assertEquals(1, assertions.size)

@@ -6,7 +6,6 @@ import com.github.ajalt.clikt.core.subcommands
 import us.q3q.fidok.ctap.FIDOkLibrary
 
 class Pin : CliktCommand(help = "Manage Authenticator PINs (user passwords)") {
-
     init {
         subcommands(PinSet(), PinChange())
     }

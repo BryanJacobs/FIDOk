@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class COSEKeyTest {
-
     @Test
     fun roundTrip() {
         val key = COSEKey(2, -7, 1, Random.nextBytes(32), Random.nextBytes(32))

@@ -13,12 +13,16 @@ import kotlin.experimental.ExperimentalNativeApi
 
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_ez_hmac_setup")
-fun ez_hmac_setup(library: COpaquePointer, out: COpaquePointer): Int {
+fun ez_hmac_setup(
+    library: COpaquePointer,
+    out: COpaquePointer,
+): Int {
     val fidok = library.asStableRef<FIDOkLibrary>().get()
 
-    val setup = runBlocking {
-        EZHmac(fidok).setup()
-    }
+    val setup =
+        runBlocking {
+            EZHmac(fidok).setup()
+        }
     outFill(setup, out)
     return setup.size
 }
@@ -40,12 +44,13 @@ internal fun ez_hmac_underlying(
     val inB = inAsByteArray(data, data_len)
     val saltB = inAsByteArray(salt, 32)
 
-    val gotten = cbFunc(
-        EZHmac(fidok),
-        setupB,
-        inB,
-        saltB,
-    )
+    val gotten =
+        cbFunc(
+            EZHmac(fidok),
+            setupB,
+            inB,
+            saltB,
+        )
     outFill(gotten, out)
     return gotten.size
 }
@@ -106,9 +111,10 @@ fun ez_hmac_rotate(
     val salt1B = inAsByteArray(salt1, 32)
     val salt2B = inAsByteArray(salt2, 32)
 
-    val values = runBlocking {
-        EZHmac(fidok).encryptAndRotate(setupB, inB, salt1B, salt2B)
-    }
+    val values =
+        runBlocking {
+            EZHmac(fidok).encryptAndRotate(setupB, inB, salt1B, salt2B)
+        }
     outFill(values.first, out1)
     outFill(values.second, out2)
 

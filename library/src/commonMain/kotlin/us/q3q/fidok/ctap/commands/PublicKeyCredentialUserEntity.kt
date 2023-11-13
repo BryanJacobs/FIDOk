@@ -83,17 +83,18 @@ data class PublicKeyCredentialUserEntityParameter(override val v: PublicKeyCrede
 @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialUserEntity> {
     override val descriptor: SerialDescriptor
-        get() = buildSerialDescriptor("PublicKeyCredentialsRpEntity", StructureKind.MAP) {
-            element("className", String.serializer().descriptor)
-            element("id_key", String.serializer().descriptor)
-            element("id", ByteArraySerializer().descriptor)
-            element("icon_key", String.serializer().descriptor, isOptional = true)
-            element("icon", String.serializer().descriptor, isOptional = true)
-            element("name_key", String.serializer().descriptor, isOptional = true)
-            element("name", String.serializer().descriptor, isOptional = true)
-            element("displayName_key", String.serializer().descriptor, isOptional = true)
-            element("displayName", String.serializer().descriptor, isOptional = true)
-        }
+        get() =
+            buildSerialDescriptor("PublicKeyCredentialsRpEntity", StructureKind.MAP) {
+                element("className", String.serializer().descriptor)
+                element("id_key", String.serializer().descriptor)
+                element("id", ByteArraySerializer().descriptor)
+                element("icon_key", String.serializer().descriptor, isOptional = true)
+                element("icon", String.serializer().descriptor, isOptional = true)
+                element("name_key", String.serializer().descriptor, isOptional = true)
+                element("name", String.serializer().descriptor, isOptional = true)
+                element("displayName_key", String.serializer().descriptor, isOptional = true)
+                element("displayName", String.serializer().descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): PublicKeyCredentialUserEntity {
         val composite = decoder.beginStructure(descriptor)
@@ -126,7 +127,10 @@ class PublicKeyCredentialUserEntitySerializer : KSerializer<PublicKeyCredentialU
         return PublicKeyCredentialUserEntity(id = id, displayName = displayName, icon = icon, name = name)
     }
 
-    override fun serialize(encoder: Encoder, value: PublicKeyCredentialUserEntity) {
+    override fun serialize(
+        encoder: Encoder,
+        value: PublicKeyCredentialUserEntity,
+    ) {
         var size = 1
         if (value.displayName != null) {
             size++

@@ -48,29 +48,30 @@ class GetAssertionCommand(
     private val pinUvAuthProtocol: UByte? = null,
 ) : CtapCommand() {
     override val cmdByte: Byte = 0x02
-    override val params = HashMap<UByte, ParameterValue>().apply {
-        this[0x01u] = StringParameter(rpId)
-        this[0x02u] = ByteArrayParameter(clientDataHash)
-        if (allowList != null) {
-            this[0x03u] = PublicKeyCredentialListParameter(allowList)
-        }
-        if (extensions != null) {
-            this[0x04u] = ExtensionParameterValues(extensions)
-        }
-        if (options != null) {
-            val m = hashMapOf<String, Boolean>()
-            options.keys.forEach {
-                m[it.value] = options[it]!!
+    override val params =
+        HashMap<UByte, ParameterValue>().apply {
+            this[0x01u] = StringParameter(rpId)
+            this[0x02u] = ByteArrayParameter(clientDataHash)
+            if (allowList != null) {
+                this[0x03u] = PublicKeyCredentialListParameter(allowList)
             }
-            this[0x05u] = CreationOptionParameter(m)
+            if (extensions != null) {
+                this[0x04u] = ExtensionParameterValues(extensions)
+            }
+            if (options != null) {
+                val m = hashMapOf<String, Boolean>()
+                options.keys.forEach {
+                    m[it.value] = options[it]!!
+                }
+                this[0x05u] = CreationOptionParameter(m)
+            }
+            if (pinUvAuthParam != null) {
+                this[0x06u] = ByteArrayParameter(pinUvAuthParam)
+            }
+            if (pinUvAuthProtocol != null) {
+                this[0x07u] = UByteParameter(pinUvAuthProtocol)
+            }
         }
-        if (pinUvAuthParam != null) {
-            this[0x06u] = ByteArrayParameter(pinUvAuthParam)
-        }
-        if (pinUvAuthProtocol != null) {
-            this[0x07u] = UByteParameter(pinUvAuthProtocol)
-        }
-    }
 
     init {
         require(clientDataHash.size == 32)

@@ -65,34 +65,35 @@ class MakeCredentialCommand(
     private val enterpriseAttestation: UInt? = null,
 ) : CtapCommand() {
     override val cmdByte: Byte = 0x01
-    override val params = HashMap<UByte, ParameterValue>().apply {
-        this[0x01u] = ByteArrayParameter(clientDataHash)
-        this[0x02u] = PublicKeyCredentialRpEntityParameter(rp)
-        this[0x03u] = PublicKeyCredentialUserEntityParameter(user)
-        this[0x04u] = PublicKeyCredentialsParametersParameter(pubKeyCredParams)
-        if (!excludeList.isNullOrEmpty()) {
-            this[0x05u] = PublicKeyCredentialListParameter(excludeList)
-        }
-        if (!extensions.isNullOrEmpty()) {
-            this[0x06u] = ExtensionParameterValues(extensions)
-        }
-        if (!options.isNullOrEmpty()) {
-            val m = hashMapOf<String, Boolean>()
-            options.keys.forEach {
-                m[it.value] = options[it]!!
+    override val params =
+        HashMap<UByte, ParameterValue>().apply {
+            this[0x01u] = ByteArrayParameter(clientDataHash)
+            this[0x02u] = PublicKeyCredentialRpEntityParameter(rp)
+            this[0x03u] = PublicKeyCredentialUserEntityParameter(user)
+            this[0x04u] = PublicKeyCredentialsParametersParameter(pubKeyCredParams)
+            if (!excludeList.isNullOrEmpty()) {
+                this[0x05u] = PublicKeyCredentialListParameter(excludeList)
             }
-            this[0x07u] = CreationOptionParameter(m)
+            if (!extensions.isNullOrEmpty()) {
+                this[0x06u] = ExtensionParameterValues(extensions)
+            }
+            if (!options.isNullOrEmpty()) {
+                val m = hashMapOf<String, Boolean>()
+                options.keys.forEach {
+                    m[it.value] = options[it]!!
+                }
+                this[0x07u] = CreationOptionParameter(m)
+            }
+            if (pinUvAuthParam != null) {
+                this[0x08u] = ByteArrayParameter(pinUvAuthParam)
+            }
+            if (pinUvAuthProtocol != null) {
+                this[0x09u] = UByteParameter(pinUvAuthProtocol)
+            }
+            if (enterpriseAttestation != null) {
+                this[0x0Au] = UIntParameter(enterpriseAttestation)
+            }
         }
-        if (pinUvAuthParam != null) {
-            this[0x08u] = ByteArrayParameter(pinUvAuthParam)
-        }
-        if (pinUvAuthProtocol != null) {
-            this[0x09u] = UByteParameter(pinUvAuthProtocol)
-        }
-        if (enterpriseAttestation != null) {
-            this[0x0Au] = UIntParameter(enterpriseAttestation)
-        }
-    }
 
     init {
         require(clientDataHash.size == 32)

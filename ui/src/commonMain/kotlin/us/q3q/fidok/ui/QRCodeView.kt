@@ -17,16 +17,21 @@ import java.time.Instant
 import kotlin.random.Random
 
 @Composable
-fun QRCodeView(data: String, size: Int = 1) {
-    val code = QRCode(
-        data,
-        errorCorrectionLevel = ErrorCorrectionLevel.M,
-        dataType = QRCodeDataType.UPPER_ALPHA_NUM,
-    )
-    val render = code.render(
-        cellSize = size,
-        margin = 1,
-    )
+fun QRCodeView(
+    data: String,
+    size: Int = 1,
+) {
+    val code =
+        QRCode(
+            data,
+            errorCorrectionLevel = ErrorCorrectionLevel.M,
+            dataType = QRCodeDataType.UPPER_ALPHA_NUM,
+        )
+    val render =
+        code.render(
+            cellSize = size,
+            margin = 1,
+        )
     val renderedBytes = render.getBytes()
     val imageBitmap = loadImageBitmap(ByteArrayInputStream(renderedBytes))
     Canvas(modifier = Modifier.fillMaxSize()) {
@@ -43,12 +48,13 @@ internal fun QRCodeTextPreview() {
 @Preview
 @Composable
 internal fun QRCodeCaBLEPreview() {
-    val code = CaBLECode(
-        publicKey = Random.nextBytes(33),
-        secret = Random.nextBytes(16),
-        knownTunnelServerDomains = 2u,
-        currentEpochSeconds = Instant.now().toEpochMilli().toULong(),
-    )
+    val code =
+        CaBLECode(
+            publicKey = Random.nextBytes(33),
+            secret = Random.nextBytes(16),
+            knownTunnelServerDomains = 2u,
+            currentEpochSeconds = Instant.now().toEpochMilli().toULong(),
+        )
     val url = FIDOkLibrary.init(NullCryptoProvider()).caBLESupport().buildCaBLEURL(code)
     QRCodeView(url, size = 2)
 }

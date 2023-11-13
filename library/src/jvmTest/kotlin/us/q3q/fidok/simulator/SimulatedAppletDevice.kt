@@ -7,7 +7,6 @@ import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.pcsc.CTAPPCSC
 
 class SimulatedAppletDevice : AuthenticatorDevice {
-
     private val sim: Simulator
 
     init {

@@ -40,7 +40,9 @@ data class EnumerateRPsResponse(
         if (rpIDHash != null) {
             if (other.rpIDHash == null) return false
             if (!rpIDHash.contentEquals(other.rpIDHash)) return false
-        } else if (other.rpIDHash != null) return false
+        } else if (other.rpIDHash != null) {
+            return false
+        }
         if (totalRPs != other.totalRPs) return false
 
         return true
@@ -59,11 +61,12 @@ data class EnumerateRPsResponse(
  */
 class EnumerateRPsResponseSerializer : KSerializer<EnumerateRPsResponse> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("EnumerateRPsResponse") {
-            element("rp", PublicKeyCredentialRpEntity.serializer().descriptor)
-            element("rpIDHash", ByteArraySerializer().descriptor)
-            element("totalRPs", UInt.serializer().descriptor, isOptional = true)
-        }
+        get() =
+            buildClassSerialDescriptor("EnumerateRPsResponse") {
+                element("rp", PublicKeyCredentialRpEntity.serializer().descriptor)
+                element("rpIDHash", ByteArraySerializer().descriptor)
+                element("totalRPs", UInt.serializer().descriptor, isOptional = true)
+            }
 
     override fun deserialize(decoder: Decoder): EnumerateRPsResponse {
         val composite = decoder.beginStructure(descriptor)
@@ -100,7 +103,10 @@ class EnumerateRPsResponseSerializer : KSerializer<EnumerateRPsResponse> {
         return EnumerateRPsResponse(rp = rp, rpIDHash = rpIDHash, totalRPs = totalRPs)
     }
 
-    override fun serialize(encoder: Encoder, value: EnumerateRPsResponse) {
+    override fun serialize(
+        encoder: Encoder,
+        value: EnumerateRPsResponse,
+    ) {
         throw NotImplementedError("Cannot serialize a response")
     }
 }

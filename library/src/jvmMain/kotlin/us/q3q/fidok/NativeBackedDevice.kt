@@ -12,7 +12,11 @@ import java.nio.ByteBuffer
  * This allows using platform-specific [AuthenticatorDevice] implementations from the JVM, where no
  * JVM-hosted implementation exists.
  */
-class NativeBackedDevice(libraryPath: String, private val listingHolder: NativeListingHolder, private val deviceNumber: Int) : NativeLibraryUser(libraryPath), AuthenticatorDevice {
+class NativeBackedDevice(
+    libraryPath: String,
+    private val listingHolder: NativeListingHolder,
+    private val deviceNumber: Int,
+) : NativeLibraryUser(libraryPath), AuthenticatorDevice {
     override fun sendBytes(bytes: ByteArray): ByteArray {
         val capacity = 32768
         val output = ByteBuffer.allocateDirect(capacity)
@@ -20,14 +24,15 @@ class NativeBackedDevice(libraryPath: String, private val listingHolder: NativeL
         capacityBacking.putInt(capacity)
         capacityBacking.rewind()
 
-        val res = native.fidok_send_bytes(
-            listingHolder.listing,
-            deviceNumber,
-            toBB(bytes),
-            bytes.size,
-            output,
-            capacityBacking,
-        )
+        val res =
+            native.fidok_send_bytes(
+                listingHolder.listing,
+                deviceNumber,
+                toBB(bytes),
+                bytes.size,
+                output,
+                capacityBacking,
+            )
         if (res != 0) {
             throw DeviceCommunicationException("Native device communication failed")
         }

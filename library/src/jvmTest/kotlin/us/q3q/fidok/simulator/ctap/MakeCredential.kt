@@ -16,7 +16,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MakeCredential : SimulationTest() {
-
     @Test
     fun basicMakeCredential() {
         val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName)
@@ -40,7 +39,14 @@ class MakeCredential : SimulationTest() {
 
         val token = client.getPinToken(pin, pinUvProtocol = 1u)
 
-        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName, pinUvToken = token, pinUvProtocol = 1u)
+        val res =
+            client.makeCredential(
+                rpId = rpId,
+                userDisplayName = userDisplayName,
+                userName = userName,
+                pinUvToken = token,
+                pinUvProtocol = 1u,
+            )
 
         assertTrue(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
     }
@@ -53,7 +59,14 @@ class MakeCredential : SimulationTest() {
 
         val token = client.getPinToken(pin, pinUvProtocol = 2u)
 
-        val res = client.makeCredential(rpId = rpId, userDisplayName = userDisplayName, userName = userName, pinUvToken = token, pinUvProtocol = 2u)
+        val res =
+            client.makeCredential(
+                rpId = rpId,
+                userDisplayName = userDisplayName,
+                userName = userName,
+                pinUvToken = token,
+                pinUvProtocol = 2u,
+            )
 
         assertTrue(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
     }
@@ -62,20 +75,36 @@ class MakeCredential : SimulationTest() {
     fun overwritingMatchingUsers() {
         val userId = Random.Default.nextBytes(10)
 
-        val res1 = client.makeCredential(rpId = rpId, userDisplayName = "Bob", userName = userName, userId = userId, discoverableCredential = true)
-        val res2 = client.makeCredential(rpId = rpId, userDisplayName = "Fred", userName = userName, userId = userId, discoverableCredential = true)
+        val res1 =
+            client.makeCredential(
+                rpId = rpId,
+                userDisplayName = "Bob",
+                userName = userName,
+                userId = userId,
+                discoverableCredential = true,
+            )
+        val res2 =
+            client.makeCredential(
+                rpId = rpId,
+                userDisplayName = "Fred",
+                userName = userName,
+                userId = userId,
+                discoverableCredential = true,
+            )
 
         assertNotEquals(res1.getCredentialID(), res2.getCredentialID())
 
-        val e = assertFailsWith<CTAPError> {
-            client.getAssertions(
-                clientDataHash = Random.nextBytes(32),
-                rpId = rpId,
-                allowList = listOf(
-                    PublicKeyCredentialDescriptor(id = res1.getCredentialID()),
-                ),
-            )
-        }
+        val e =
+            assertFailsWith<CTAPError> {
+                client.getAssertions(
+                    clientDataHash = Random.nextBytes(32),
+                    rpId = rpId,
+                    allowList =
+                        listOf(
+                            PublicKeyCredentialDescriptor(id = res1.getCredentialID()),
+                        ),
+                )
+            }
         assertEquals(CTAPResponse.NO_CREDENTIALS.value, e.code)
     }
 }

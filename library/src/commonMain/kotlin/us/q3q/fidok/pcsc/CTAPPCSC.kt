@@ -6,11 +6,12 @@ import us.q3q.fidok.ctap.IncorrectDataException
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalStdlibApi::class)
 class CTAPPCSC {
     companion object {
-        val APPLET_SELECT_BYTES: ByteArray = ubyteArrayOf(
-            0x00u, 0xA4u, 0x04u, 0x00u, 0x08u, 0xA0u,
-            0x00u, 0x00u, 0x06u, 0x47u, 0x2Fu, 0x00u,
-            0x01u, 0x00u,
-        ).toByteArray()
+        val APPLET_SELECT_BYTES: ByteArray =
+            ubyteArrayOf(
+                0x00u, 0xA4u, 0x04u, 0x00u, 0x08u, 0xA0u,
+                0x00u, 0x00u, 0x06u, 0x47u, 0x2Fu, 0x00u,
+                0x01u, 0x00u,
+            ).toByteArray()
 
         fun packetizeMessageExtended(bytes: ByteArray): List<ByteArray> {
             if (bytes.size > 65535) {
@@ -26,11 +27,12 @@ class CTAPPCSC {
                         ((bytes.size and 0x00FF0000) shr 16).toByte(),
                         ((bytes.size and 0x0000FF00) shr 8).toByte(),
                         (bytes.size and 0x000000FF).toByte(),
-                    ) + bytes.toList() + listOf(
-                        0x00.toByte(),
-                        0x00.toByte(),
-                    )
-                    ).toByteArray(),
+                    ) + bytes.toList() +
+                        listOf(
+                            0x00.toByte(),
+                            0x00.toByte(),
+                        )
+                ).toByteArray(),
             )
         }
 
@@ -43,16 +45,18 @@ class CTAPPCSC {
                 val payloadBytes = bytes.copyOfRange(sent, sent + toSend)
                 val last = (sent + toSend) == bytes.size
                 val cla = (if (last) 0x80 else 0x90).toByte()
-                val chunk = (
-                    listOf(
-                        cla,
-                        0x10.toByte(),
-                        0x00.toByte(),
-                        0x00.toByte(),
-                        payloadBytes.size.toByte(),
-                    ) + payloadBytes.toList() + listOf(
-                        0x00.toByte(),
-                    )
+                val chunk =
+                    (
+                        listOf(
+                            cla,
+                            0x10.toByte(),
+                            0x00.toByte(),
+                            0x00.toByte(),
+                            payloadBytes.size.toByte(),
+                        ) + payloadBytes.toList() +
+                            listOf(
+                                0x00.toByte(),
+                            )
                     ).toByteArray()
                 ret.add(chunk)
                 sent += toSend
@@ -60,7 +64,12 @@ class CTAPPCSC {
             return ret
         }
 
-        fun sendAndReceive(bytes: ByteArray, selectApplet: Boolean, useExtendedMessages: Boolean, xmit: (bytes: ByteArray) -> ByteArray): ByteArray {
+        fun sendAndReceive(
+            bytes: ByteArray,
+            selectApplet: Boolean,
+            useExtendedMessages: Boolean,
+            xmit: (bytes: ByteArray) -> ByteArray,
+        ): ByteArray {
             if (selectApplet) {
                 val selectResponse = xmit(APPLET_SELECT_BYTES)
                 Logger.i { "Got applet select response ${selectResponse.toHexString()}" }

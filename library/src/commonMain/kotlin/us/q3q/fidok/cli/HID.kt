@@ -8,7 +8,6 @@ import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.gateway.HIDGateway
 
 class HID : CliktCommand(help = "Pretend to be an HID authenticator") {
-
     val library by requireObject<FIDOkLibrary>()
 
     override fun run() {

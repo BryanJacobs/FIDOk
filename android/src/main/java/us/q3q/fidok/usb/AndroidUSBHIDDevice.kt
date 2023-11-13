@@ -19,13 +19,13 @@ class AndroidUSBHIDDevice(
     private val deviceAddr: String,
     private val interfaceNumber: Int,
 ) : AuthenticatorDevice {
-
     @Throws(DeviceCommunicationException::class)
     override fun sendBytes(bytes: ByteArray): ByteArray {
         Logger.v { "Sending ${bytes.size} bytes to device $deviceAddr" }
 
-        val device = manager.deviceList[deviceAddr]
-            ?: throw DeviceCommunicationException("Device $deviceAddr disappeared before write")
+        val device =
+            manager.deviceList[deviceAddr]
+                ?: throw DeviceCommunicationException("Device $deviceAddr disappeared before write")
 
         if (!manager.hasPermission(device)) {
             throw DeviceCommunicationException("Cannot send to $deviceAddr - permission not granted")

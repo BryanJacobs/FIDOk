@@ -56,20 +56,24 @@ sealed class CtapCommand {
 @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 class CtapCommandSerializer : KSerializer<CtapCommand> {
     override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("CtapCommand") {
-            element("cmdByte", Byte.serializer().descriptor)
-            element(
-                "params",
-                buildSerialDescriptor("params", StructureKind.MAP),
-                isOptional = true,
-            )
-        }
+        get() =
+            buildClassSerialDescriptor("CtapCommand") {
+                element("cmdByte", Byte.serializer().descriptor)
+                element(
+                    "params",
+                    buildSerialDescriptor("params", StructureKind.MAP),
+                    isOptional = true,
+                )
+            }
 
     override fun deserialize(decoder: Decoder): CtapCommand {
         throw NotImplementedError()
     }
 
-    override fun serialize(encoder: Encoder, value: CtapCommand) {
+    override fun serialize(
+        encoder: Encoder,
+        value: CtapCommand,
+    ) {
         val subEncoder = encoder.beginStructure(descriptor)
         subEncoder.encodeByteElement(descriptor, 0, value.cmdByte)
         val params = value.params

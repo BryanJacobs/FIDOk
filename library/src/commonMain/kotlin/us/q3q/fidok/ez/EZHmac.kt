@@ -25,7 +25,6 @@ class EZHmac(
     private val rpId: String = "fidok.nodomain",
 ) {
     companion object {
-
         val EZ_HMAC_DEFAULT_SALT = "EZHMACSaltDoNotThinkThisIsSecret".encodeToByteArray()
 
         private fun supportsHMACSecret(client: CTAPClient): Boolean {
@@ -50,12 +49,13 @@ class EZHmac(
 
         val extension = HMACSecretExtension()
 
-        val credential = client.makeCredential(
-            rpId = rpId,
-            userName = EZ_HMAC_SECRET_USER,
-            extensions = ExtensionSetup(extension),
-            validateAttestation = false,
-        )
+        val credential =
+            client.makeCredential(
+                rpId = rpId,
+                userName = EZ_HMAC_SECRET_USER,
+                extensions = ExtensionSetup(extension),
+                validateAttestation = false,
+            )
 
         if (!extension.wasCreated()) {
             throw IllegalStateException("Failed to create hmac-secret")
@@ -85,41 +85,52 @@ class EZHmac(
      * @param salt2 Second "salt" to get a key
      * @return Pair of the result of HMACing [salt1] and [salt2]
      */
-    suspend fun getKeys(setup: ByteArray, salt1: ByteArray = EZ_HMAC_DEFAULT_SALT, salt2: ByteArray? = null): Pair<ByteArray, ByteArray?> {
+    suspend fun getKeys(
+        setup: ByteArray,
+        salt1: ByteArray = EZ_HMAC_DEFAULT_SALT,
+        salt2: ByteArray? = null,
+    ): Pair<ByteArray, ByteArray?> {
         require(salt1.size == 32)
         require(salt2 == null || salt2.size == 32)
 
         val client = library.waitForUsableAuthenticator(preFilter = ::supportsHMACSecret)
 
-        val uvToken = client.getPinUvTokenUsingAppropriateMethod(
-            CTAPPinPermission.GET_ASSERTION.value,
-            desiredRpId = rpId,
-        )
+        val uvToken =
+            client.getPinUvTokenUsingAppropriateMethod(
+                CTAPPinPermission.GET_ASSERTION.value,
+                desiredRpId = rpId,
+            )
 
         val extension = HMACSecretExtension(salt1, salt2)
-        val assertions = client.getAssertions(
-            rpId = rpId,
-            pinUvToken = uvToken,
-            extensions = ExtensionSetup(extension),
-            allowList = listOf(
-                PublicKeyCredentialDescriptor(
-                    id = getCredentialFromHandle(setup),
-                ),
-            ),
-        )
+        val assertions =
+            client.getAssertions(
+                rpId = rpId,
+                pinUvToken = uvToken,
+                extensions = ExtensionSetup(extension),
+                allowList =
+                    listOf(
+                        PublicKeyCredentialDescriptor(
+                            id = getCredentialFromHandle(setup),
+                        ),
+                    ),
+            )
 
         if (assertions.size != 1) {
             throw IllegalStateException("Did not get exactly one assertion in EZ HMAC key fetch")
         }
 
         val hmacs = extension.getResult()
-        val first = hmacs.first
-            ?: throw IllegalStateException("Failed to retrieve hmac-secret value from Authenticator")
+        val first =
+            hmacs.first
+                ?: throw IllegalStateException("Failed to retrieve hmac-secret value from Authenticator")
 
         return Pair(first, hmacs.second)
     }
 
-    private fun encryptUsingKey(key: ByteArray, data: ByteArray): ByteArray {
+    private fun encryptUsingKey(
+        key: ByteArray,
+        data: ByteArray,
+    ): ByteArray {
         val iv = library.cryptoProvider.secureRandom(16)
 
         // Pad to a multiple of 16 bytes, storing the number of padding bytes in the last byte
@@ -129,35 +140,41 @@ class EZHmac(
         }
         val toEncrypt = data.toList() + List(necessaryPaddingBytes - 1) { 0x00 } + listOf(necessaryPaddingBytes.toByte())
 
-        val encrypted = library.cryptoProvider.aes256CBCEncrypt(
-            toEncrypt.toByteArray(),
-            AES256Key(
-                key = key,
-                iv = iv,
-            ),
-        )
+        val encrypted =
+            library.cryptoProvider.aes256CBCEncrypt(
+                toEncrypt.toByteArray(),
+                AES256Key(
+                    key = key,
+                    iv = iv,
+                ),
+            )
 
-        val validation = library.cryptoProvider.hmacSHA256(
-            (iv.toList() + encrypted.toList()).toByteArray(),
-            AES256Key(key),
-        ).hash
+        val validation =
+            library.cryptoProvider.hmacSHA256(
+                (iv.toList() + encrypted.toList()).toByteArray(),
+                AES256Key(key),
+            ).hash
 
         return (
             iv.toList() + encrypted.toList() + validation.toList()
-            ).toByteArray()
+        ).toByteArray()
     }
 
     @Throws(InvalidKeyException::class)
-    private fun checkCorrectKeyForDecryption(key: ByteArray, data: ByteArray) {
+    private fun checkCorrectKeyForDecryption(
+        key: ByteArray,
+        data: ByteArray,
+    ) {
         val dataBeingValidated = data.copyOfRange(0, data.size - 32)
         val validation = data.copyOfRange(data.size - 32, data.size)
 
-        val comparedValidation = library.cryptoProvider.hmacSHA256(
-            dataBeingValidated,
-            AES256Key(
-                key,
-            ),
-        ).hash
+        val comparedValidation =
+            library.cryptoProvider.hmacSHA256(
+                dataBeingValidated,
+                AES256Key(
+                    key,
+                ),
+            ).hash
 
         if (!validation.contentEquals(comparedValidation)) {
             throw InvalidKeyException()
@@ -173,7 +190,11 @@ class EZHmac(
      * will fail.
      * @return Encrypted data, which may be decrypted via [decrypt]
      */
-    suspend fun encrypt(setup: ByteArray, data: ByteArray, salt: ByteArray = EZ_HMAC_DEFAULT_SALT): ByteArray {
+    suspend fun encrypt(
+        setup: ByteArray,
+        data: ByteArray,
+        salt: ByteArray = EZ_HMAC_DEFAULT_SALT,
+    ): ByteArray {
         val keys = getKeys(setup, salt)
 
         return encryptUsingKey(keys.first, data)
@@ -191,10 +212,16 @@ class EZHmac(
      * @return A pair, whose first element is [data] encrypted using [salt1], and second element is [data] encrypted
      * using [salt2]
      */
-    suspend fun encryptAndRotate(setup: ByteArray, data: ByteArray, salt1: ByteArray, salt2: ByteArray): Pair<ByteArray, ByteArray> {
+    suspend fun encryptAndRotate(
+        setup: ByteArray,
+        data: ByteArray,
+        salt1: ByteArray,
+        salt2: ByteArray,
+    ): Pair<ByteArray, ByteArray> {
         val keys = getKeys(setup, salt1, salt2)
-        val secondKey = keys.second
-            ?: throw IllegalStateException("Somehow didn't get two HMAC salts back from key fetching!")
+        val secondKey =
+            keys.second
+                ?: throw IllegalStateException("Somehow didn't get two HMAC salts back from key fetching!")
 
         return Pair(
             encryptUsingKey(keys.first, data),
@@ -212,7 +239,11 @@ class EZHmac(
      * @throws InvalidKeyException If the given [setup] and/or [salt] do not match the given [data]
      */
     @Throws(InvalidKeyException::class, CancellationException::class)
-    suspend fun decrypt(setup: ByteArray, data: ByteArray, salt: ByteArray = EZ_HMAC_DEFAULT_SALT): ByteArray {
+    suspend fun decrypt(
+        setup: ByteArray,
+        data: ByteArray,
+        salt: ByteArray = EZ_HMAC_DEFAULT_SALT,
+    ): ByteArray {
         require(data.size >= 64)
 
         val keys = getKeys(setup, salt)
@@ -222,13 +253,14 @@ class EZHmac(
         val iv = data.copyOfRange(0, 16)
         val toDecrypt = data.copyOfRange(16, data.size - 32)
 
-        val decrypted = library.cryptoProvider.aes256CBCDecrypt(
-            toDecrypt,
-            AES256Key(
-                key = keys.first,
-                iv = iv,
-            ),
-        )
+        val decrypted =
+            library.cryptoProvider.aes256CBCDecrypt(
+                toDecrypt,
+                AES256Key(
+                    key = keys.first,
+                    iv = iv,
+                ),
+            )
 
         val numPaddingBytes = decrypted[decrypted.size - 1]
 

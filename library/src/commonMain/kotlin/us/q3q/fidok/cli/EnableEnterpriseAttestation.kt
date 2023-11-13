@@ -9,7 +9,6 @@ import us.q3q.fidok.ctap.CTAPOption
 import us.q3q.fidok.ctap.CTAPPinPermission
 
 class EnableEnterpriseAttestation : CliktCommand(help = "Enable Enterprise Attestation") {
-
     val client by requireObject<CTAPClient>()
 
     override fun run() {
