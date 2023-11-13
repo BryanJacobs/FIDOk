@@ -74,8 +74,6 @@ fun MainView(
                 }
             }) {*/
             PinEntry {
-                println(coroutineScope)
-                println(coroutineScope.coroutineContext)
                 coroutineScope.coroutineContext.ensureActive()
                 coroutineScope.launch {
                     pinResponseChannel.send(it)

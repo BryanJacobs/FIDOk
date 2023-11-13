@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-const val FIDOK_HID_PRODUCT = 0x05df
+const val FIDOK_HID_PRODUCT = 0x27d9
 const val FIDOK_HID_VENDOR = 0x16c0
 const val FIDOK_HID_DEVICE_NAME = "FIDOk Virtual HID Device"
 val FIDOK_REPORT_DESCRIPTOR = byteArrayOf(

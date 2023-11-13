@@ -1,13 +1,24 @@
 package us.q3q.fidok.ui
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.Button
+import androidx.compose.material.Card
+import androidx.compose.material.Checkbox
+import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,8 +27,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.crypto.NullCryptoProvider
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
@@ -215,7 +233,75 @@ fun PINTab(client: CTAPClient) {
 
 @Composable
 fun ConfigTab(client: CTAPClient) {
-    Text("Placeholder: Config Management")
+    val coroutineScope = rememberCoroutineScope()
+
+    Column {
+        Button(onClick = {
+            coroutineScope.launch {
+                val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
+                client.authenticatorConfig().toggleAlwaysUv(uv)
+            }
+        }) {
+            Text("Toggle Always-Verify-User")
+        }
+
+        Button(onClick = {
+            coroutineScope.launch {
+                val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
+                client.authenticatorConfig().enableEnterpriseAttestation(uv)
+            }
+        }) {
+            Text("Enable Enterprise Attestation")
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+                .padding(2.dp)
+                .border(BorderStroke(1.dp, Color.Black), shape = RoundedCornerShape(2.dp))
+                .padding(2.dp)
+        ) {
+            var minPinLength: UInt? by remember { mutableStateOf(null) }
+            var forceChange: Boolean by remember { mutableStateOf(false) }
+
+            Column {
+                OutlinedTextField(
+                    label = { Text("Min Characters") },
+                    value = (minPinLength ?: "").toString(),
+                    onValueChange = {
+                        if (it.isBlank()) {
+                            minPinLength = null
+                        } else {
+                            val attemptSet = it.toUIntOrNull()
+                            if (attemptSet != null) {
+                                minPinLength = attemptSet
+                            }
+                        }
+                    },
+                    placeholder = { Text("Min Characters") },
+                    singleLine = true,
+                    modifier = Modifier.padding(2.dp)
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Require PIN Change")
+                    Checkbox(checked = forceChange, onCheckedChange = {
+                        forceChange = it
+                    })
+                }
+                Button(onClick = {
+                    coroutineScope.launch {
+                        val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
+                        client.authenticatorConfig().setMinPINLength(
+                            pinUVToken = uv,
+                            newMinPINLength = minPinLength,
+                            forceChangePin = forceChange
+                        )
+                    }
+                }) {
+                    Text("Set Minimum PIN Length")
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -243,6 +329,18 @@ internal fun authenticatorManagementDisplayPreview() {
 @Preview
 internal fun credentialManagementTabPreview() {
     CredentialsManagementTab(fakeClient())
+}
+
+@Composable
+@Preview
+internal fun configTabPreview() {
+    ConfigTab(fakeClient())
+}
+
+@Composable
+@Preview
+internal fun blobTabPreview() {
+    BlobsTab(fakeClient())
 }
 
 @Composable

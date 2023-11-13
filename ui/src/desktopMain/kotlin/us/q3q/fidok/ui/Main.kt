@@ -40,7 +40,7 @@ fun main() {
         authenticatorAccessors = listOf(lister),
     )
     application {
-        Window(onCloseRequest = ::exitApplication) {
+        Window(title = "FIDOk", onCloseRequest = ::exitApplication) {
             var devices by remember { mutableStateOf<List<AuthenticatorDevice>>(listOf()) }
             MaterialTheme {
                 MainView(library, devices = devices, onListDevices = {
