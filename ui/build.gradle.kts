@@ -78,6 +78,12 @@ compose.desktop {
         nativeDistributions {
             if (Os.isFamily(Os.FAMILY_MAC)) {
                 targetFormats(TargetFormat.Pkg)
+                macOS {
+                    bundleID = "us.q3q.fidok"
+                    entitlementsFile.set(project.file("entitlements.plist"))
+                    runtimeEntitlementsFile.set(project.file("runtime-entitlements.plist"))
+                    appStore = false
+                }
             } else {
                 targetFormats(TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi)
             }
