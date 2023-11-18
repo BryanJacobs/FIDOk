@@ -8,7 +8,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.CTAPError
 import us.q3q.fidok.ctap.CTAPOption
-import us.q3q.fidok.ctap.CTAPPinPermission
+import us.q3q.fidok.ctap.CTAPPermission
 import us.q3q.fidok.ctap.CTAPResponse
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.FIDOkLibrary
@@ -27,6 +27,9 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.time.Duration.Companion.milliseconds
 
+/**
+ * Provides access to Webauthn, an open standard.
+ */
 class WebauthnClient(private val library: FIDOkLibrary) {
     private fun isUVCapable(info: GetInfoResponse): Boolean =
         info.options?.get(CTAPOption.CLIENT_PIN.value) == true ||
@@ -162,7 +165,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         if (usingUV) {
             pinUvToken =
                 selectedClient.getPinUvTokenUsingAppropriateMethod(
-                    desiredPermissions = CTAPPinPermission.MAKE_CREDENTIAL.value,
+                    desiredPermissions = CTAPPermission.MAKE_CREDENTIAL.value,
                     desiredRpId = options.publicKey.rp.id,
                 )
         }
@@ -309,7 +312,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         if (usingUV) {
             pinUvToken =
                 client.getPinUvTokenUsingAppropriateMethod(
-                    desiredPermissions = CTAPPinPermission.GET_ASSERTION.value,
+                    desiredPermissions = CTAPPermission.GET_ASSERTION.value,
                     desiredRpId = options.publicKey.rpId,
                 )
         }

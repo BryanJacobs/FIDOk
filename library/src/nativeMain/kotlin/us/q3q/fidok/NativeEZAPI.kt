@@ -113,7 +113,7 @@ fun ez_hmac_rotate(
 
     val values =
         runBlocking {
-            EZHmac(fidok).encryptAndRotate(setupB, inB, salt1B, salt2B)
+            EZHmac(fidok).decryptAndRotate(setupB, inB, salt1B, salt2B)
         }
     outFill(values.first, out1)
     outFill(values.second, out2)

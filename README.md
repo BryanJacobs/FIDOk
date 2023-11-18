@@ -25,19 +25,22 @@ This particular Platform implementation has a few special properties:
 Note this means that, despite being a Kotlin project, C code can use this
 implementation as a replacement for e.g. `libfido2`!
 
-**Implementation Overall Status: Very Early / Alpha**
+**Implementation Overall Status: Beta**
 
-This implementation will likely improve in coverage rapidly! It doesn't yet have stable
-APIs and isn't nearly feature complete.
-
-You can [read basic developer documentation for the CTAP layer](docs/CTAP.md) if you want
-to use it anyhow.
+This implementation will likely improve in coverage rapidly! It mostly works, but APIs
+are not guaranteed to remain stable yet, and there are surely bugs or incomplete sections.
 
 # Overview
 
 The core code is all Kotlin/Multiplatform, and can be used from any target. Interfaces
 for cryptography and communicating with authenticators on a byte-by-byte level are
 provided by native implementations specific to each platform.
+
+### Layers
+
+1. Low level [CTAP layer](docs/CTAP.md)
+1. [Webauthn standard implementation](docs/webauthn.md)
+1. High level [task-specific APIs](docs/tasks.md)
 
 ## Protocol Features
 
@@ -80,7 +83,7 @@ provided by native implementations specific to each platform.
 |-----------------------------------|------------------|
 | Raw CTAP                          | Working          |
 | Testing                           | Incomplete       |
-| Well-documented APIs              | No               |
+| Well-documented APIs              | Incomplete       |
 | Well-documented Build/Integration | No               |
 | Webauthn Layer                    | Working          |
 | Easy Task-Specific APIs           | Incomplete       |

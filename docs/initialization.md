@@ -25,6 +25,15 @@ In order to do this you need two things:
 Both of these things depend on the platform you're on. If you don't care about having any support for things
 like PIN protocols, you can always use the `NullCryptoProvider`, but this will render the library half-functional.
 
+Receiving Callbacks
+-------------------
+Users can connect and disconnect Authenticators, and whether a PIN is necessary or not can depend on the
+circumstance. To handle these events, create an instance of `FIDOkCallbacks` and pass it to the library
+initializer.
+
+By overriding the `collectPin` method, you can request a PIN from the user and return it to the library for
+use in CTAP protocols.
+
 Included Crypto Providers
 =========================
 
@@ -45,6 +54,6 @@ Included Authenticator Accessors
 | JVM              | BlessedBluezDeviceListing (Linux only) |
 | Linux            | LibHIDDevice, LibPCSCLiteDevice        |
 | Windows          | LibHIDDevice, PCSCDevice               |
-| Mac OS           | LibHIDDevice, LibPCSCLiteDevice        |
+| Mac OS           | LibHIDDevice, MacPCSCLiteDevice        |
 | Android (JVM)    | AndroidUSBHIDListing                   |
 | iOS              | None                                   |

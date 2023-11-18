@@ -30,7 +30,7 @@ import us.q3q.fidok.crypto.NullCryptoProvider
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.CTAPClient
-import us.q3q.fidok.ctap.CTAPPinPermission
+import us.q3q.fidok.ctap.CTAPPermission
 import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.RPWithHash
 import us.q3q.fidok.ctap.StoredCredentialData
@@ -170,7 +170,7 @@ fun CredentialsManagementTab(client: CTAPClient) {
                     coroutineScope.launch {
                         val pinToken =
                             client.getPinUvTokenUsingAppropriateMethod(
-                                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                                desiredPermissions = CTAPPermission.CREDENTIAL_MANAGEMENT.value,
                                 desiredRpId = rpWithHash.rp.id,
                             )
                         credList =
@@ -193,7 +193,7 @@ fun CredentialsManagementTab(client: CTAPClient) {
                     coroutineScope.launch {
                         val pinToken =
                             client.getPinUvTokenUsingAppropriateMethod(
-                                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                                desiredPermissions = CTAPPermission.CREDENTIAL_MANAGEMENT.value,
                                 desiredRpId = chosenRP?.rp?.id,
                             )
                         client.credentialManagement().deleteCredential(
@@ -241,7 +241,7 @@ fun ConfigTab(client: CTAPClient) {
     Column {
         Button(onClick = {
             coroutineScope.launch {
-                val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
+                val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPermission.AUTHENTICATOR_CONFIGURATION.value)
                 client.authenticatorConfig().toggleAlwaysUv(uv)
             }
         }) {
@@ -250,7 +250,7 @@ fun ConfigTab(client: CTAPClient) {
 
         Button(onClick = {
             coroutineScope.launch {
-                val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
+                val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPermission.AUTHENTICATOR_CONFIGURATION.value)
                 client.authenticatorConfig().enableEnterpriseAttestation(uv)
             }
         }) {
@@ -293,7 +293,7 @@ fun ConfigTab(client: CTAPClient) {
                 }
                 Button(onClick = {
                     coroutineScope.launch {
-                        val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
+                        val uv = client.getPinUvTokenUsingAppropriateMethod(CTAPPermission.AUTHENTICATOR_CONFIGURATION.value)
                         client.authenticatorConfig().setMinPINLength(
                             pinUVToken = uv,
                             newMinPINLength = minPinLength,

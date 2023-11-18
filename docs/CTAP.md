@@ -62,6 +62,24 @@ indicates something wrong with the request or the state of the Authenticator - s
 `message` for more information. The `DeviceCommunicationException` indicates a problem with the
 connection to the Authenticator.
 
+Providing a PIN
+===============
+The FIDOk library initialization method accepts a callback object with a `collectPin` method, and the
+`ctapClient` method can also accept a `collectPin` parameter. But there are some CTAP methods that may
+be called unauthenticated or authenticated. If you wish to call them with PIN/UV authentication, you'll
+need to provide a PIN/UV token:
+
+```kotlin
+val client = library.ctapClient(device)
+val uvToken = client.getPinUvTokenUsingAppropriateMethod(
+  CTAPPermission.MAKE_CREDENTIAL.value or CTAPPermission.GET_ASSERTION.value
+)
+```
+
+Calling the `getPinUvTokenUsingAppropriateMethod` will trigger either on-board user verification for the Authenticator
+or an invocation for the `collectPin` method, as appropriate.
+
+
 Extensions
 ==========
 
@@ -86,5 +104,5 @@ val assignedCredProtectLevel = credProtect.getLevel()
 ```
 
 The value of `assignedCredProtect` level will be either `null`, indicating the cred protect extension
-wasn't present in the response from the Authenticator, or the assigned value it sent back (hopefully
+wasn't present in the response from the Authenticator, or the assigned value the Authenticator sent back (hopefully
 three!).

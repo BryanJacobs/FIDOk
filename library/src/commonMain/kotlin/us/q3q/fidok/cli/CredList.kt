@@ -6,7 +6,7 @@ import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.option
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.CTAPClient
-import us.q3q.fidok.ctap.CTAPPinPermission
+import us.q3q.fidok.ctap.CTAPPermission
 import us.q3q.fidok.ctap.PinUVToken
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -20,7 +20,7 @@ class CredList : CliktCommand(name = "list", help = "List discoverable credentia
     @OptIn(ExperimentalStdlibApi::class, ExperimentalEncodingApi::class)
     override fun run() {
         runBlocking {
-            var token: PinUVToken? = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.CREDENTIAL_MANAGEMENT.value)
+            var token: PinUVToken? = client.getPinUvTokenUsingAppropriateMethod(CTAPPermission.CREDENTIAL_MANAGEMENT.value)
 
             val credMgmt = client.credentialManagement()
 
@@ -38,7 +38,7 @@ class CredList : CliktCommand(name = "list", help = "List discoverable credentia
                 echo("Stored relying party: ${rp.rp.name ?: (rp.rp.id ?: rp.rpIDHash.toHexString())}")
 
                 if (token == null) {
-                    token = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.CREDENTIAL_MANAGEMENT.value)
+                    token = client.getPinUvTokenUsingAppropriateMethod(CTAPPermission.CREDENTIAL_MANAGEMENT.value)
                 }
 
                 val creds = credMgmt.enumerateCredentials(rp.rpIDHash, pinUVToken = token)

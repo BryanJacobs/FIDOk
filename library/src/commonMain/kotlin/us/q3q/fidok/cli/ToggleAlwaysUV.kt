@@ -6,7 +6,7 @@ import com.github.ajalt.clikt.core.requireObject
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.CTAPOption
-import us.q3q.fidok.ctap.CTAPPinPermission
+import us.q3q.fidok.ctap.CTAPPermission
 
 class ToggleAlwaysUV : CliktCommand(help = "Turn on (or off) the requirement for a PIN on all operations") {
     val client by requireObject<CTAPClient>()
@@ -18,7 +18,7 @@ class ToggleAlwaysUV : CliktCommand(help = "Turn on (or off) the requirement for
         }
 
         runBlocking {
-            val token = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
+            val token = client.getPinUvTokenUsingAppropriateMethod(CTAPPermission.AUTHENTICATOR_CONFIGURATION.value)
 
             val config = client.authenticatorConfig()
 

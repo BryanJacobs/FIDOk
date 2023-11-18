@@ -28,7 +28,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         val pp = client.getPinProtocol(pinProtocol)
         val effectiveUVToken =
             pinUVToken ?: client.getPinUvTokenUsingAppropriateMethod(
-                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                desiredPermissions = CTAPPermission.CREDENTIAL_MANAGEMENT.value,
             )
 
         val pinUvAuthParam = pp.authenticate(effectiveUVToken, byteArrayOf(0x01))
@@ -58,7 +58,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         val pp = client.getPinProtocol(pinProtocol)
         val effectiveUVToken =
             pinUVToken ?: client.getPinUvTokenUsingAppropriateMethod(
-                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                desiredPermissions = CTAPPermission.CREDENTIAL_MANAGEMENT.value,
             )
 
         val pinUvAuthParam = pp.authenticate(effectiveUVToken, byteArrayOf(0x02))
@@ -113,7 +113,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true
         val effectiveUVToken =
             pinUVToken ?: client.getPinUvTokenUsingAppropriateMethod(
-                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                desiredPermissions = CTAPPermission.CREDENTIAL_MANAGEMENT.value,
             )
 
         val command =
@@ -160,7 +160,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
     ) {
         val effectiveUVToken =
             pinUVToken ?: client.getPinUvTokenUsingAppropriateMethod(
-                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                desiredPermissions = CTAPPermission.CREDENTIAL_MANAGEMENT.value,
             )
 
         val pp = client.getPinProtocol(pinProtocol)
@@ -198,7 +198,7 @@ class CredentialManagementClient internal constructor(private val client: CTAPCl
         val pp = client.getPinProtocol(pinProtocol)
         val effectiveUVToken =
             pinUVToken ?: client.getPinUvTokenUsingAppropriateMethod(
-                desiredPermissions = CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                desiredPermissions = CTAPPermission.CREDENTIAL_MANAGEMENT.value,
             )
 
         val fullySupported = client.getInfoIfUnset().options?.get(CTAPOption.CREDENTIALS_MANAGEMENT.value) == true

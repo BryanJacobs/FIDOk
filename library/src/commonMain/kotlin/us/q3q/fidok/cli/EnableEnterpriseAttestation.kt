@@ -6,7 +6,7 @@ import com.github.ajalt.clikt.core.requireObject
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.CTAPOption
-import us.q3q.fidok.ctap.CTAPPinPermission
+import us.q3q.fidok.ctap.CTAPPermission
 
 class EnableEnterpriseAttestation : CliktCommand(help = "Enable Enterprise Attestation") {
     val client by requireObject<CTAPClient>()
@@ -18,7 +18,7 @@ class EnableEnterpriseAttestation : CliktCommand(help = "Enable Enterprise Attes
         }
 
         runBlocking {
-            val token = client.getPinUvTokenUsingAppropriateMethod(CTAPPinPermission.AUTHENTICATOR_CONFIGURATION.value)
+            val token = client.getPinUvTokenUsingAppropriateMethod(CTAPPermission.AUTHENTICATOR_CONFIGURATION.value)
 
             val config = client.authenticatorConfig()
 

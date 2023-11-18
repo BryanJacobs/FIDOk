@@ -1,11 +1,18 @@
 package us.q3q.fidok.pcsc
 
 import co.touchlab.kermit.Logger
+import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.IncorrectDataException
 
+/**
+ * Support code for communicating with Authenticators over PC/SC - the Smartcard protocol
+ */
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalStdlibApi::class)
 class CTAPPCSC {
     companion object {
+        /**
+         * Sequence of bytes to select a CTAP1/U2F or CTAP2 applet
+         */
         val APPLET_SELECT_BYTES: ByteArray =
             ubyteArrayOf(
                 0x00u, 0xA4u, 0x04u, 0x00u, 0x08u, 0xA0u,
@@ -13,6 +20,15 @@ class CTAPPCSC {
                 0x01u, 0x00u,
             ).toByteArray()
 
+        /**
+         * Break a message into chunks suitable for delivery as Extended APDUs.
+         *
+         * Not all readers support E-APDUs, but they are more efficient when they can be used
+         * Each returned packet will have a preamble suitable for CTAP2 messaging
+         *
+         * @param bytes Bytes to send
+         * @return List of E-APDU packets
+         */
         fun packetizeMessageExtended(bytes: ByteArray): List<ByteArray> {
             if (bytes.size > 65535) {
                 throw IllegalArgumentException("PC/SC transmit value longer than E-APDU can hold!")
@@ -36,6 +52,14 @@ class CTAPPCSC {
             )
         }
 
+        /**
+         * Break a message into chunks suitable for delivery as Chained APDUs.
+         *
+         * Each returned packet will have a preamble suitable for CTAP2 messaging.
+         *
+         * @param bytes Bytes to send
+         * @return List of packets, each one of which can be sent as a single APDU
+         */
         fun packetizeMessageChained(bytes: ByteArray): List<ByteArray> {
             val ret = arrayListOf<ByteArray>()
             var sent = 0
@@ -64,6 +88,20 @@ class CTAPPCSC {
             return ret
         }
 
+        /**
+         * Communicate with a PC/SC Authenticator.
+         *
+         * Sends a single logical CTAP2 request, and receives its response from the Authenticator.
+         *
+         * @param bytes Encoded bytes representing one message
+         * @param selectApplet If true, send an applet selection command prior to sending the message
+         * @param useExtendedMessages If true, use E-APDUs (see [packetizeMessageExtended])
+         * @param xmit Function that delivers bytes to the Authenticator and receives its response back
+         * @return Response payload from the Authenticator
+         * @throws DeviceCommunicationException When the card returns a non-successful status (note: CTAP errors
+         * are successes)
+         */
+        @Throws(DeviceCommunicationException::class)
         fun sendAndReceive(
             bytes: ByteArray,
             selectApplet: Boolean,

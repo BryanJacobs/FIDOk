@@ -9,7 +9,7 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.validate
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.CTAPClient
-import us.q3q.fidok.ctap.CTAPPinPermission
+import us.q3q.fidok.ctap.CTAPPermission
 import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialDescriptor
 import us.q3q.fidok.ctap.commands.PublicKeyCredentialUserEntity
@@ -59,7 +59,7 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
         runBlocking {
             var token =
                 client.getPinUvTokenUsingAppropriateMethod(
-                    CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                    CTAPPermission.CREDENTIAL_MANAGEMENT.value,
                     desiredRpId = rpId,
                 )
 
@@ -99,7 +99,7 @@ class UpdateUser : CliktCommand(help = "Change the user ID associated with a sto
 
                 token =
                     client.getPinUvTokenUsingAppropriateMethod(
-                        CTAPPinPermission.CREDENTIAL_MANAGEMENT.value,
+                        CTAPPermission.CREDENTIAL_MANAGEMENT.value,
                         desiredRpId = rpId,
                     )
             }

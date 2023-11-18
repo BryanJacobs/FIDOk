@@ -51,7 +51,7 @@ fun MainView(
         if (devs != null && client == null) {
             MultipleAuthenticatorDisplay(devs, onSelect = {
                 chosenClient =
-                    library.ctapClient(it, collectPinFromUser = {
+                    library.ctapClient(it, collectPin = {
                         pinRequested = true
                         val pin = pinResponseChannel.receive()
                         pinRequested = false

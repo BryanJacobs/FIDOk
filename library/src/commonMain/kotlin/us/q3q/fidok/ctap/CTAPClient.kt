@@ -130,7 +130,7 @@ enum class CTAPOption(val value: String) {
  *
  * @property value The bitfield encoding of the permissions
  */
-enum class CTAPPinPermission(val value: UByte) {
+enum class CTAPPermission(val value: UByte) {
     /**
      * Allows creating new Credentials.
      */
@@ -1097,7 +1097,7 @@ class CTAPClient(
     /**
      * Gets a PIN/UV token using the best available method for the underlying Authenticator
      *
-     * @param desiredPermissions A bitfield of [CTAPPinPermission]s to request. May be ignored,
+     * @param desiredPermissions A bitfield of [CTAPPermission]s to request. May be ignored,
      *                           depending on Authenticator support, but should include the operation(s)
      *                           for which the token will be used
      * @param desiredRpId The Relying Party ID to which the gotten token should be bound. May be ignored,
@@ -1170,8 +1170,8 @@ class CTAPClient(
 
             if (desiredPermissions.toUInt() and
                 (
-                    CTAPPinPermission.MAKE_CREDENTIAL.value.toUInt()
-                        or CTAPPinPermission.GET_ASSERTION.value.toUInt()
+                    CTAPPermission.MAKE_CREDENTIAL.value.toUInt()
+                        or CTAPPermission.GET_ASSERTION.value.toUInt()
                 ) != 0u
             ) {
                 // we're asking for MC or GA...
@@ -1216,7 +1216,7 @@ class CTAPClient(
      * Get a PIN/UV token using an Authenticator's built-in User Verification method(s)
      *
      * @param pinUvProtocol The CTAP PIN/UV protcol version number
-     * @param permissions Any [permissions][CTAPPinPermission] desired
+     * @param permissions Any [permissions][CTAPPermission] desired
      * @param rpId An optional Relying Party ID to which the fetched token will be bound
      * @return 32-byte PIN/UV token, valid until the Authenticator decides it's not
      */

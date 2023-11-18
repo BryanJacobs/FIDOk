@@ -2,7 +2,7 @@ package us.q3q.fidok.ez
 
 import us.q3q.fidok.crypto.AES256Key
 import us.q3q.fidok.ctap.CTAPClient
-import us.q3q.fidok.ctap.CTAPPinPermission
+import us.q3q.fidok.ctap.CTAPPermission
 import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.ctap.commands.ExtensionSetup
@@ -43,7 +43,9 @@ class EZHmac(
      * Under the hood, this is making a new FIDO Credential.
      *
      * @return Handle usable for [encrypt] or [decrypt]
+     * @throws IllegalStateException If the Authenticator refused to enable the hmac-secret extension
      */
+    @Throws(IllegalStateException::class)
     suspend fun setup(): ByteArray {
         val client = library.waitForUsableAuthenticator(preFilter = ::supportsHMACSecret)
 
@@ -97,7 +99,7 @@ class EZHmac(
 
         val uvToken =
             client.getPinUvTokenUsingAppropriateMethod(
-                CTAPPinPermission.GET_ASSERTION.value,
+                CTAPPermission.GET_ASSERTION.value,
                 desiredRpId = rpId,
             )
 
@@ -201,31 +203,38 @@ class EZHmac(
     }
 
     /**
-     * Encrypt data in two different ways.
+     * Decrypt data in one way, and re-encrypt it in another.
      *
      * This is useful to only require using an Authenticator once, but allow "rotating" from one salt to another.
      *
      * @param setup The result of calling [EZHmac.setup]
-     * @param data Bytes to be encrypted
-     * @param salt1 First salt to use in encryption
-     * @param salt2 Second salt to use in encryption
-     * @return A pair, whose first element is [data] encrypted using [salt1], and second element is [data] encrypted
-     * using [salt2]
+     * @param previouslyEncryptedData Result of having called [encrypt] with [previousSalt]
+     * @param newSalt New salt to use for re-encryption
+     * @param previousSalt Salt to use for decryption
+     * @param newData New data to re-encrypt (defaults to the result of decrypting the old data)
+     * @return A pair, whose first element is [previouslyEncryptedData] decrypted using [previousSalt], and second
+     * element is [newData] encrypted using [newSalt]
      */
-    suspend fun encryptAndRotate(
+    suspend fun decryptAndRotate(
         setup: ByteArray,
-        data: ByteArray,
-        salt1: ByteArray,
-        salt2: ByteArray,
+        previouslyEncryptedData: ByteArray,
+        newSalt: ByteArray,
+        previousSalt: ByteArray = EZ_HMAC_DEFAULT_SALT,
+        newData: ByteArray? = null,
     ): Pair<ByteArray, ByteArray> {
-        val keys = getKeys(setup, salt1, salt2)
+        require(previouslyEncryptedData.size >= 64)
+
+        val keys = getKeys(setup, previousSalt, newSalt)
         val secondKey =
             keys.second
                 ?: throw IllegalStateException("Somehow didn't get two HMAC salts back from key fetching!")
 
+        val decrypted = decryptUsingKey(keys.first, previouslyEncryptedData)
+        val dataToEncrypt = newData ?: decrypted
+
         return Pair(
-            encryptUsingKey(keys.first, data),
-            encryptUsingKey(secondKey, data),
+            decrypted,
+            encryptUsingKey(secondKey, dataToEncrypt),
         )
     }
 
@@ -248,7 +257,14 @@ class EZHmac(
 
         val keys = getKeys(setup, salt)
 
-        checkCorrectKeyForDecryption(keys.first, data)
+        return decryptUsingKey(keys.first, data)
+    }
+
+    private fun decryptUsingKey(
+        key: ByteArray,
+        data: ByteArray,
+    ): ByteArray {
+        checkCorrectKeyForDecryption(key, data)
 
         val iv = data.copyOfRange(0, 16)
         val toDecrypt = data.copyOfRange(16, data.size - 32)
@@ -257,7 +273,7 @@ class EZHmac(
             library.cryptoProvider.aes256CBCDecrypt(
                 toDecrypt,
                 AES256Key(
-                    key = keys.first,
+                    key = key,
                     iv = iv,
                 ),
             )

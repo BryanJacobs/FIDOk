@@ -222,16 +222,16 @@ class FIDOkLibrary private constructor(
      * Get a client for communicating with Authenticators via the lower-level CTAP protocol.
      *
      * @param device Authenticator object for which to produce a client
-     * @param collectPinFromUser Function for supplying a PIN to the device when necessary. If not provided, will use
+     * @param collectPin Function for supplying a PIN to the device when necessary. If not provided, will use
      * the library's [callbacks]
      * @return Object for CTAP interaction with the given [device]
      */
     fun ctapClient(
         device: AuthenticatorDevice,
-        collectPinFromUser: (suspend (client: CTAPClient?) -> String?)? = null,
+        collectPin: (suspend (client: CTAPClient?) -> String?)? = null,
     ): CTAPClient {
         val callback =
-            collectPinFromUser ?: (
+            collectPin ?: (
                 if (callbacks != null) {
                     callbacks::collectPin
                 } else {
