@@ -3,6 +3,7 @@ package us.q3q.fidok.pcsc
 import co.touchlab.kermit.Logger
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.IncorrectDataException
+import us.q3q.fidok.ctap.OutOfBandErrorResponseException
 
 /**
  * Support code for communicating with Authenticators over PC/SC - the Smartcard protocol
@@ -121,7 +122,7 @@ class CTAPPCSC {
             var status = 0x9000
             for (packet in packets) {
                 if (status != 0x9000) {
-                    throw IncorrectDataException("Failure response from card: 0x${status.toHexString()}")
+                    throw OutOfBandErrorResponseException("Failure response from card in accepting input", code = status)
                 }
                 resp = xmit(packet)
                 if (resp.size < 2) {
@@ -139,7 +140,7 @@ class CTAPPCSC {
                 status = (resp[resp.size - 2].toUByte().toInt() shl 8) + resp[resp.size - 1].toUByte().toInt()
                 Logger.v { "Raw status: ${status.toHexString()}" }
                 if (status != 0x9000 && status !in 0x6100..0x61FF) {
-                    throw IncorrectDataException("Failure response from card: 0x${status.toHexString()}")
+                    throw OutOfBandErrorResponseException("Failure response from card in returning output", code = status)
                 }
                 finalResult = (finalResult.toList() + resp.toList().subList(0, resp.size - 2)).toByteArray()
             }

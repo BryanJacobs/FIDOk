@@ -12,5 +12,8 @@ open class DeviceCommunicationException(message: String? = null, cause: Throwabl
 open class IncorrectDataException(message: String? = null, cause: Throwable? = null) :
     DeviceCommunicationException(message, cause)
 
+open class OutOfBandErrorResponseException(message: String? = null, cause: Throwable? = null, val code: Int) :
+    IncorrectDataException(message, cause)
+
 open class InvalidDeviceException(message: String? = null, cause: Throwable? = null) :
     DeviceCommunicationException(message, cause)

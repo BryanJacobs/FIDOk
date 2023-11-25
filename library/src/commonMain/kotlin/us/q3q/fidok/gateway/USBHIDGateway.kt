@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.IncorrectDataException
+import us.q3q.fidok.ctap.OutOfBandErrorResponseException
 import us.q3q.fidok.hid.CTAPHID
 import us.q3q.fidok.hid.CTAPHIDCommand
 import us.q3q.fidok.hid.CTAPHIDError
@@ -163,6 +164,10 @@ interface HIDGatewayBase {
                             gateway.send(packet)
                         }
                     }
+                    return
+                } catch (e: OutOfBandErrorResponseException) {
+                    Logger.w("Device returned error code: 0x${e.code.toHexString()}", e)
+                    sendError(gateway, channelId, CTAPHIDError.OTHER)
                     return
                 } catch (e: DeviceCommunicationException) {
                     Logger.w("Failure communicating with device", e)

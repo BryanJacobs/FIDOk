@@ -70,6 +70,7 @@ class LinuxHIDGateway() : HIDGatewayBase {
                         delay(100.milliseconds)
                         continue
                     }
+
                     handlePacket(this, library, incomingData)
                 } catch (e: DeviceCommunicationException) {
                     Logger.e("Device communication error in HID gateway", e)

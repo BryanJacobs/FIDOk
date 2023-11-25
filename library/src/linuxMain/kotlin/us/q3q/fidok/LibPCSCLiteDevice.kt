@@ -42,6 +42,7 @@ import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.IncorrectDataException
+import us.q3q.fidok.ctap.OutOfBandErrorResponseException
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.APPLET_SELECT_BYTES
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.sendAndReceive
 
@@ -174,7 +175,7 @@ class LibPCSCLiteDevice(private val readerName: String, private val useExtendedM
                 }
                 val status = recvBuffer[received - 2].toInt() shl 8 + recvBuffer[received - 1].toInt()
                 if (status != 0x9000) {
-                    throw IncorrectDataException("Failure response from card: 0x${status.toHexString()}")
+                    throw OutOfBandErrorResponseException("Failure response from card", code = status)
                 }
                 received -= 2
             }
