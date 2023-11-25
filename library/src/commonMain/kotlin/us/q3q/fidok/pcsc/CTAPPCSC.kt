@@ -66,7 +66,7 @@ class CTAPPCSC {
             var sent = 0
             while (sent < bytes.size) {
                 val remaining = bytes.size - sent
-                val toSend = if (remaining < 255) remaining else 255
+                val toSend = if (remaining < 254) remaining else 254
                 val payloadBytes = bytes.copyOfRange(sent, sent + toSend)
                 val last = (sent + toSend) == bytes.size
                 val cla = (if (last) 0x80 else 0x90).toByte()
