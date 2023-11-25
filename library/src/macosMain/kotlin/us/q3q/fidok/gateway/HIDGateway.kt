@@ -38,6 +38,8 @@ import us.q3q.fidok.ctap.FIDOkLibrary
 
 @OptIn(ExperimentalForeignApi::class)
 actual class HIDGateway : HIDGatewayBase {
+    override val deviceChannelMap: MutableMap<UInt, AuthenticatorDevice> = hashMapOf()
+
     private enum class DictValueType {
         INT,
         BYTES,

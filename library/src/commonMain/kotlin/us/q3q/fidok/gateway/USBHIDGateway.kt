@@ -2,6 +2,7 @@ package us.q3q.fidok.gateway
 
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.delay
+import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.IncorrectDataException
@@ -63,6 +64,8 @@ val HID_RECV_DELAY = 25.milliseconds
 
 @OptIn(ExperimentalStdlibApi::class)
 interface HIDGatewayBase {
+    val deviceChannelMap: MutableMap<UInt, AuthenticatorDevice>
+
     suspend fun handlePacket(
         gateway: HIDGateway,
         library: FIDOkLibrary,
@@ -91,7 +94,7 @@ interface HIDGatewayBase {
                 throw DeviceCommunicationException("Command other than INIT ($seqOrCmd) received on HID broadcast channel")
             }
 
-            openOrResetChannel(gateway, channelId, len, bytes)
+            openOrResetChannel(library, gateway, channelId, len, bytes)
         } else {
             val cmd =
                 CTAPHIDCommand.entries.find {
@@ -125,7 +128,7 @@ interface HIDGatewayBase {
                     handleCBORMessage(library, gateway, channelId, cmd, read)
                 }
                 CTAPHIDCommand.INIT -> {
-                    openOrResetChannel(gateway, channelId, len, bytes)
+                    openOrResetChannel(library, gateway, channelId, len, bytes)
                 }
                 CTAPHIDCommand.PING -> {
                     CTAPHID.sendToChannel(cmd, channelId, read, read.size) {
@@ -147,35 +150,65 @@ interface HIDGatewayBase {
         cmd: CTAPHIDCommand,
         message: ByteArray,
     ) {
+        val device = waitForDevice(library, channelId)
+
+        if (device == null) {
+            Logger.w { "No device appeared in time" }
+            sendError(gateway, channelId, CTAPHIDError.MSG_TIMEOUT)
+            return
+        }
+
+        val delayAmt = HID_POLL_DELAY
+        val now = TimeSource.Monotonic.markNow()
+        while (now.elapsedNow() < HID_TIMEOUT) {
+            try {
+                val ret = device.sendBytes(message)
+                if (ret.isNotEmpty()) {
+                    Logger.v { "Sending HID response ${ret.toHexString()}" }
+
+                    val packets = CTAPHID.packetizeMessage(cmd, channelId, ret, HID_DEFAULT_PACKET_SIZE)
+                    for (packet in packets) {
+                        gateway.send(packet)
+                    }
+                }
+                return
+            } catch (e: OutOfBandErrorResponseException) {
+                Logger.w("Device returned error code: 0x${e.code.toHexString()}", e)
+                sendError(gateway, channelId, CTAPHIDError.OTHER)
+                return
+            } catch (e: DeviceCommunicationException) {
+                Logger.w("Failure communicating with device", e)
+            }
+
+            delay(delayAmt)
+        }
+
+        deviceChannelMap.remove(channelId)
+        sendError(gateway, channelId, CTAPHIDError.MSG_TIMEOUT)
+    }
+
+    private suspend fun waitForDevice(
+        library: FIDOkLibrary,
+        channelId: UInt,
+    ): AuthenticatorDevice? {
+        val existingDevice = deviceChannelMap[channelId]
+        if (existingDevice != null) {
+            return existingDevice
+        }
+
         val delayAmt = HID_POLL_DELAY
         val now = TimeSource.Monotonic.markNow()
         while (now.elapsedNow() < HID_TIMEOUT) {
             val devices = library.listDevices()
-            if (devices.isEmpty()) {
-                Logger.d { "No CTAP devices found; waiting for one to appear" }
-            } else {
-                try {
-                    val ret = devices[0].sendBytes(message)
-                    if (ret.isNotEmpty()) {
-                        Logger.v { "Sending HID response ${ret.toHexString()}" }
-
-                        val packets = CTAPHID.packetizeMessage(cmd, channelId, ret, HID_DEFAULT_PACKET_SIZE)
-                        for (packet in packets) {
-                            gateway.send(packet)
-                        }
-                    }
-                    return
-                } catch (e: OutOfBandErrorResponseException) {
-                    Logger.w("Device returned error code: 0x${e.code.toHexString()}", e)
-                    sendError(gateway, channelId, CTAPHIDError.OTHER)
-                    return
-                } catch (e: DeviceCommunicationException) {
-                    Logger.w("Failure communicating with device", e)
-                }
+            if (devices.isNotEmpty()) {
+                deviceChannelMap[channelId] = devices[0]
+                return devices[0]
             }
+
+            Logger.d { "No CTAP devices found; waiting for one to appear" }
             delay(delayAmt)
         }
-        sendError(gateway, channelId, CTAPHIDError.MSG_TIMEOUT)
+        return null
     }
 
     private suspend fun sendError(
@@ -189,6 +222,7 @@ interface HIDGatewayBase {
     }
 
     private suspend fun openOrResetChannel(
+        library: FIDOkLibrary,
         gateway: HIDGateway,
         channelId: UInt,
         len: UInt,
@@ -212,6 +246,12 @@ interface HIDGatewayBase {
                     (channelId and 0x000000FFu).toByte(),
                 )
             }
+
+        val device = waitForDevice(library, CTAPHID.assembleChannelFromBytes(newChannel, 0))
+        if (device == null) {
+            sendError(gateway, channelId, CTAPHIDError.MSG_TIMEOUT)
+            return
+        }
 
         val pkt =
             byteArrayOf(
@@ -260,6 +300,9 @@ class StubHIDGateway() : HIDGatewayBase {
     suspend fun recv(): ByteArray {
         throw NotImplementedError()
     }
+
+    override val deviceChannelMap: MutableMap<UInt, AuthenticatorDevice>
+        get() = throw NotImplementedError()
 }
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")

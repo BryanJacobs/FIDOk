@@ -32,6 +32,7 @@ import uhid.uhid_event
 import uhid.uhid_event_type
 import uhid.uhid_input2_req
 import uhid.uhid_output_req
+import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.FIDOkLibrary
 import kotlin.experimental.ExperimentalNativeApi
@@ -46,6 +47,8 @@ const val UHID_FILE_PATH = "/dev/uhid"
 @OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class, ExperimentalStdlibApi::class)
 class LinuxHIDGateway() : HIDGatewayBase {
     private var uhid: Int? = null
+
+    override val deviceChannelMap: MutableMap<UInt, AuthenticatorDevice> = hashMapOf()
 
     suspend fun listenForever(library: FIDOkLibrary) {
         Logger.v { "Starting Linux HID gateway" }
