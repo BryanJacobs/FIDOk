@@ -75,6 +75,7 @@ fun botanTasks(
     platform: String,
     extraArgs: List<String> = listOf(),
     dlSuffix: String = "so",
+    staticLibSuffix: String = "a",
 ) {
     val buildDir = project.layout.buildDirectory.dir("botan-${platform.lowercase()}").get()
     buildDir.asFile.mkdirs()
@@ -92,12 +93,15 @@ fun botanTasks(
         commandLine("make", "-j4", "-f", "${buildDir.asFile.absolutePath}/Makefile")
         inputs.property("platform", platform)
         inputs.files(buildDir.file("Makefile"))
-        if (platform == "Windows") {
-            // Don't ask why Botan puts the DLL def file up here instead of in the build directory
-            outputs.files(botanDir.file("libbotan-3.$dlSuffix"))
-        } else {
-            outputs.files(buildDir.file("libbotan-3.$dlSuffix"))
-        }
+        outputs.files(
+            buildDir.file("libbotan-3.$staticLibSuffix"),
+            if (platform == "Windows") {
+                // Don't ask why Botan puts the DLL def file up here instead of in the build directory
+                botanDir.file("libbotan-3.$dlSuffix")
+            } else {
+                buildDir.file("libbotan-3.$dlSuffix")
+            },
+        )
     }
 }
 
@@ -131,12 +135,11 @@ fun nativeBuild(
     val lcPlatform = platform.lowercase()
     val hidFile = hidBuild.outputs.files.singleFile
     val hidLibName = hidFile.name.replace(Regex("^lib"), "").replace(Regex("\\..*$"), "")
+
     val linkerOpts =
         arrayListOf(
             "-L${hidFile.parent}",
             "-l$hidLibName",
-            "-L${botanBuild.outputs.files.singleFile.parent}",
-            "-lbotan-3",
         )
     when (platform) {
         "Linux" -> {
@@ -159,6 +162,23 @@ fun nativeBuild(
             )
         }
     }
+
+    // Botan links against libstdc++ and uses newer glibc constructs. Let it do that, and sort it out at load time.
+    val botanLinkerOptsForShared =
+        arrayListOf(
+            "--allow-shlib-undefined",
+            "-L${botanBuild.outputs.files.first()}",
+            "--no-allow-shlib-undefined",
+        )
+    // ... but for an executable, we need to resolve those symbols NOW, so use the dynamic botan instead of static
+    val botanLinkerOptsForExecutable =
+        arrayListOf(
+            "-L${botanBuild.outputs.files.last().parent}",
+            "-lbotan-3",
+        )
+
+    val linkerOptsShared = linkerOpts + botanLinkerOptsForShared
+    val linkerOptsExecutable = linkerOpts + botanLinkerOptsForExecutable
 
     target.apply {
         compilations.getByName("main") {
@@ -191,13 +211,16 @@ fun nativeBuild(
         }
         binaries {
             all {
-                linkerOpts(linkerOpts)
                 if (platform != "Windows") {
                     binaryOption("sourceInfoType", "libbacktrace")
                 }
             }
-            executable()
-            sharedLib("fidok")
+            executable {
+                linkerOpts(linkerOptsExecutable)
+            }
+            sharedLib("fidok") {
+                linkerOpts(linkerOptsShared)
+            }
         }
     }
 }
@@ -298,12 +321,9 @@ fun commonBotan(buildDirPath: String): List<String> {
         "--without-documentation",
         "--optimize-for-size",
         "--without-compilation-database",
-        "--build-targets=shared",
-        // "--build-targets=shared,static",
+        "--build-targets=shared,static",
         "--with-build-dir=$buildDirPath",
-        /*"--extra-cxxflags=-fPIC",
-        "--extra-cxxflags=-static-libstdc++",
-        "--extra-cxxflags=-D_GLIBCXX_USE_CXX11_ABI=0",*/
+        "--extra-cxxflags=-fPIC",
         "--minimized-build",
         "--enable-modules=ffi,aes,aes_ni,auto_rng,cbc,dh,ecc_key,ecdh," +
             "ecdsa,hash,hkdf,hmac,kdf,kdf1,kdf2,keypair,pubkey,raw_hash," +

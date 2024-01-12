@@ -20,21 +20,16 @@ fun main() {
 
     val os = System.getProperty("os.name").lowercase()
 
-    val coreLibAndBotanName =
+    val libFileName =
         if (os.contains("linux")) {
-            "libfidok.so" to "libbotan-3.so.2"
+            "libfidok.so"
         } else if (os.contains("windows")) {
-            "libfidok.dll" to "libbotan-3.dll"
+            "libfidok.dll"
         } else {
-            "libfidok.dylib" to "libbotan-3.2.dylib"
+            "libfidok.dylib"
         }
 
-    val libFileName = coreLibAndBotanName.first
     val libPath = File(resourcesDirPath).resolve(libFileName).absolutePath
-
-    val botanFileName = coreLibAndBotanName.second
-    val botanPath = File(resourcesDirPath).resolve(botanFileName).absolutePath
-    System.load(botanPath)
 
     val lister = NativeDeviceListing(libPath)
     val library =
