@@ -6,7 +6,9 @@ import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.option
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.CTAPClient
+import us.q3q.fidok.ctap.CTAPError
 import us.q3q.fidok.ctap.CTAPPermission
+import us.q3q.fidok.ctap.CTAPResponse
 import us.q3q.fidok.ctap.PinUVToken
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -24,7 +26,15 @@ class CredList : CliktCommand(name = "list", help = "List discoverable credentia
 
             val credMgmt = client.credentialManagement()
 
-            val rps = credMgmt.enumerateRPs(pinUVToken = token)
+            val rps =
+                try {
+                    credMgmt.enumerateRPs(pinUVToken = token)
+                } catch (e: CTAPError) {
+                    if (e.code != CTAPResponse.NO_CREDENTIALS.value) {
+                        throw e
+                    }
+                    listOf()
+                }
 
             if (rps.isEmpty()) {
                 echo("No discoverable credentials")
