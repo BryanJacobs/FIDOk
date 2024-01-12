@@ -178,7 +178,7 @@ fun nativeBuild(
             "-lbotan-3",
         )
 
-    val linkerOptsShared = linkerOpts + botanLinkerOptsForShared
+    val linkerOptsShared = linkerOpts + if (platform == "Windows") botanLinkerOptsForExecutable else botanLinkerOptsForShared
     val linkerOptsExecutable = linkerOpts + botanLinkerOptsForExecutable
 
     target.apply {
