@@ -167,7 +167,8 @@ fun nativeBuild(
     val botanLinkerOptsForShared =
         arrayListOf(
             "--allow-shlib-undefined",
-            "-L${botanBuild.outputs.files.first()}",
+            botanBuild.outputs.files.first().path,
+            "-lstdc++",
             "--no-allow-shlib-undefined",
         )
     // ... but for an executable, we need to resolve those symbols NOW, so use the dynamic botan instead of static
