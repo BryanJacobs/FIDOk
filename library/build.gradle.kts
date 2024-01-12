@@ -222,6 +222,9 @@ fun nativeBuild(
                 linkerOpts(linkerOptsShared)
             }
         }
+        // kotlin/native doesn't allow defining both executable{} and test{} without collisions
+        // so, set up the appropriate test linking options after the fact
+        this.binaries["debugTest"].linkerOpts(linkerOptsExecutable)
     }
 }
 
