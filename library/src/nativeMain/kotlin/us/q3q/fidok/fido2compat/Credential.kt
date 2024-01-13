@@ -70,6 +70,7 @@ class FidoCredHandle(
     var prot: UByte? = null,
     var rk: Boolean? = null,
     var extensions: Int = 0x00,
+    var excludeList: MutableList<ByteArray> = mutableListOf(),
 )
 
 @OptIn(ExperimentalForeignApi::class)
@@ -99,6 +100,50 @@ fun fido_cred_set_rp(
 
     credHandle.rpId = id
     credHandle.rpName = name
+
+    return FIDO_OK
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fido_cred_set_user")
+fun fido_cred_set_user(
+    cred: fido_cred_t,
+    user_id: CPointer<ByteVar>,
+    user_id_len: size_t,
+    name: String?,
+    display_name: String?,
+    icon: String?,
+): Int {
+    val credHandle = cred.asStableRef<FidoCredHandle>().get()
+
+    credHandle.userId =
+        ByteArray(user_id_len.toInt()) {
+            user_id[it]
+        }
+    credHandle.userName = name
+    credHandle.userDisplayName = display_name
+
+    return FIDO_OK
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fido_cred_set_type")
+fun fido_cred_set_type(
+    cred: fido_cred_t,
+    cose_alg: Int,
+): Int {
+    val credHandle = cred.asStableRef<FidoCredHandle>().get()
+
+    val matchingAlg =
+        COSEAlgorithmIdentifier.entries.firstOrNull {
+            it.value == cose_alg.toLong()
+        }
+
+    if (matchingAlg == null) {
+        return FIDO_ERR_INVALID_ARGUMENT
+    }
+
+    credHandle.type = matchingAlg
 
     return FIDO_OK
 }
@@ -327,6 +372,34 @@ fun fido_cred_set_rk(
     } else {
         return FIDO_ERR_INVALID_ARGUMENT
     }
+
+    return FIDO_OK
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fido_cred_empty_exclude_list")
+fun fido_cred_empty_exclude_list(cred: fido_cred_t): Int {
+    val credHandle = cred.asStableRef<FidoCredHandle>().get()
+
+    credHandle.excludeList = mutableListOf()
+
+    return FIDO_OK
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fido_cred_exclude")
+fun fido_cred_exclude(
+    cred: fido_cred_t,
+    ptr: CPointer<ByteVar>,
+    len: size_t,
+): Int {
+    val credHandle = cred.asStableRef<FidoCredHandle>().get()
+
+    val credIdBytes =
+        ByteArray(len.toInt()) {
+            ptr[it]
+        }
+    credHandle.excludeList.add(credIdBytes)
 
     return FIDO_OK
 }
