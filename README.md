@@ -40,6 +40,7 @@ provided by native implementations specific to each platform.
 
 1. Low level [CTAP layer](docs/CTAP.md)
 1. [Webauthn standard implementation](docs/webauthn.md)
+1. libfido2 [compatibility layer](docs/dropin.md)
 1. High level [task-specific APIs](docs/tasks.md)
 
 ## Protocol Features
