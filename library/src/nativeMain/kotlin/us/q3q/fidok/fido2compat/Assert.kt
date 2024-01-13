@@ -18,7 +18,6 @@ import kotlinx.cinterop.pointed
 import kotlinx.cinterop.value
 import kotlinx.coroutines.runBlocking
 import platform.posix.size_t
-import us.q3q.fidok.ctap.CTAPError
 import us.q3q.fidok.ctap.CTAPOption
 import us.q3q.fidok.ctap.CTAPPermission
 import us.q3q.fidok.ctap.commands.Extension
@@ -100,8 +99,9 @@ fun fido_dev_get_assert(
         extensions.add(hmacSecretExtension)
     }
 
-    val assertResponse =
-        try {
+    var assertResponse: List<GetAssertionResponse>? = null
+    val result =
+        fido_do_with_error_handling {
             val pinUVToken =
                 if (pin != null && client.getInfoIfUnset().options?.get(CTAPOption.CLIENT_PIN.value) == true) {
                     runBlocking {
@@ -114,38 +114,40 @@ fun fido_dev_get_assert(
                     null
                 }
 
-            client.getAssertions(
-                clientDataHash = assertHandle.clientDataHash,
-                rpId = rpId,
-                pinUvToken = pinUVToken,
-                extensions = ExtensionSetup(extensions),
-                allowList =
-                    assertHandle.allowList.map {
-                        PublicKeyCredentialDescriptor(it)
-                    },
-            )
-        } catch (e: CTAPError) {
-            assertHandle.assertions = listOf()
-            return e.code.toInt()
+            assertResponse =
+                client.getAssertions(
+                    clientDataHash = assertHandle.clientDataHash,
+                    rpId = rpId,
+                    pinUvToken = pinUVToken,
+                    extensions = ExtensionSetup(extensions),
+                    allowList =
+                        assertHandle.allowList.map {
+                            PublicKeyCredentialDescriptor(it)
+                        },
+                )
         }
 
-    assertHandle.assertions = assertResponse
-    if (hmacSecretExtension != null) {
-        assertHandle.hmacSecrets =
-            (1..assertResponse.size).map {
-                val firstAndSecondSecret = hmacSecretExtension.getResult()
-                val firstSecret = firstAndSecondSecret.first
-                if (firstSecret == null) {
-                    null
-                } else {
-                    (firstSecret.toList() + (firstAndSecondSecret.second?.toList() ?: listOf())).toByteArray()
+    if (result == FIDO_OK) {
+        assertHandle.assertions = assertResponse!!
+        if (hmacSecretExtension != null) {
+            assertHandle.hmacSecrets =
+                (1..assertResponse!!.size).map {
+                    val firstAndSecondSecret = hmacSecretExtension.getResult()
+                    val firstSecret = firstAndSecondSecret.first
+                    if (firstSecret == null) {
+                        null
+                    } else {
+                        (firstSecret.toList() + (firstAndSecondSecret.second?.toList() ?: listOf())).toByteArray()
+                    }
                 }
-            }
+        } else {
+            assertHandle.hmacSecrets = listOf()
+        }
     } else {
-        assertHandle.hmacSecrets = listOf()
+        assertHandle.assertions = listOf()
     }
 
-    return FIDO_OK
+    return result
 }
 
 @OptIn(ExperimentalForeignApi::class)

@@ -14,6 +14,7 @@ import kotlinx.cinterop.pointed
 import kotlinx.cinterop.value
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.CTAPOption
+import us.q3q.fidok.ctap.DeviceCommunicationException
 import kotlin.experimental.ExperimentalNativeApi
 
 typealias fido_dev_t = COpaquePointer
@@ -48,7 +49,6 @@ fun fido_dev_free(dev_p: CPointer<CPointerVarOf<fido_dev_t>>?) {
     dev_p.pointed.value = null
 }
 
-@OptIn(ExperimentalForeignApi::class)
 @CName("fido_dev_open")
 fun fido_dev_open(
     dev: fido_dev_t?,
@@ -74,7 +74,12 @@ fun fido_dev_close(dev: fido_dev_t?) {
 @CName("fido_dev_has_pin")
 fun fido_dev_has_pin(dev: fido_dev_t?): Boolean {
     val authenticator = dev?.asStableRef<FidoDevHandle>()?.get()?.authenticatorDevice ?: return false
-    return get_fidocompat_lib().ctapClient(authenticator).getInfoIfUnset().options?.get(
-        CTAPOption.CLIENT_PIN.value,
-    ) == true
+    val client = get_fidocompat_lib().ctapClient(authenticator)
+    return try {
+        client.getInfoIfUnset().options?.get(
+            CTAPOption.CLIENT_PIN.value,
+        ) == true
+    } catch (e: DeviceCommunicationException) {
+        false
+    }
 }

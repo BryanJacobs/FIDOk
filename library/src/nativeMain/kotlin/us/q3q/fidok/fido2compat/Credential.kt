@@ -18,7 +18,6 @@ import kotlinx.cinterop.pointed
 import kotlinx.cinterop.value
 import kotlinx.coroutines.runBlocking
 import platform.posix.size_t
-import us.q3q.fidok.ctap.CTAPError
 import us.q3q.fidok.ctap.CTAPOption
 import us.q3q.fidok.ctap.CTAPPermission
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
@@ -133,8 +132,9 @@ fun fido_dev_make_cred(
         extensions.add(credProtect)
     }
 
-    val credResponse =
-        try {
+    var credResponse: MakeCredentialResponse? = null
+    val result =
+        fido_do_with_error_handling {
             val pinUVToken =
                 if (pin != null && client.getInfoIfUnset().options?.get(CTAPOption.CLIENT_PIN.value) == true) {
                     runBlocking {
@@ -147,32 +147,36 @@ fun fido_dev_make_cred(
                     null
                 }
 
-            client.makeCredential(
-                clientDataHash = credHandle.clientDataHash,
-                rpId = rpId,
-                rpName = credHandle.rpName,
-                userId = credHandle.userId,
-                userName = credHandle.userName,
-                userDisplayName = credHandle.userDisplayName,
-                pubKeyCredParams =
-                    listOf(
-                        PublicKeyCredentialParameters(alg = credHandle.type),
-                    ),
-                pinUvToken = pinUVToken,
-                extensions = ExtensionSetup(extensions),
-                discoverableCredential = credHandle.rk ?: false,
-            )
-        } catch (e: CTAPError) {
-            credHandle.cred = null
-            return e.code.toInt()
+            credResponse =
+                client.makeCredential(
+                    clientDataHash = credHandle.clientDataHash,
+                    rpId = rpId,
+                    rpName = credHandle.rpName,
+                    userId = credHandle.userId,
+                    userName = credHandle.userName,
+                    userDisplayName = credHandle.userDisplayName,
+                    pubKeyCredParams =
+                        listOf(
+                            PublicKeyCredentialParameters(alg = credHandle.type),
+                        ),
+                    pinUvToken = pinUVToken,
+                    extensions = ExtensionSetup(extensions),
+                    discoverableCredential = credHandle.rk ?: false,
+                )
         }
 
-    credHandle.cred = credResponse
-    if (credProtect != null) {
-        credHandle.prot = credProtect.getLevel()
+    if (result == FIDO_OK) {
+        credHandle.cred = credResponse
+        if (credProtect != null) {
+            credHandle.prot = credProtect.getLevel()
+        } else {
+            credHandle.prot = null
+        }
+    } else {
+        credHandle.cred = null
     }
 
-    return FIDO_OK
+    return result
 }
 
 @OptIn(ExperimentalForeignApi::class)

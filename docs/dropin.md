@@ -24,7 +24,7 @@ Feature Status:
 | Device Listing                  | Implemented     |
 | Open Device from Listing Result | Implemented     |
 | Open Device by Path             | Not Implemented |
-| Get Device Info                 | Not Implemented |
+| Get Device Info                 | Very Limited    |
 | Create Credential               | Implemented     |
 | Set/get raw CBOR                | Not Implemented |
 | Verify Credential               | Not Implemented |
