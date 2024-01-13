@@ -65,7 +65,7 @@ fun fido_assert_set_rp(
 
     assertHandle.rpId = id
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -77,9 +77,9 @@ fun fido_dev_get_assert(
 ): Int {
     val devHandle = dev.asStableRef<FidoDevHandle>().get()
     val assertHandle = assert.asStableRef<FidoAssertHandle>().get()
-    val authenticator = devHandle.authenticatorDevice ?: return FIDO_ERR_NOTFOUND
+    val authenticator = devHandle.authenticatorDevice ?: return FidoCompatErrors.FIDO_ERR_NOTFOUND.v
 
-    val rpId = assertHandle.rpId ?: return FIDO_ERR_INVALID_PARAM
+    val rpId = assertHandle.rpId ?: return FidoCompatErrors.FIDO_ERR_INVALID_PARAM.v
 
     val client =
         get_fidocompat_lib().ctapClient(
@@ -127,7 +127,7 @@ fun fido_dev_get_assert(
                 )
         }
 
-    if (result == FIDO_OK) {
+    if (result == FidoCompatErrors.FIDO_OK.v) {
         assertHandle.assertions = assertResponse!!
         if (hmacSecretExtension != null) {
             assertHandle.hmacSecrets =
@@ -161,7 +161,7 @@ fun fido_assert_set_clientdata(
 
     if (ptr == null) {
         assertHandle.clientDataHash = null
-        return FIDO_OK
+        return FidoCompatErrors.FIDO_OK.v
     }
 
     val clientData =
@@ -171,7 +171,7 @@ fun fido_assert_set_clientdata(
     val clientDataHash = get_fidocompat_lib().cryptoProvider.sha256(clientData).hash
     assertHandle.clientDataHash = clientDataHash
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -185,7 +185,7 @@ fun fido_assert_set_clientdata_hash(
 
     if (ptr == null) {
         assertHandle.clientDataHash = null
-        return FIDO_OK
+        return FidoCompatErrors.FIDO_OK.v
     }
 
     val clientDataHash =
@@ -194,7 +194,7 @@ fun fido_assert_set_clientdata_hash(
         }
     assertHandle.clientDataHash = clientDataHash
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -207,7 +207,7 @@ fun fido_assert_set_extensions(
 
     assertHandle.extensions = flags
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -225,7 +225,7 @@ fun fido_assert_empty_allow_list(assert: fido_assert_t): Int {
 
     assertHandle.allowList = mutableListOf()
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -243,7 +243,7 @@ fun fido_assert_allow_cred(
         }
     assertHandle.allowList.add(credIdBytes)
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -265,7 +265,7 @@ fun fido_assert_set_hmac_salt(
         }
     assertHandle.hmacSalt = hmacSalt
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)

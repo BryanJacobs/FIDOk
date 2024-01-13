@@ -31,19 +31,6 @@ import kotlin.experimental.ExperimentalNativeApi
 
 typealias fido_cred_t = COpaquePointer
 
-const val FIDO_OK = 0
-const val FIDO_ERR_TX = -1
-const val FIDO_ERR_RX = -2
-const val FIDO_ERR_RX_NOT_CBOR = -3
-const val FIDO_ERR_RX_INVALID_CBOR = -4
-const val FIDO_ERR_INVALID_PARAM = -5
-const val FIDO_ERR_INVALID_SIG = -6
-const val FIDO_ERR_INVALID_ARGUMENT = -7
-const val FIDO_ERR_USER_PRESENCE_REQUIRED = -8
-const val FIDO_ERR_INTERNAL = -9
-const val FIDO_ERR_NOTFOUND = -10
-const val FIDO_ERR_COMPRESS = -11
-
 const val FIDO_OPT_OMIT = 0
 const val FIDO_OPT_FALSE = 1
 const val FIDO_OPT_TRUE = 2
@@ -101,7 +88,7 @@ fun fido_cred_set_rp(
     credHandle.rpId = id
     credHandle.rpName = name
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -123,7 +110,7 @@ fun fido_cred_set_user(
     credHandle.userName = name
     credHandle.userDisplayName = display_name
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -140,12 +127,12 @@ fun fido_cred_set_type(
         }
 
     if (matchingAlg == null) {
-        return FIDO_ERR_INVALID_ARGUMENT
+        return FidoCompatErrors.FIDO_ERR_INVALID_ARGUMENT.v
     }
 
     credHandle.type = matchingAlg
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -157,9 +144,9 @@ fun fido_dev_make_cred(
 ): Int {
     val devHandle = dev.asStableRef<FidoDevHandle>().get()
     val credHandle = cred.asStableRef<FidoCredHandle>().get()
-    val authenticator = devHandle.authenticatorDevice ?: return FIDO_ERR_NOTFOUND
+    val authenticator = devHandle.authenticatorDevice ?: return FidoCompatErrors.FIDO_ERR_NOTFOUND.v
 
-    val rpId = credHandle.rpId ?: return FIDO_ERR_INVALID_PARAM
+    val rpId = credHandle.rpId ?: return FidoCompatErrors.FIDO_ERR_INVALID_PARAM.v
 
     val client =
         get_fidocompat_lib().ctapClient(
@@ -210,7 +197,7 @@ fun fido_dev_make_cred(
                 )
         }
 
-    if (result == FIDO_OK) {
+    if (result == FidoCompatErrors.FIDO_OK.v) {
         credHandle.cred = credResponse
         if (credProtect != null) {
             credHandle.prot = credProtect.getLevel()
@@ -275,7 +262,7 @@ fun fido_cred_set_clientdata(
 
     if (ptr == null) {
         credHandle.clientDataHash = null
-        return FIDO_OK
+        return FidoCompatErrors.FIDO_OK.v
     }
 
     val clientData =
@@ -285,7 +272,7 @@ fun fido_cred_set_clientdata(
     val clientDataHash = get_fidocompat_lib().cryptoProvider.sha256(clientData).hash
     credHandle.clientDataHash = clientDataHash
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -299,7 +286,7 @@ fun fido_cred_set_clientdata_hash(
 
     if (ptr == null) {
         credHandle.clientDataHash = null
-        return FIDO_OK
+        return FidoCompatErrors.FIDO_OK.v
     }
 
     val clientDataHash =
@@ -308,7 +295,7 @@ fun fido_cred_set_clientdata_hash(
         }
     credHandle.clientDataHash = clientDataHash
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -321,7 +308,7 @@ fun fido_cred_set_extensions(
 
     credHandle.extensions = flags
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -334,7 +321,7 @@ fun fido_cred_set_prot(
 
     if (prot != 0) {
         if (prot < 0 || prot > 3) {
-            return FIDO_ERR_INVALID_PARAM
+            return FidoCompatErrors.FIDO_ERR_INVALID_PARAM.v
         }
         credHandle.extensions = credHandle.extensions.or(FIDO_EXT_CRED_PROTECT)
         credHandle.prot = prot.toUByte()
@@ -343,7 +330,7 @@ fun fido_cred_set_prot(
         credHandle.prot = 0u
     }
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -370,10 +357,10 @@ fun fido_cred_set_rk(
     } else if (rk == FIDO_OPT_FALSE || rk == FIDO_OPT_OMIT) {
         credHandle.rk = false
     } else {
-        return FIDO_ERR_INVALID_ARGUMENT
+        return FidoCompatErrors.FIDO_ERR_INVALID_ARGUMENT.v
     }
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -383,7 +370,7 @@ fun fido_cred_empty_exclude_list(cred: fido_cred_t): Int {
 
     credHandle.excludeList = mutableListOf()
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -401,5 +388,5 @@ fun fido_cred_exclude(
         }
     credHandle.excludeList.add(credIdBytes)
 
-    return FIDO_OK
+    return FidoCompatErrors.FIDO_OK.v
 }

@@ -58,7 +58,7 @@ fun fido_dev_get_cbor_info(
     val devHandle = dev.asStableRef<FidoDevHandle>().get()
     val infoHandle = ci.asStableRef<FidoInfoHandle>().get()
 
-    val authenticator = devHandle.authenticatorDevice ?: return FIDO_ERR_TX
+    val authenticator = devHandle.authenticatorDevice ?: return FidoCompatErrors.FIDO_ERR_TX.v
 
     val client =
         get_fidocompat_lib().ctapClient(
