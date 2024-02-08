@@ -1,6 +1,15 @@
 package us.q3q.fidok.ctap.commands
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.ByteArraySerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 /**
  * Options to a CTAP [MakeCredentialCommand].
@@ -51,7 +60,7 @@ data class CreationOptionParameter(override val v: Map<String, Boolean>) : Param
  * identify a particular Authenticator in a proprietary fashion. Generally this should be
  * [a valid Enterprise Attestation level][us.q3q.fidok.ctap.EnterpriseAttestationLevel]
  */
-@Serializable
+@Serializable(with = MakeCredentialsCommandSerializer::class)
 class MakeCredentialCommand(
     private val clientDataHash: ByteArray,
     private val rp: PublicKeyCredentialRpEntity,
@@ -84,7 +93,7 @@ class MakeCredentialCommand(
                 }
                 this[0x07u] = CreationOptionParameter(m)
             }
-            if (pinUvAuthParam != null) {
+            if (pinUvAuthParam != null && pinUvAuthParam.isNotEmpty()) {
                 this[0x08u] = ByteArrayParameter(pinUvAuthParam)
             }
             if (pinUvAuthProtocol != null) {
@@ -99,7 +108,103 @@ class MakeCredentialCommand(
         require(clientDataHash.size == 32)
         require(pubKeyCredParams.isNotEmpty())
         require(pinUvAuthProtocol == null || pinUvAuthProtocol == 1u.toUByte() || pinUvAuthProtocol == 2u.toUByte())
-        require(pinUvAuthParam == null || pinUvAuthParam.size == 16 || pinUvAuthParam.size == 32)
+        require(pinUvAuthParam == null || pinUvAuthParam.size == 0 || pinUvAuthParam.size == 16 || pinUvAuthParam.size == 32)
         require(enterpriseAttestation == null || enterpriseAttestation == 1u || enterpriseAttestation == 2u)
+    }
+}
+
+class MakeCredentialsCommandSerializer() : KSerializer<MakeCredentialCommand> {
+    override val descriptor: SerialDescriptor
+        get() = CtapCommand.serializer().descriptor
+
+    override fun deserialize(decoder: Decoder): MakeCredentialCommand {
+        val commandByte = decoder.decodeByte()
+        if (commandByte != 0x01.toByte()) {
+            throw SerializationException("MakeCredentialsCommands must begin with CTAP command 0x01")
+        }
+
+        val composite = decoder.beginStructure(descriptor)
+        val numElements = composite.decodeCollectionSize(descriptor)
+
+        var clientDataHash: ByteArray? = null
+        var rp: PublicKeyCredentialRpEntity? = null
+        var user: PublicKeyCredentialUserEntity? = null
+        var pubKeyCredParams: List<PublicKeyCredentialParameters>? = null
+        var excludeList: List<PublicKeyCredentialDescriptor>? = null
+        var extensions: Map<ExtensionName, ExtensionParameters>? = null
+        var options: Map<CredentialCreationOption, Boolean>? = null
+        var pinUvAuthParam: ByteArray? = null
+        var pinUvAuthProtocol: UByte? = null
+        var enterpriseAttestation: UInt? = null
+
+        for (i in 1..numElements) {
+            val idx = composite.decodeElementIndex(descriptor)
+            when (idx) {
+                0x01 -> {
+                    clientDataHash = composite.decodeSerializableElement(descriptor, idx, ByteArraySerializer())
+                }
+                0x02 -> {
+                    rp = composite.decodeSerializableElement(descriptor, idx, PublicKeyCredentialRpEntity.serializer())
+                }
+                0x03 -> {
+                    user = composite.decodeSerializableElement(descriptor, idx, PublicKeyCredentialUserEntity.serializer())
+                }
+                0x04 -> {
+                    val listSer = ListSerializer(PublicKeyCredentialParameters.serializer())
+                    pubKeyCredParams = composite.decodeSerializableElement(descriptor, idx, listSer)
+                }
+                0x05 -> {
+                    val listSer = ListSerializer(PublicKeyCredentialDescriptor.serializer())
+                    excludeList = composite.decodeSerializableElement(descriptor, idx, listSer)
+                }
+                0x06 -> {
+                    // TODO
+                    throw NotImplementedError()
+                }
+                0x07 -> {
+                    val mapSer = MapSerializer(String.serializer(), Boolean.serializer())
+                    val rawMap = composite.decodeSerializableElement(descriptor, idx, mapSer)
+                    val entries =
+                        rawMap.map {
+                            CredentialCreationOption.valueOf(it.key.uppercase()) to it.value
+                        }
+                    options = hashMapOf()
+                    for (entry in entries) {
+                        options[entry.first] = entry.second
+                    }
+                }
+                0x08 -> {
+                    pinUvAuthParam = composite.decodeSerializableElement(descriptor, idx, ByteArraySerializer())
+                }
+                0x09 -> {
+                    pinUvAuthProtocol = composite.decodeIntElement(descriptor, idx).toUByte()
+                }
+                0x0A -> {
+                    enterpriseAttestation = composite.decodeIntElement(descriptor, idx).toUInt()
+                }
+            }
+        }
+
+        require(clientDataHash != null && rp != null && user != null && pubKeyCredParams != null)
+
+        return MakeCredentialCommand(
+            clientDataHash = clientDataHash,
+            rp = rp,
+            user = user,
+            pubKeyCredParams = pubKeyCredParams,
+            excludeList = excludeList,
+            options = options,
+            extensions = extensions,
+            pinUvAuthParam = pinUvAuthParam,
+            pinUvAuthProtocol = pinUvAuthProtocol,
+            enterpriseAttestation = enterpriseAttestation,
+        )
+    }
+
+    override fun serialize(
+        encoder: Encoder,
+        value: MakeCredentialCommand,
+    ) {
+        CtapCommand.serializer().serialize(encoder, value)
     }
 }
