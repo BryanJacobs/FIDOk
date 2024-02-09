@@ -93,7 +93,7 @@ class MakeCredentialCommand(
                 }
                 this[0x07u] = CreationOptionParameter(m)
             }
-            if (pinUvAuthParam != null && pinUvAuthParam.isNotEmpty()) {
+            if (pinUvAuthParam != null) {
                 this[0x08u] = ByteArrayParameter(pinUvAuthParam)
             }
             if (pinUvAuthProtocol != null) {
