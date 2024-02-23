@@ -19,7 +19,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(project(":library"))
+                implementation(project(":fidok"))
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material)
@@ -53,14 +53,14 @@ tasks.register<Copy>("copyNativeLibrariesIntoResources") {
         mkdir(layout.buildDirectory.dir("natives/common"))
     }
     if (Os.isFamily(Os.FAMILY_MAC)) {
-        dependsOn(":library:linkFidokDebugSharedMacos")
-        from(project(":library").layout.buildDirectory.file("bin/macos/fidokDebugShared/libfidok.dylib"))
+        dependsOn(":fidok:linkFidokDebugSharedMacos")
+        from(project(":fidok").layout.buildDirectory.file("bin/macos/fidokDebugShared/libfidok.dylib"))
     } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-        dependsOn(":library:linkFidokDebugSharedWindows")
-        from(project(":library").layout.buildDirectory.file("bin/windows/fidokDebugShared/libfidok.dll"))
+        dependsOn(":fidok:linkFidokDebugSharedWindows")
+        from(project(":fidok").layout.buildDirectory.file("bin/windows/fidokDebugShared/libfidok.dll"))
     } else {
-        dependsOn(":library:linkFidokDebugSharedLinux")
-        from(project(":library").layout.buildDirectory.file("bin/linux/fidokDebugShared/libfidok.so"))
+        dependsOn(":fidok:linkFidokDebugSharedLinux")
+        from(project(":fidok").layout.buildDirectory.file("bin/linux/fidokDebugShared/libfidok.so"))
     }
 
     into(layout.buildDirectory.dir("natives/common"))

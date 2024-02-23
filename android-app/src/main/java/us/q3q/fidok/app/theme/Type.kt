@@ -1,4 +1,4 @@
-package us.q3q.fidok.ui.theme
+package us.q3q.fidok.app.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

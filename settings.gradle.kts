@@ -1,8 +1,14 @@
 rootProject.name = "FIDOk"
 
 include(":library")
+project(":library").name = "fidok"
+
 include(":ui")
-include(":android")
+include(":android-app")
+project(":android-app").name = "fidok-app"
+include(":android-library")
+project(":android-library").name = "fidok-android"
+
 
 pluginManagement {
     repositories {

@@ -61,11 +61,9 @@ class AndroidUSBHIDDevice(
             return CTAPHID.sendAndReceive({
                 Logger.v { "About to send ${it.size} USB byte(s) to $deviceAddr: ${it.toHexString()}" }
 
-                val toSend = it.toByteArray()
-
-                val sent = conn.bulkTransfer(outEndpoint, toSend, toSend.size, TIMEOUT_MS)
-                if (sent != toSend.size) {
-                    throw DeviceCommunicationException("Send to $deviceAddr failed to deliver ${toSend.size} bytes: got $sent")
+                val sent = conn.bulkTransfer(outEndpoint, it, it.size, TIMEOUT_MS)
+                if (sent != it.size) {
+                    throw DeviceCommunicationException("Send to $deviceAddr failed to deliver ${it.size} bytes: got $sent")
                 }
 
                 Logger.v { "Sent $sent USB bytes to $deviceAddr" }
@@ -80,8 +78,8 @@ class AndroidUSBHIDDevice(
 
                 Logger.v { "Read $received USB bytes from $deviceAddr : ${transferBuffer.toHexString()}" }
 
-                transferBuffer.copyOfRange(0, received).toUByteArray()
-            }, CTAPHIDCommand.CBOR, bytes.toUByteArray(), outEndpoint.maxPacketSize).toByteArray()
+                transferBuffer.copyOfRange(0, received)
+            }, CTAPHIDCommand.CBOR, bytes, outEndpoint.maxPacketSize)
         } finally {
             conn.releaseInterface(interfaceObject)
             conn.close()

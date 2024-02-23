@@ -1,4 +1,4 @@
-package us.q3q.fidok.ui.theme
+package us.q3q.fidok.app.theme
 
 import androidx.compose.ui.graphics.Color
 

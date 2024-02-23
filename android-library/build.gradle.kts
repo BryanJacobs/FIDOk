@@ -1,6 +1,7 @@
 plugins {
-    id("com.android.application")
+    id("com.android.library")
     kotlin("android")
+    id("com.vanniktech.maven.publish") version "0.27.0"
 }
 
 dependencies {
@@ -15,12 +16,9 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "us.q3q.fidok"
         // minSdk = 23 FIXME
         minSdk = 31
         targetSdk = 33
-        versionCode = 1
-        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -45,7 +43,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.get()
+        kotlinCompilerExtensionVersion = libs.versions.composecompiler.get()
     }
     packaging {
         resources {
@@ -57,21 +55,13 @@ android {
 
 dependencies {
     implementation(project(":ui"))
-    implementation(project(":library"))
+    implementation(project(":fidok"))
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.appcompat)
-    implementation(libs.activity.compose)
-    implementation(libs.activity.ktx)
-    implementation(libs.fragment.ktx)
-    implementation(platform("androidx.compose:compose-bom:${libs.versions.composebom.get()}"))
-    implementation(libs.bundles.compose)
-    implementation("androidx.compose.material3:material3")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
-    androidTestImplementation(platform("androidx.compose:compose-bom:${libs.versions.composebom.get()}"))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
     implementation(libs.androidx.runtime.livedata)

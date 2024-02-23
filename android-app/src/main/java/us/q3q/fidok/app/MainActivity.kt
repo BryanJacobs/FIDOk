@@ -1,4 +1,4 @@
-package us.q3q.fidok
+package us.q3q.fidok.app
 
 import android.Manifest
 import android.app.PendingIntent
@@ -19,16 +19,17 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.MutableLiveData
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
+import us.q3q.fidok.PureJVMCryptoProvider
 import us.q3q.fidok.ble.AndroidBLEServer
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.nfc.AndroidNFCDevice
 import us.q3q.fidok.ui.MainView
-import us.q3q.fidok.ui.theme.FidoKTheme
-import us.q3q.fidok.usb.ACTION_USB_PERMISSION
+import us.q3q.fidok.app.theme.FidoKTheme
+import us.q3q.fidok.app.intent.ACTION_USB_PERMISSION
 import us.q3q.fidok.usb.AndroidUSBHIDListing
-import us.q3q.fidok.usb.usbPermissionIntentReceiver
+import us.q3q.fidok.app.intent.usbPermissionIntentReceiver
 
 class MainActivity : ComponentActivity() {
     private var nfcAdapter: NfcAdapter? = null

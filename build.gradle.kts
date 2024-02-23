@@ -4,13 +4,10 @@ plugins {
     kotlin("jvm") version libs.versions.kotlin apply false
     kotlin("plugin.serialization") version libs.versions.kotlin apply false
     id("org.jetbrains.compose") version libs.versions.compose apply false
-    id("com.android.application") version "8.1.0" apply false
+    id("com.android.application") version "8.2.0" apply false
     // Commented out until it stops throwing parse errors
     // id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
-
-group = "us.q3q"
-version = "1.0-SNAPSHOT"
 
 allprojects {
     repositories {

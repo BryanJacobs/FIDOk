@@ -1,4 +1,4 @@
-package us.q3q.fidok.usb
+package us.q3q.fidok.app.intent
 
 import android.content.BroadcastReceiver
 import android.content.Context

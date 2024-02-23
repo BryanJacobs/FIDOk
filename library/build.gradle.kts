@@ -1,9 +1,20 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import com.vanniktech.maven.publish.KotlinMultiplatform
+import com.vanniktech.maven.publish.JavadocJar
 
 plugins {
+    java
     kotlin("multiplatform")
     kotlin("plugin.serialization")
+    id("com.vanniktech.maven.publish") version "0.27.0"
+}
+
+mavenPublishing {
+    configure(KotlinMultiplatform(
+        javadocJar = JavadocJar.None(),
+        sourcesJar = true
+    ))
 }
 
 val submodulesDir = project.layout.projectDirectory.dir("submodules")
@@ -285,16 +296,18 @@ kotlin {
         val jsTest by getting*/
     }
 
-    if (Os.isFamily(Os.FAMILY_MAC)) {
-        val arch = determineMacOsArch()
-        if (arch == "arm64") {
-            nativeBuild(macosArm64("macos"), "Macos")
+    if (!project.hasProperty("jvmOnly")) {
+        if (Os.isFamily(Os.FAMILY_MAC)) {
+            val arch = determineMacOsArch()
+            if (arch == "arm64") {
+                nativeBuild(macosArm64("macos"), "Macos")
+            } else {
+                nativeBuild(macosX64("macos"), "Macos")
+            }
         } else {
-            nativeBuild(macosX64("macos"), "Macos")
+            nativeBuild(linuxX64("linux"), "Linux")
+            nativeBuild(mingwX64("windows"), "Windows")
         }
-    } else {
-        nativeBuild(linuxX64("linux"), "Linux")
-        nativeBuild(mingwX64("windows"), "Windows")
     }
 }
 
@@ -335,14 +348,16 @@ fun commonBotan(buildDirPath: String): List<String> {
     )
 }
 
-if (Os.isFamily(Os.FAMILY_MAC)) {
-    tasks.getByName("compileKotlinMacos").dependsOn("buildBotanMacos", "buildHIDMacos")
-    tasks.getByName("cinteropBotanMacos").dependsOn("buildBotanMacos")
-} else {
-    tasks.getByName("compileKotlinLinux").dependsOn("buildBotanLinux", "buildHIDLinux")
-    tasks.getByName("cinteropBotanLinux").dependsOn("buildBotanLinux")
-    tasks.getByName("compileKotlinWindows").dependsOn("buildBotanWindows", "buildHIDWindows")
-    tasks.getByName("cinteropBotanWindows").dependsOn("buildBotanWindows")
+if (!project.hasProperty("jvmOnly")) {
+    if (Os.isFamily(Os.FAMILY_MAC)) {
+        tasks.getByName("compileKotlinMacos").dependsOn("buildBotanMacos", "buildHIDMacos")
+        tasks.getByName("cinteropBotanMacos").dependsOn("buildBotanMacos")
+    } else {
+        tasks.getByName("compileKotlinLinux").dependsOn("buildBotanLinux", "buildHIDLinux")
+        tasks.getByName("cinteropBotanLinux").dependsOn("buildBotanLinux")
+        tasks.getByName("compileKotlinWindows").dependsOn("buildBotanWindows", "buildHIDWindows")
+        tasks.getByName("cinteropBotanWindows").dependsOn("buildBotanWindows")
+    }
 }
 
 tasks.getByName("jvmTestClasses").dependsOn("buildEmbeddedAuthenticatorJar")
