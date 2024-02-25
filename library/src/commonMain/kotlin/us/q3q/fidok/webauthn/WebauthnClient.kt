@@ -217,7 +217,10 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             extensions.add(credProtectExtension)
         }
 
-        val extensionSetup = ExtensionSetup(extensions)
+        val extensionSetup = ExtensionSetup(
+            extensions,
+            discardUnknown = !enforceCredProtect
+        )
 
         val rawResult =
             selectedClient.makeCredentialRaw(

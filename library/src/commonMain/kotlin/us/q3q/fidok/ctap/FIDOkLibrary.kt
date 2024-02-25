@@ -43,7 +43,7 @@ class FIDOkLibrary private constructor(
             callbacks: FIDOkCallbacks? = null,
         ): FIDOkLibrary {
             Logger.setTag("FIDOk")
-            // Logger.setMinSeverity(Severity.Info)
+            Logger.setMinSeverity(Severity.Info)
             Logger.d { "Initializing FIDOk library using ${authenticatorAccessors.size} types of Authenticator accessor" }
             return FIDOkLibrary(
                 cryptoProvider,

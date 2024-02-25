@@ -1,5 +1,6 @@
 package us.q3q.fidok.ctap.commands
 
+import co.touchlab.kermit.Logger
 import kotlinx.serialization.DeserializationStrategy
 import us.q3q.fidok.crypto.KeyAgreementPlatformKey
 import us.q3q.fidok.crypto.PinUVProtocol
@@ -79,8 +80,12 @@ interface Extension {
  * Represents the set of enabled [Extension]s for a particular CTAP request and its response.
  *
  * @property appliedExtensions [Extension] instances to be used
+ * @property discardUnknown If true, extensions that are unsupported by the Authenticator will be ignored
  */
-class ExtensionSetup(private val appliedExtensions: List<Extension>) {
+class ExtensionSetup(
+    private val appliedExtensions: List<Extension>,
+    private val discardUnknown: Boolean = false
+) {
     constructor(appliedExtension: Extension) : this(listOf(appliedExtension))
 
     companion object {
@@ -248,6 +253,10 @@ class ExtensionSetup(private val appliedExtensions: List<Extension>) {
     fun checkSupport(info: GetInfoResponse): Boolean {
         for (extension in appliedExtensions) {
             if (!extension.checkSupport(info)) {
+                if (discardUnknown) {
+                    Logger.i { "Unsupported extension ${extension.getName()} ignored" }
+                    continue
+                }
                 return false
             }
         }
