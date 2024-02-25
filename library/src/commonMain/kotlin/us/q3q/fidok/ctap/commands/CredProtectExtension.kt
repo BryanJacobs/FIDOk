@@ -51,7 +51,7 @@ class CredProtectExtension(private val requestedLevel: UByte) : Extension {
 
     override fun makeCredentialResponse(response: MakeCredentialResponse) {
         val gotten = response.authData.extensions?.get(getName())
-        gottenLevel = (gotten as IntExtensionParameter).v.toUByte()
+        gottenLevel = (gotten as IntExtensionParameter?)?.v?.toUByte()
     }
 }
 
