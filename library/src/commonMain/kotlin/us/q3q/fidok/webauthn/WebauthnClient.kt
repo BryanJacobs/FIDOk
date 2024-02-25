@@ -71,7 +71,19 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val timeout = (options.publicKey.timeout ?: 10_000UL).toLong().milliseconds
 
         val enforceCredProtect = options.publicKey.extensions?.get("enforceCredentialProtectionPolicy") == true
-        val credProtectLevel = options.publicKey.extensions?.get("credentialProtectionPolicy") as Int?
+        val credProtectLevel = when (options.publicKey.extensions?.get("credentialProtectionPolicy")) {
+            "userVerificationRequired" -> 3
+            "userVerificationOptionalWithCredentialIDList" -> 2
+            "userVerificationOptional" -> 1
+            3 -> 3
+            2 -> 2
+            1 -> 1
+            null -> null
+            else -> {
+                Logger.w { "Invalid value for credentialProtectionPolicy" }
+                null
+            }
+        }
 
         val selectedClient =
             library.waitForUsableAuthenticator({ client ->

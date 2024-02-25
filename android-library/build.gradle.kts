@@ -12,7 +12,7 @@ dependencies {
 }
 
 android {
-    namespace = "us.q3q.fidok"
+    namespace = "us.q3q.fidok.android"
     compileSdk = 34
 
     defaultConfig {

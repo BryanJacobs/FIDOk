@@ -108,7 +108,7 @@ class MakeCredentialCommand(
         require(clientDataHash.size == 32)
         require(pubKeyCredParams.isNotEmpty())
         require(pinUvAuthProtocol == null || pinUvAuthProtocol == 1u.toUByte() || pinUvAuthProtocol == 2u.toUByte())
-        require(pinUvAuthParam == null || pinUvAuthParam.size == 0 || pinUvAuthParam.size == 16 || pinUvAuthParam.size == 32)
+        require(pinUvAuthParam == null || pinUvAuthParam.isEmpty() || pinUvAuthParam.size == 16 || pinUvAuthParam.size == 32)
         require(enterpriseAttestation == null || enterpriseAttestation == 1u || enterpriseAttestation == 2u)
     }
 }
