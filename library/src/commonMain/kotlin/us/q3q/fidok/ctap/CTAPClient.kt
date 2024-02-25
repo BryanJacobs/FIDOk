@@ -746,7 +746,7 @@ class CTAPClient(
             val thisRequestAllowList =
                 allowList?.subList(allowListSent, min(allowListSent + numAllowListEntriesPerBatch, allowList.size))
 
-            Logger.v("PIN/UV auth length for getAssertion: ${pinUvAuthParam.size}")
+            Logger.v("PIN/UV auth length for getAssertion: ${pinUvAuthParam?.size}")
 
             val request =
                 GetAssertionCommand(

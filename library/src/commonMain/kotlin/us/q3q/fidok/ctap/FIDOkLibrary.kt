@@ -1,6 +1,7 @@
 package us.q3q.fidok.ctap
 
 import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
@@ -41,6 +42,8 @@ class FIDOkLibrary private constructor(
             authenticatorAccessors: List<AuthenticatorListing> = listOf(),
             callbacks: FIDOkCallbacks? = null,
         ): FIDOkLibrary {
+            Logger.setTag("FIDOk")
+            // Logger.setMinSeverity(Severity.Info)
             Logger.d { "Initializing FIDOk library using ${authenticatorAccessors.size} types of Authenticator accessor" }
             return FIDOkLibrary(
                 cryptoProvider,
