@@ -375,16 +375,11 @@ class CTAPClient(
         userVerification: Boolean = false,
         pubKeyCredParams: List<PublicKeyCredentialParameters> = defaultCredentialAlgorithms,
         excludeList: List<PublicKeyCredentialDescriptor>? = null,
-        pinUvProtocol: UByte? = null,
         pinUvToken: PinUVToken? = null,
         enterpriseAttestation: UInt? = null,
         extensions: ExtensionSetup? = null,
     ): ByteArray {
         require(enterpriseAttestation == null || enterpriseAttestation == 1u || enterpriseAttestation == 2u)
-        require(
-            (pinUvToken == null && pinUvProtocol == null) ||
-                pinUvToken != null,
-        )
         val info = getInfoIfUnset()
         if (enterpriseAttestation != null && info.options?.get("ep") != true) {
             throw IllegalArgumentException("Authenticator enterprise attestation isn't enabled")
@@ -412,7 +407,7 @@ class CTAPClient(
         var pinUvProtocolVersion: UByte? = null
         val pinUvAuthParam =
             if (pinUvToken != null) {
-                val pp = getPinProtocol(pinUvProtocol)
+                val pp = getPinProtocol(pinUvToken.protocol)
                 pinUvProtocolVersion = pp.getVersion()
 
                 Logger.d { "Authenticating request using PIN protocol $pinUvProtocolVersion" }
@@ -425,14 +420,14 @@ class CTAPClient(
         var ka: KeyAgreementPlatformKey? = null
         var pp: PinUVProtocol? = null
         if (extensions?.isKeyAgreementRequired() == true) {
-            pp = getPinProtocol(pinUvProtocol)
-            ka = getKeyAgreement(pp.getVersion())
+            pp = getPinProtocol(pinUvProtocolVersion ?: (pinUvToken?.protocol))
+            ka = getKeyAgreementIfNecessary(pp.getVersion())
         }
 
         val request =
             MakeCredentialCommand(
-                clientDataHash,
-                PublicKeyCredentialRpEntity(
+                clientDataHash = clientDataHash,
+                rp = PublicKeyCredentialRpEntity(
                     id = rpId,
                     name = effectiveRpName,
                 ),
@@ -494,8 +489,6 @@ class CTAPClient(
      *                         will choose one that it supports, and reply with a credential of that type
      * @param excludeList A list of previously-created credentials. If any of them are valid for this Authenticator,
      *                    a `CredentialExcludedError` will be raised.
-     * @param pinUvProtocol The CTAP number of the PIN/UV protocol to use. If not set, will be none or version 1,
-     *                      depending on whether a `pinUvToken` is supplied
      * @param pinUvToken A token obtained from [getPinUvTokenUsingAppropriateMethod] or similar method
      * @param enterpriseAttestation If set, the [enterprise attestation "level"][EnterpriseAttestationLevel] to request
      * @param extensions An [ExtensionSetup] indicating any extension(s) active for the makeCredential call.
@@ -519,7 +512,6 @@ class CTAPClient(
         userVerification: Boolean = false,
         pubKeyCredParams: List<PublicKeyCredentialParameters> = defaultCredentialAlgorithms,
         excludeList: List<PublicKeyCredentialDescriptor>? = null,
-        pinUvProtocol: UByte? = null,
         pinUvToken: PinUVToken? = null,
         enterpriseAttestation: UInt? = null,
         extensions: ExtensionSetup? = null,
@@ -541,7 +533,6 @@ class CTAPClient(
                 userVerification,
                 pubKeyCredParams,
                 excludeList,
-                pinUvProtocol,
                 pinUvToken,
                 enterpriseAttestation,
                 extensions,
@@ -876,6 +867,20 @@ class CTAPClient(
         }
 
         return ret
+    }
+
+    /**
+     * Obtain the Platform-Authenticator shared secret, possibly reusing one.
+     *
+     * This method will may create a new Platform key, but only if this client didn't previously do so.
+     *
+     * @param pinUvProtocol The PIN/UV protocol number to use; this must match the version used for later commands
+     *
+     * @return An initialized key agreement object
+     */
+    @Throws(DeviceCommunicationException::class, CTAPError::class)
+    fun getKeyAgreementIfNecessary(pinUvProtocol: UByte = 2u): KeyAgreementPlatformKey {
+        return platformKey ?: getKeyAgreement(pinUvProtocol)
     }
 
     /**
@@ -1243,7 +1248,10 @@ class CTAPClient(
 
         Logger.d { "Got PIN token: $ret" }
 
-        return PinUVToken(pp.decrypt(pk, ret.pinUvAuthToken))
+        return PinUVToken(
+            token = pp.decrypt(pk, ret.pinUvAuthToken),
+            protocol = pp.getVersion()
+        )
     }
 
     @Throws(DeviceCommunicationException::class, CTAPError::class)
@@ -1279,7 +1287,10 @@ class CTAPClient(
 
         Logger.d { "Got PIN token: $ret" }
 
-        return PinUVToken(pp.decrypt(pk, ret.pinUvAuthToken))
+        return PinUVToken(
+            token = pp.decrypt(pk, ret.pinUvAuthToken),
+            protocol = pp.getVersion()
+        )
     }
 
     @Throws(DeviceCommunicationException::class, CTAPError::class)
@@ -1308,7 +1319,10 @@ class CTAPClient(
 
         Logger.d { "Got PIN token: $ret" }
 
-        return PinUVToken(pp.decrypt(pk, ret.pinUvAuthToken))
+        return PinUVToken(
+            token = pp.decrypt(pk, ret.pinUvAuthToken),
+            protocol = pp.getVersion()
+        )
     }
 
     /**
@@ -1359,7 +1373,7 @@ class CTAPClient(
 
 class PinNotAvailableException(msg: String = "A PIN was required, but not available") : Exception(msg)
 
-data class PinUVToken(val token: ByteArray) {
+data class PinUVToken(val token: ByteArray, val protocol: UByte) {
     init {
         require(token.size == 16 || token.size == 32)
     }

@@ -76,6 +76,6 @@ class GetAssertionCommand(
     init {
         require(clientDataHash.size == 32)
         require(pinUvAuthProtocol == null || pinUvAuthProtocol == 1u.toUByte() || pinUvAuthProtocol == 2u.toUByte())
-        require(pinUvAuthParam == null || pinUvAuthParam.isEmpty() || pinUvAuthParam.size == 32 || pinUvAuthParam.size == 48)
+        require(pinUvAuthParam == null || pinUvAuthParam.isEmpty() || pinUvAuthParam.size == 16 || pinUvAuthParam.size == 32 || pinUvAuthParam.size == 48)
     }
 }

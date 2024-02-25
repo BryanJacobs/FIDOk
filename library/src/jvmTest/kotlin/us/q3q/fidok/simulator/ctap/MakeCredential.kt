@@ -45,7 +45,6 @@ class MakeCredential : SimulationTest() {
                 userDisplayName = userDisplayName,
                 userName = userName,
                 pinUvToken = token,
-                pinUvProtocol = 1u,
             )
 
         assertTrue(res.authData.hasFlag(FLAGS.USER_VERIFICATION))
@@ -65,7 +64,6 @@ class MakeCredential : SimulationTest() {
                 userDisplayName = userDisplayName,
                 userName = userName,
                 pinUvToken = token,
-                pinUvProtocol = 2u,
             )
 
         assertTrue(res.authData.hasFlag(FLAGS.USER_VERIFICATION))

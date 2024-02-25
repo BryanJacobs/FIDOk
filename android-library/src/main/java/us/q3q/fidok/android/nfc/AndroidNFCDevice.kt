@@ -13,6 +13,9 @@ const val NFC_TIMEOUT_MS = 5000
 class AndroidNFCDevice(
     private val tag: IsoDep,
 ) : AuthenticatorDevice {
+
+    private var appletSelected = false
+
     @Throws(DeviceCommunicationException::class)
     override fun sendBytes(bytes: ByteArray): ByteArray {
         if (!tag.isConnected) {
@@ -23,12 +26,13 @@ class AndroidNFCDevice(
         // TODO: packetize using tag.getMaxTransceiveLength
         return CTAPPCSC.sendAndReceive(
             bytes,
-            selectApplet = true,
+            selectApplet = !appletSelected,
             useExtendedMessages = tag.isExtendedLengthApduSupported,
         ) {
             Logger.v { "About to send ${it.size} NFC bytes to $tag" }
 
             val res = tag.transceive(it)
+            appletSelected = true
 
             Logger.v { "Received ${res.size} NFC bytes from $tag: ${res.toHexString()}" }
 
