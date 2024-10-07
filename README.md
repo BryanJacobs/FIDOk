@@ -115,7 +115,8 @@ provided by native implementations specific to each platform.
 | USB-CCID      | Smart Card Readers (via USB)        | Working       | Y (via PC/SC)  |   N | Y (via PC/SC)  | As Native | N          |     |
 | NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |   N | N (Y via CCID) | As Native | Y          |     |
 | Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |   N | N              | As Native | N (and *1) |     |
-| Bluetooth LE  | Wireless, battery powered tokens    | Working       | N              |   N | N              | Y         | *1         |     |
+| Bluetooth LE  | Wireless, battery powered tokens    | Working       | Y              |   N | N              | Y         | *1         |     |
+| BLE PC/SC     | Smart Card Readers (via BLE)        | Unimplemented |                |     |                |           |            |     |
 | TPM           | Chips built into computers          | Unimplemented |                |     |                |           |            |     |
 | CaBLE         | Authenticators using the Internet!  | Incomplete    |                |     |                |           |            |     |
 

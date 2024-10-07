@@ -54,7 +54,8 @@ fun fido_dev_info_manifest(
 ) {
     val resultListingObj = dev_p?.asStableRef<FidoDevInfoHandle>()?.get() ?: return
 
-    val devices = get_fidocompat_lib().listDevices()
+    val devices =
+        get_fidocompat_lib().listDevices()
 
     val numToReturn = min(min(devices.size, ilen.toInt()), resultListingObj.slots)
 

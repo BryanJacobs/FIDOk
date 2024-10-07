@@ -1,0 +1,2 @@
+headers = adapter.h device.h gio/gio.h glib.h
+headerFilter = * */*

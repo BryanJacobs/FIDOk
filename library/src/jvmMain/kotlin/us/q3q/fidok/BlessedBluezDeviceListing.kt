@@ -62,7 +62,7 @@ class BlessedBluezDeviceListing {
             central = null
         }
 
-        override fun listDevices(): List<BlessedBluezDevice> {
+        override suspend fun listDevices(): List<BlessedBluezDevice> {
             return devices.values.toList()
         }
     }

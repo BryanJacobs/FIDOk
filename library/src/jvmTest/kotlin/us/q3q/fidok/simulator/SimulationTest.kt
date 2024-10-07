@@ -51,7 +51,7 @@ open class SimulationTest {
         library.setAuthenticatorAccessors(
             listOf(
                 object : AuthenticatorListing {
-                    override fun listDevices(): List<AuthenticatorDevice> {
+                    override suspend fun listDevices(): List<AuthenticatorDevice> {
                         return listOf(device)
                     }
                 },

@@ -7,3 +7,6 @@
 [submodule "library/submodules/FIDO2Applet"]
 	path = library/submodules/FIDO2Applet
 	url = https://github.com/BryanJacobs/FIDO2Applet.git
+[submodule "library/submodules/bluez_inc"]
+	path = library/submodules/bluez_inc
+	url = https://github.com/weliem/bluez_inc.git

@@ -1,7 +1,6 @@
 package us.q3q.fidok.ctap
 
 import co.touchlab.kermit.Logger
-import co.touchlab.kermit.Severity
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope

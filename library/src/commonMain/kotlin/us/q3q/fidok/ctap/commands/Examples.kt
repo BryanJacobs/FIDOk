@@ -15,7 +15,8 @@ class Examples {
 
         internal fun getCTAPClient(): CTAPClient {
             val library = getLibrary()
-            return library.ctapClient(library.listDevices().first())
+            val devices = library.listDevices()
+            return library.ctapClient(devices.first())
         }
     }
 }

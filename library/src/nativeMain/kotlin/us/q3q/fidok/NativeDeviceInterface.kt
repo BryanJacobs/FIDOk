@@ -11,6 +11,7 @@ import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
+import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorListing
 import kotlin.experimental.ExperimentalNativeApi
@@ -28,7 +29,9 @@ fun listDevices(): COpaquePointer {
 
     val foundDevices = arrayListOf<AuthenticatorDevice>()
     for (provider in providers) {
-        foundDevices.addAll(provider.listDevices())
+        runBlocking {
+            foundDevices.addAll(provider.listDevices())
+        }
     }
 
     val ret = DeviceListingResult(foundDevices)

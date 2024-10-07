@@ -22,6 +22,33 @@ mavenPublishing {
 val submodulesDir = project.layout.projectDirectory.dir("submodules")
 val botanDir = submodulesDir.dir("botan")
 val hidDir = submodulesDir.dir("hidapi")
+val bincDir = submodulesDir.dir("bluez_inc")
+
+fun bincTasks(platform: String) {
+    if (platform != "Linux") {
+        return
+    }
+
+    val buildDir = project.layout.buildDirectory.dir("binc-${platform.lowercase()}").get()
+    buildDir.asFile.mkdirs()
+    val output = buildDir.dir("binc").file("libBinc.a")
+
+    task<Exec>("configureBinc$platform") {
+        workingDir(buildDir)
+        commandLine("cmake", bincDir.asFile.absolutePath)
+        inputs.property("platform", platform)
+        inputs.files(fileTree(bincDir))
+        outputs.files(buildDir.file("Makefile"))
+    }
+    task<Exec>("buildBinc$platform") {
+        workingDir(buildDir)
+        commandLine("cmake", "--build", ".")
+        dependsOn("configureHID$platform")
+        inputs.property("platform", platform)
+        inputs.files(fileTree(buildDir))
+        outputs.files(output)
+    }
+}
 
 fun hidAPITasks(
     platform: String,
@@ -71,6 +98,8 @@ hidAPITasks(
         "-DCMAKE_CROSSCOMPILING=TRUE",
     ),
 )
+
+bincTasks("Linux")
 
 task<Exec>("buildEmbeddedAuthenticatorJar") {
     val appletDir = project.layout.projectDirectory.dir("submodules").dir("FIDO2Applet")
@@ -156,8 +185,15 @@ fun nativeBuild(
         )
     when (platform) {
         "Linux" -> {
+            val bincBuild = tasks.getByName("buildBinc$platform")
+            val bincFile = bincBuild.outputs.files.singleFile
             linkerOpts.add("-l${submodulesDir.dir("pcsc").file("libpcsclite.so.1.0.0").asFile.absolutePath}")
             linkerOpts.add("-l/usr/lib/libudev.so")
+            linkerOpts.add("-L${bincFile.parent}")
+            linkerOpts.add("-lBinc")
+            linkerOpts.add("-l/usr/lib/libglib-2.0.so")
+            linkerOpts.add("-l/usr/lib/libgio-2.0.so")
+            linkerOpts.add("-l/usr/lib/libgobject-2.0.so")
         }
         "Windows" -> {
             linkerOpts.add("-lwinscard")
@@ -204,15 +240,16 @@ fun nativeBuild(
                     val pcsc by creating {
                         includeDirs("/usr/include/PCSC")
                     }
+                    val binc by creating {
+                        includeDirs(bincDir.dir("binc"), "/usr/include/glib-2.0", "/usr/lib/glib-2.0/include")
+                    }
+                    val uhid by creating {
+                        includeDirs("/usr/include")
+                    }
                 } else if (platform == "Macos") {
                     val macLibraries = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
                     val pcsc by creating {
                         includeDirs("$macLibraries/PCSC.framework/Versions/A/Headers/")
-                    }
-                }
-                if (platform == "Linux") {
-                    val uhid by creating {
-                        includeDirs("/usr/include")
                     }
                 }
                 val botan by creating {
@@ -355,7 +392,7 @@ if (!project.hasProperty("jvmOnly")) {
         tasks.getByName("compileKotlinMacos").dependsOn("buildBotanMacos", "buildHIDMacos")
         tasks.getByName("cinteropBotanMacos").dependsOn("buildBotanMacos")
     } else {
-        tasks.getByName("compileKotlinLinux").dependsOn("buildBotanLinux", "buildHIDLinux")
+        tasks.getByName("compileKotlinLinux").dependsOn("buildBotanLinux", "buildHIDLinux", "buildBincLinux")
         tasks.getByName("cinteropBotanLinux").dependsOn("buildBotanLinux")
         tasks.getByName("compileKotlinWindows").dependsOn("buildBotanWindows", "buildHIDWindows")
         tasks.getByName("cinteropBotanWindows").dependsOn("buildBotanWindows")

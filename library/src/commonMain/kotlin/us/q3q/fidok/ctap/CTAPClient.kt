@@ -427,10 +427,11 @@ class CTAPClient(
         val request =
             MakeCredentialCommand(
                 clientDataHash = clientDataHash,
-                rp = PublicKeyCredentialRpEntity(
-                    id = rpId,
-                    name = effectiveRpName,
-                ),
+                rp =
+                    PublicKeyCredentialRpEntity(
+                        id = rpId,
+                        name = effectiveRpName,
+                    ),
                 user =
                     PublicKeyCredentialUserEntity(
                         id = effectiveUserId,
@@ -1250,7 +1251,7 @@ class CTAPClient(
 
         return PinUVToken(
             token = pp.decrypt(pk, ret.pinUvAuthToken),
-            protocol = pp.getVersion()
+            protocol = pp.getVersion(),
         )
     }
 
@@ -1289,7 +1290,7 @@ class CTAPClient(
 
         return PinUVToken(
             token = pp.decrypt(pk, ret.pinUvAuthToken),
-            protocol = pp.getVersion()
+            protocol = pp.getVersion(),
         )
     }
 
@@ -1321,7 +1322,7 @@ class CTAPClient(
 
         return PinUVToken(
             token = pp.decrypt(pk, ret.pinUvAuthToken),
-            protocol = pp.getVersion()
+            protocol = pp.getVersion(),
         )
     }
 
@@ -1393,7 +1394,7 @@ data class PinUVToken(val token: ByteArray, val protocol: UByte) {
 }
 
 @Suppress("UNUSED_VARIABLE")
-internal fun ctapClientExample() {
+internal suspend fun ctapClientExample() {
     val library = Examples.getLibrary()
 
     val devices = library.listDevices()
