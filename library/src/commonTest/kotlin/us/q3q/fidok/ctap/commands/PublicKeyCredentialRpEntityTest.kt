@@ -17,6 +17,7 @@ class PublicKeyCredentialRpEntityTest {
         val result = roundTripSerialize(entity, PublicKeyCredentialRpEntity.serializer())
 
         assertEquals(entity, result)
+        @Suppress("DEPRECATION")
         assertEquals("data:foo", result.icon)
     }
 
@@ -30,6 +31,7 @@ class PublicKeyCredentialRpEntityTest {
 
         assertEquals(entity, result)
         assertEquals("something", result.id)
+        @Suppress("DEPRECATION")
         assertNull(result.icon)
     }
 }

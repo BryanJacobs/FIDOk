@@ -82,6 +82,24 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
         return toBA(ret)
     }
 
+    override fun aes128CBCEncrypt(
+        bytes: ByteArray,
+        key: AESKey,
+    ): ByteArray {
+        if (key.iv == null) {
+            throw IllegalArgumentException("AES encryption requires an IV")
+        }
+        val ret = ByteBuffer.allocateDirect(bytes.size)
+        native.fidok_crypto_aes_128_cbc_encrypt(
+            toBB(bytes),
+            bytes.size,
+            toBB(key.key),
+            toBB(key.iv),
+            ret,
+        )
+        return toBA(ret)
+    }
+
     override fun aes256CBCDecrypt(
         bytes: ByteArray,
         key: AESKey,
@@ -91,6 +109,24 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
         }
         val ret = ByteBuffer.allocateDirect(bytes.size)
         native.fidok_crypto_aes_256_cbc_decrypt(
+            toBB(bytes),
+            bytes.size,
+            toBB(key.key),
+            toBB(key.iv),
+            ret,
+        )
+        return toBA(ret)
+    }
+
+    override fun aes128CBCDecrypt(
+        bytes: ByteArray,
+        key: AESKey,
+    ): ByteArray {
+        if (key.iv == null) {
+            throw IllegalArgumentException("AES decryption requires an IV")
+        }
+        val ret = ByteBuffer.allocateDirect(bytes.size)
+        native.fidok_crypto_aes_128_cbc_decrypt(
             toBB(bytes),
             bytes.size,
             toBB(key.key),

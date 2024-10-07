@@ -1,20 +1,22 @@
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinMultiplatform
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import com.vanniktech.maven.publish.KotlinMultiplatform
-import com.vanniktech.maven.publish.JavadocJar
 
 plugins {
     java
-    kotlin("multiplatform")
+    alias(libs.plugins.kotlinMultiplatform)
     kotlin("plugin.serialization")
     id("com.vanniktech.maven.publish") version "0.27.0"
 }
 
 mavenPublishing {
-    configure(KotlinMultiplatform(
-        javadocJar = JavadocJar.None(),
-        sourcesJar = true
-    ))
+    configure(
+        KotlinMultiplatform(
+            javadocJar = JavadocJar.None(),
+            sourcesJar = true,
+        ),
+    )
 }
 
 val submodulesDir = project.layout.projectDirectory.dir("submodules")
@@ -242,8 +244,8 @@ fun nativeBuild(
 
 kotlin {
     applyDefaultHierarchyTemplate()
+    jvmToolchain(11)
     jvm {
-        jvmToolchain(11)
         withJava()
         testRuns.named("test") {
             executionTask.configure {

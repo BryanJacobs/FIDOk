@@ -1,23 +1,23 @@
 [versions]
-activity-compose = "1.8.0"
-activity-ktx = "1.8.0"
-androidx-junit = "1.1.5"
-appcompat = "1.6.1"
+activity-compose = "1.9.2"
+activity-ktx = "1.9.2"
+androidx-junit = "1.2.1"
+appcompat = "1.7.0"
 blessed = "0.61"
 clikt = "4.2.2"
-compose = "1.5.12"
+compose = "1.7.0-rc01"
 composecompiler = "1.5.8"
-composeandroid = "1.5.4"
+composeandroid = "1.7.3"
 composebom = "2023.03.00"
-core-ktx = "1.12.0"
-coroutines = "1.7.3"
-espresso-core = "3.5.1"
-fragment-ktx = "1.6.2"
+core-ktx = "1.13.1"
+coroutines = "1.8.0"
+espresso-core = "3.6.1"
+fragment-ktx = "1.8.4"
 jnr = "2.2.15"
 junit = "4.13.2"
 kermit = "2.0.2"
-kotlin = "1.9.22"
-lifecycle-runtime-ktx = "2.6.2"
+kotlin = "2.0.20"
+lifecycle-runtime-ktx = "2.8.6"
 qrcode-kotlin = "3.3.0"
 serialization = "1.6.2"
 
@@ -50,3 +50,6 @@ ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose
 compose = ["compose", "compose-graphics", "compose-preview"]
 
 [plugins]
+jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "compose" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

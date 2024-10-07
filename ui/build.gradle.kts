@@ -2,18 +2,19 @@ import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    kotlin("multiplatform")
+    alias(libs.plugins.kotlinMultiplatform)
     // kotlin("jvm")
     // kotlin("android")
     // id("com.android.application") version "8.1.0"
     // id("com.android.library") version "8.1.0"
-    id("org.jetbrains.compose") version libs.versions.compose
+    alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.compose.compiler)
 }
 
 kotlin {
     // androidTarget()
+    jvmToolchain(11)
     jvm("desktop") {
-        jvmToolchain(11)
         withJava()
     }
     sourceSets {

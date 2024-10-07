@@ -9,11 +9,10 @@ project(":android-app").name = "fidok-app"
 include(":android-library")
 project(":android-library").name = "fidok-android"
 
-
 pluginManagement {
     repositories {
-        mavenCentral()
         gradlePluginPortal()
+        mavenCentral()
         google()
     }
 }

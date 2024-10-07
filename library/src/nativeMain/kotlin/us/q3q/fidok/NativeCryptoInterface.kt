@@ -123,7 +123,7 @@ fun aes_128_encrypt(
     out: COpaquePointer,
 ) {
     val inB = inAsByteArray(data, len)
-    val keyB = inAsByteArray(key, 32)
+    val keyB = inAsByteArray(key, 16)
     val ivB = inAsByteArray(iv, 16)
 
     val ret = crypto.aes128CBCEncrypt(inB, AESKey(keyB, iv = ivB))
@@ -145,6 +145,24 @@ fun aes_256_decrypt(
     val ivB = inAsByteArray(iv, 16)
 
     val ret = crypto.aes256CBCDecrypt(inB, AESKey(keyB, iv = ivB))
+
+    outFill(ret, out)
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fidok_crypto_aes_128_cbc_decrypt")
+fun aes_128_decrypt(
+    bytes: COpaquePointer,
+    len: Int,
+    key: COpaquePointer,
+    iv: COpaquePointer,
+    out: COpaquePointer,
+) {
+    val inB = inAsByteArray(bytes, len)
+    val keyB = inAsByteArray(key, 16)
+    val ivB = inAsByteArray(iv, 16)
+
+    val ret = crypto.aes128CBCDecrypt(inB, AESKey(keyB, iv = ivB))
 
     outFill(ret, out)
 }

@@ -79,7 +79,23 @@ interface FIDOkNative {
         out: ByteBuffer,
     )
 
+    fun fidok_crypto_aes_128_cbc_encrypt(
+        @In data: ByteBuffer,
+        len: Int,
+        @In key: ByteBuffer,
+        @In iv: ByteBuffer,
+        out: ByteBuffer,
+    )
+
     fun fidok_crypto_aes_256_cbc_decrypt(
+        @In data: ByteBuffer,
+        len: Int,
+        @In key: ByteBuffer,
+        @In iv: ByteBuffer,
+        out: ByteBuffer,
+    )
+
+    fun fidok_crypto_aes_128_cbc_decrypt(
         @In data: ByteBuffer,
         len: Int,
         @In key: ByteBuffer,
