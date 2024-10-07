@@ -37,7 +37,7 @@ fun fido_dev_info_new(n: size_t): COpaquePointer {
 @CName("fido_dev_info_free")
 fun fido_dev_info_free(
     dev_p: CPointer<CPointerVarOf<fido_dev_info>>?,
-    n: size_t,
+    @Suppress("UNUSED_PARAMETER") n: size_t,
 ) {
     val stableRef = dev_p?.pointed?.value ?: return
     val target = stableRef.asStableRef<FidoDevInfoHandle>()

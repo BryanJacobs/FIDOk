@@ -1,6 +1,6 @@
 package us.q3q.fidok
 
-import us.q3q.fidok.crypto.AES256Key
+import us.q3q.fidok.crypto.AESKey
 import us.q3q.fidok.crypto.CryptoProvider
 import us.q3q.fidok.crypto.KeyAgreementResult
 import us.q3q.fidok.crypto.KeyAgreementState
@@ -113,10 +113,10 @@ class PureJVMCryptoProvider : CryptoProvider {
     ): KeyAgreementResult {
         if (useHKDF) {
             // HKDF step one: get PRK by using salt as a key to HMAC-SHA256 the IKM
-            val prk = hmacSHA256(state.opaqueState as ByteArray, AES256Key(salt, null))
+            val prk = hmacSHA256(state.opaqueState as ByteArray, AESKey(salt, null))
 
             // HKDF step two: use PRK to hash the "info" array given
-            val res = hmacSHA256((info.toList() + listOf(0x01)).toByteArray(), AES256Key(prk.hash, null))
+            val res = hmacSHA256((info.toList() + listOf(0x01)).toByteArray(), AESKey(prk.hash, null))
 
             return KeyAgreementResult(res.hash)
         }
@@ -135,10 +135,10 @@ class PureJVMCryptoProvider : CryptoProvider {
         return Random.nextBytes(numBytes)
     }
 
-    private fun aes256(
+    private fun aes(
         mode: Int,
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/NoPadding")
         val iv = key.iv?.let { IvParameterSpec(it) }
@@ -148,21 +148,35 @@ class PureJVMCryptoProvider : CryptoProvider {
 
     override fun aes256CBCEncrypt(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): ByteArray {
-        return aes256(Cipher.ENCRYPT_MODE, bytes, key)
+        return aes(Cipher.ENCRYPT_MODE, bytes, key)
+    }
+
+    override fun aes128CBCEncrypt(
+        bytes: ByteArray,
+        key: AESKey,
+    ): ByteArray {
+        return aes(Cipher.ENCRYPT_MODE, bytes, key)
+    }
+
+    override fun aes128CBCDecrypt(
+        bytes: ByteArray,
+        key: AESKey,
+    ): ByteArray {
+        return aes(Cipher.DECRYPT_MODE, bytes, key)
     }
 
     override fun aes256CBCDecrypt(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): ByteArray {
-        return aes256(Cipher.DECRYPT_MODE, bytes, key)
+        return aes(Cipher.DECRYPT_MODE, bytes, key)
     }
 
     override fun hmacSHA256(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): SHA256Result {
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(key.key, "AES"))

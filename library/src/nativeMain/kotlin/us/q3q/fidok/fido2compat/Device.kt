@@ -51,8 +51,8 @@ fun fido_dev_free(dev_p: CPointer<CPointerVarOf<fido_dev_t>>?) {
 
 @CName("fido_dev_open")
 fun fido_dev_open(
-    dev: fido_dev_t?,
-    path: String,
+    @Suppress("UNUSED_PARAMETER") dev: fido_dev_t?,
+    @Suppress("UNUSED_PARAMETER") path: String,
 ) {
 }
 

@@ -5,7 +5,7 @@ package us.q3q.fidok
 
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
-import us.q3q.fidok.crypto.AES256Key
+import us.q3q.fidok.crypto.AESKey
 import us.q3q.fidok.crypto.KeyAgreementState
 import us.q3q.fidok.crypto.P256Point
 import kotlin.experimental.ExperimentalNativeApi
@@ -108,7 +108,25 @@ fun aes_256_encrypt(
     val keyB = inAsByteArray(key, 32)
     val ivB = inAsByteArray(iv, 16)
 
-    val ret = crypto.aes256CBCEncrypt(inB, AES256Key(keyB, iv = ivB))
+    val ret = crypto.aes256CBCEncrypt(inB, AESKey(keyB, iv = ivB))
+
+    outFill(ret, out)
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@CName("fidok_crypto_aes_128_cbc_encrypt")
+fun aes_128_encrypt(
+    data: COpaquePointer,
+    len: Int,
+    key: COpaquePointer,
+    iv: COpaquePointer,
+    out: COpaquePointer,
+) {
+    val inB = inAsByteArray(data, len)
+    val keyB = inAsByteArray(key, 32)
+    val ivB = inAsByteArray(iv, 16)
+
+    val ret = crypto.aes128CBCEncrypt(inB, AESKey(keyB, iv = ivB))
 
     outFill(ret, out)
 }
@@ -126,7 +144,7 @@ fun aes_256_decrypt(
     val keyB = inAsByteArray(key, 32)
     val ivB = inAsByteArray(iv, 16)
 
-    val ret = crypto.aes256CBCDecrypt(inB, AES256Key(keyB, iv = ivB))
+    val ret = crypto.aes256CBCDecrypt(inB, AESKey(keyB, iv = ivB))
 
     outFill(ret, out)
 }
@@ -142,7 +160,7 @@ fun hmac_sha256(
     val inB = inAsByteArray(data, len)
     val keyB = inAsByteArray(key, 32)
 
-    val ret = crypto.hmacSHA256(inB, AES256Key(keyB, iv = null))
+    val ret = crypto.hmacSHA256(inB, AESKey(keyB, iv = null))
 
     outFill(ret.hash, out)
 }

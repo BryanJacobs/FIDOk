@@ -18,7 +18,7 @@ class PinUVProtocolV2(private val cryptoProvider: CryptoProvider) : PinUVProtoco
 
         return (
             newIV.toList() +
-                cryptoProvider.aes256CBCEncrypt(data, AES256Key(key.pinUvProtocol2AESKey, newIV)).toList()
+                cryptoProvider.aes256CBCEncrypt(data, AESKey(key.pinUvProtocol2AESKey, newIV)).toList()
         ).toByteArray()
     }
 
@@ -32,7 +32,7 @@ class PinUVProtocolV2(private val cryptoProvider: CryptoProvider) : PinUVProtoco
 
         return cryptoProvider.aes256CBCDecrypt(
             data.copyOfRange(16, data.size),
-            AES256Key(key.pinUvProtocol2AESKey, data.copyOfRange(0, 16)),
+            AESKey(key.pinUvProtocol2AESKey, data.copyOfRange(0, 16)),
         )
     }
 
@@ -40,7 +40,7 @@ class PinUVProtocolV2(private val cryptoProvider: CryptoProvider) : PinUVProtoco
         key: ByteArray,
         data: ByteArray,
     ): ByteArray {
-        return cryptoProvider.hmacSHA256(data, AES256Key(key, emptyIv)).hash
+        return cryptoProvider.hmacSHA256(data, AESKey(key, emptyIv)).hash
     }
 
     override fun authenticate(

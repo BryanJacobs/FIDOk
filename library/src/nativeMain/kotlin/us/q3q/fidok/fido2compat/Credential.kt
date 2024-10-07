@@ -99,7 +99,7 @@ fun fido_cred_set_user(
     user_id_len: size_t,
     name: String?,
     display_name: String?,
-    icon: String?,
+    @Suppress("UNUSED_PARAMETER") icon: String?,
 ): Int {
     val credHandle = cred.asStableRef<FidoCredHandle>().get()
 

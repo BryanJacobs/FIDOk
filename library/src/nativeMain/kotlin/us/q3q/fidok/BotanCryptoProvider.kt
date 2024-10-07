@@ -77,7 +77,7 @@ import kotlinx.cinterop.toKString
 import kotlinx.cinterop.value
 import platform.posix.size_tVar
 import platform.posix.uint32_t
-import us.q3q.fidok.crypto.AES256Key
+import us.q3q.fidok.crypto.AESKey
 import us.q3q.fidok.crypto.CryptoProvider
 import us.q3q.fidok.crypto.KeyAgreementResult
 import us.q3q.fidok.crypto.KeyAgreementState
@@ -300,14 +300,15 @@ class BotanCryptoProvider : CryptoProvider {
         }
     }
 
-    private fun aes256(
+    private fun aes(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
         flags: uint32_t,
+        cipher: String = "AES-256",
     ): ByteArray {
         return withBotanAlloc<botan_cipher_tVar, ByteArray>({ botan_cipher_destroy(it.value) }) { bc ->
             botanSuccessCheck {
-                botan_cipher_init(bc.ptr, "AES-256/CBC/NoPadding", flags)
+                botan_cipher_init(bc.ptr, "$cipher/CBC/NoPadding", flags)
             }
             withInBuffer(key.key) {
                 botanSuccessCheck {
@@ -371,21 +372,35 @@ class BotanCryptoProvider : CryptoProvider {
 
     override fun aes256CBCEncrypt(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): ByteArray {
-        return aes256(bytes, key, BOTAN_CIPHER_INIT_FLAG_ENCRYPT.convert())
+        return aes(bytes, key, BOTAN_CIPHER_INIT_FLAG_ENCRYPT.convert())
+    }
+
+    override fun aes128CBCEncrypt(
+        bytes: ByteArray,
+        key: AESKey,
+    ): ByteArray {
+        return aes(bytes, key, BOTAN_CIPHER_INIT_FLAG_ENCRYPT.convert(), cipher = "AES-128")
+    }
+
+    override fun aes128CBCDecrypt(
+        bytes: ByteArray,
+        key: AESKey,
+    ): ByteArray {
+        return aes(bytes, key, BOTAN_CIPHER_INIT_FLAG_DECRYPT.convert(), cipher = "AES-128")
     }
 
     override fun aes256CBCDecrypt(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): ByteArray {
-        return aes256(bytes, key, BOTAN_CIPHER_INIT_FLAG_DECRYPT.convert())
+        return aes(bytes, key, BOTAN_CIPHER_INIT_FLAG_DECRYPT.convert())
     }
 
     override fun hmacSHA256(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): SHA256Result {
         return withBotanAlloc<botan_mac_tVar, SHA256Result>({ botan_mac_destroy(it.value) }) { mac ->
             botanSuccessCheck {

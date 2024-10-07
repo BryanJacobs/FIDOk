@@ -17,21 +17,21 @@ class PinUVProtocolV1(private val cryptoProvider: CryptoProvider) : PinUVProtoco
         key: KeyAgreementPlatformKey,
         data: ByteArray,
     ): ByteArray {
-        return cryptoProvider.aes256CBCEncrypt(data, AES256Key(key.pinUvProtocol1Key, emptyIv))
+        return cryptoProvider.aes256CBCEncrypt(data, AESKey(key.pinUvProtocol1Key, emptyIv))
     }
 
     override fun decrypt(
         key: KeyAgreementPlatformKey,
         data: ByteArray,
     ): ByteArray {
-        return cryptoProvider.aes256CBCDecrypt(data, AES256Key(key.pinUvProtocol1Key, emptyIv))
+        return cryptoProvider.aes256CBCDecrypt(data, AESKey(key.pinUvProtocol1Key, emptyIv))
     }
 
     private fun underlyingAuthenticate(
         key: ByteArray,
         data: ByteArray,
     ): ByteArray {
-        return cryptoProvider.hmacSHA256(data, AES256Key(key, emptyIv))
+        return cryptoProvider.hmacSHA256(data, AESKey(key, emptyIv))
             .hash.copyOfRange(0, 16)
     }
 

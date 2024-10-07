@@ -75,7 +75,15 @@ interface CryptoProvider {
      */
     fun aes256CBCEncrypt(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
+    ): ByteArray
+
+    /**
+     * As [aes256CBCEncrypt], but with AES-128
+     */
+    fun aes128CBCEncrypt(
+        bytes: ByteArray,
+        key: AESKey,
     ): ByteArray
 
     /**
@@ -83,7 +91,15 @@ interface CryptoProvider {
      */
     fun aes256CBCDecrypt(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
+    ): ByteArray
+
+    /**
+     * As [aes256CBCDecrypt], but with AES-128
+     */
+    fun aes128CBCDecrypt(
+        bytes: ByteArray,
+        key: AESKey,
     ): ByteArray
 
     /**
@@ -95,7 +111,7 @@ interface CryptoProvider {
      */
     fun hmacSHA256(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): SHA256Result
 
     /**

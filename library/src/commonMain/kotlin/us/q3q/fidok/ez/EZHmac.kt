@@ -1,6 +1,6 @@
 package us.q3q.fidok.ez
 
-import us.q3q.fidok.crypto.AES256Key
+import us.q3q.fidok.crypto.AESKey
 import us.q3q.fidok.ctap.CTAPClient
 import us.q3q.fidok.ctap.CTAPPermission
 import us.q3q.fidok.ctap.FIDOkLibrary
@@ -145,7 +145,7 @@ class EZHmac(
         val encrypted =
             library.cryptoProvider.aes256CBCEncrypt(
                 toEncrypt.toByteArray(),
-                AES256Key(
+                AESKey(
                     key = key,
                     iv = iv,
                 ),
@@ -154,7 +154,7 @@ class EZHmac(
         val validation =
             library.cryptoProvider.hmacSHA256(
                 (iv.toList() + encrypted.toList()).toByteArray(),
-                AES256Key(key),
+                AESKey(key),
             ).hash
 
         return (
@@ -173,7 +173,7 @@ class EZHmac(
         val comparedValidation =
             library.cryptoProvider.hmacSHA256(
                 dataBeingValidated,
-                AES256Key(
+                AESKey(
                     key,
                 ),
             ).hash
@@ -272,7 +272,7 @@ class EZHmac(
         val decrypted =
             library.cryptoProvider.aes256CBCDecrypt(
                 toDecrypt,
-                AES256Key(
+                AESKey(
                     key = key,
                     iv = iv,
                 ),

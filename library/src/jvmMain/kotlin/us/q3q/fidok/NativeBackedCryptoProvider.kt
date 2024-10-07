@@ -1,6 +1,6 @@
 package us.q3q.fidok
 
-import us.q3q.fidok.crypto.AES256Key
+import us.q3q.fidok.crypto.AESKey
 import us.q3q.fidok.crypto.CryptoProvider
 import us.q3q.fidok.crypto.KeyAgreementResult
 import us.q3q.fidok.crypto.KeyAgreementState
@@ -66,7 +66,7 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
 
     override fun aes256CBCEncrypt(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): ByteArray {
         if (key.iv == null) {
             throw IllegalArgumentException("AES encryption requires an IV")
@@ -84,7 +84,7 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
 
     override fun aes256CBCDecrypt(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): ByteArray {
         if (key.iv == null) {
             throw IllegalArgumentException("AES decryption requires an IV")
@@ -102,7 +102,7 @@ class NativeBackedCryptoProvider(libraryPath: String) : NativeLibraryUser(librar
 
     override fun hmacSHA256(
         bytes: ByteArray,
-        key: AES256Key,
+        key: AESKey,
     ): SHA256Result {
         val ret = ByteBuffer.allocateDirect(32)
         native.fidok_crypto_hmac_sha256(

@@ -1,6 +1,6 @@
 package us.q3q.fidok
 
-import us.q3q.fidok.crypto.AES256Key
+import us.q3q.fidok.crypto.AESKey
 import us.q3q.fidok.crypto.P256Point
 import kotlin.random.Random
 import kotlin.test.Test
@@ -50,14 +50,27 @@ class BotanCryptoProviderTest {
     }
 
     @Test
-    fun aesRoundTrip() {
+    fun aes256RoundTrip() {
         val c = BotanCryptoProvider()
 
         val data = Random.nextBytes(64)
-        val key = AES256Key(Random.nextBytes(32), Random.nextBytes(16))
+        val key = AESKey(Random.nextBytes(32), Random.nextBytes(16))
 
         val enc = c.aes256CBCEncrypt(data, key)
         val res = c.aes256CBCDecrypt(enc, key)
+        assertNotEquals(data.toList(), enc.toList())
+        assertEquals(data.toList(), res.toList())
+    }
+
+    @Test
+    fun aes128RoundTrip() {
+        val c = BotanCryptoProvider()
+
+        val data = Random.nextBytes(64)
+        val key = AESKey(Random.nextBytes(16), Random.nextBytes(16))
+
+        val enc = c.aes128CBCEncrypt(data, key)
+        val res = c.aes128CBCDecrypt(enc, key)
         assertNotEquals(data.toList(), enc.toList())
         assertEquals(data.toList(), res.toList())
     }
@@ -71,8 +84,8 @@ class BotanCryptoProviderTest {
         val iv1 = Random.nextBytes(16)
         val iv2 = Random.nextBytes(16)
 
-        val enc1 = c.aes256CBCEncrypt(data, AES256Key(key, iv1))
-        val enc2 = c.aes256CBCEncrypt(data, AES256Key(key, iv2))
+        val enc1 = c.aes256CBCEncrypt(data, AESKey(key, iv1))
+        val enc2 = c.aes256CBCEncrypt(data, AESKey(key, iv2))
         assertNotEquals(enc1.toList(), enc2.toList())
     }
 }

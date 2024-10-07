@@ -90,7 +90,7 @@ enum class CTAPBLEKeepalivePayload(val value: UByte) {
 }
 
 /**
- * Code for handle the BLE transport of CTAP, communicating with the authenticators that support it
+ * Code for handling the BLE transport of CTAP, communicating with the authenticators that support it
  */
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalStdlibApi::class)
 class CTAPBLE {

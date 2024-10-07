@@ -29,7 +29,9 @@ internal var library: FIDOkLibrary? = null
 
 @OptIn(ExperimentalNativeApi::class)
 @CName("fido_init")
-fun fido_init(flags: Int) {
+fun fido_init(
+    @Suppress("UNUSED_PARAMETER") flags: Int,
+) {
     if (library == null) {
         library =
             FIDOkLibrary.init(
