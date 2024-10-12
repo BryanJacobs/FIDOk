@@ -33,25 +33,30 @@ import binc.binc_adapter_start_discovery
 import binc.binc_adapter_stop_discovery
 import binc.binc_characteristic_get_service
 import binc.binc_characteristic_get_uuid
+import binc.binc_characteristic_is_notifying
 import binc.binc_device_connect
 import binc.binc_device_get_address
 import binc.binc_device_get_bonding_state
 import binc.binc_device_get_name
+import binc.binc_device_get_service
 import binc.binc_device_read_char
 import binc.binc_device_set_connection_state_change_cb
 import binc.binc_device_set_notify_char_cb
+import binc.binc_device_set_notify_state_cb
 import binc.binc_device_set_read_char_cb
 import binc.binc_device_set_services_resolved_cb
 import binc.binc_device_set_write_char_cb
 import binc.binc_device_start_notify
 import binc.binc_device_stop_notify
 import binc.binc_device_write_char
+import binc.binc_service_get_characteristics
 import binc.binc_service_get_uuid
 import binc.g_bus_get_sync
 import binc.g_byte_array_append
 import binc.g_byte_array_free
 import binc.g_byte_array_sized_new
 import binc.g_free
+import binc.g_list_first
 import binc.g_main_loop_new
 import binc.g_main_loop_quit
 import binc.g_main_loop_run
@@ -83,8 +88,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import us.q3q.fidok.ble.FIDO_BLE_SERVICE_UUID
+import us.q3q.fidok.ble.reader.ACR_BLE_READER_SERVICE_UUID
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorListing
+import us.q3q.fidok.ctap.AuthenticatorTransport
+import us.q3q.fidok.ctap.FIDOkLibrary
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -157,7 +165,7 @@ private fun getCharAndServiceUUIDs(
     return Triple(addr, serviceStr, charStr)
 }
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, ExperimentalStdlibApi::class)
 private fun onRead(
     device: CPointer<Device>?,
     characteristic: CPointer<Characteristic>?,
@@ -183,8 +191,9 @@ private fun onRead(
         Logger.v { "Got read error from BLE $addr($serviceStr - $charStr): $message" }
         listingState.handleReadError(addr, serviceStr, charStr, message ?: "No message")
     } else {
-        Logger.v { "Got read result from BLE $addr($serviceStr - $charStr)" }
-        listingState.handleReadComplete(addr, serviceStr, charStr, data?.let { toKBytes(it) })
+        val result = data?.let { toKBytes(it) }
+        Logger.v { "Got read result from BLE $addr($serviceStr - $charStr): ${result?.toHexString()}" }
+        listingState.handleReadComplete(addr, serviceStr, charStr, result)
     }
 }
 
@@ -198,7 +207,7 @@ private fun toKBytes(data: CPointer<GByteArray>): UByteArray {
     return ret
 }
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, ExperimentalStdlibApi::class)
 private fun onWrite(
     device: CPointer<Device>?,
     characteristic: CPointer<Characteristic>?,
@@ -224,8 +233,9 @@ private fun onWrite(
         Logger.v { "Got write error from BLE $addr($serviceStr - $charStr): $message" }
         listingState.handleWriteError(addr, serviceStr, charStr, message ?: "No message")
     } else {
-        Logger.v { "Got write result from BLE $addr($serviceStr - $charStr)" }
-        listingState.handleWriteComplete(addr, serviceStr, charStr, data?.let { toKBytes(it) })
+        val result = data?.let { toKBytes(it) }
+        Logger.v { "Got write result from BLE $addr($serviceStr - $charStr): ${result?.toHexString()}" }
+        listingState.handleWriteComplete(addr, serviceStr, charStr, result)
     }
 }
 
@@ -250,6 +260,29 @@ private fun onNotify(
     val (addr, serviceStr, charStr) = getCharAndServiceUUIDs(device, characteristic)
 
     listingState.handleNotify(addr, serviceStr, charStr, toKBytes(data))
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun onNotifyState(
+    device: CPointer<Device>?,
+    characteristic: CPointer<Characteristic>?,
+    error: CPointer<GError>?,
+) {
+    if (error != null && (device == null || characteristic == null)) {
+        throw RuntimeException(error.pointed.message?.toKString())
+    }
+
+    if (device == null) {
+        throw RuntimeException("Null device in notify_state")
+    }
+
+    val (addr, serviceStr, charStr) = getCharAndServiceUUIDs(device, characteristic)
+
+    val notifying = binc_characteristic_is_notifying(characteristic) == TRUE
+
+    Logger.v { "Got notify state change on $addr ($serviceStr $charStr), now $notifying" }
+
+    listingState.handleNotifyState(addr, serviceStr, charStr, notifying)
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -290,7 +323,7 @@ private fun onTimeout() {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-private data class BTDeviceInfo(val logicalDevice: LinuxBluetoothDevice, val address: String, val rawDevice: CPointer<Device>)
+private data class BTDeviceInfo(val logicalDevice: AuthenticatorDevice, val address: String, val rawDevice: CPointer<Device>)
 
 @OptIn(ExperimentalForeignApi::class)
 class LinuxBluetoothDeviceListing {
@@ -299,22 +332,43 @@ class LinuxBluetoothDeviceListing {
     private val writeChannelsByAddress: MutableMap<String, Channel<UByteArray?>> = hashMapOf()
     private val readChannelsByAddress: MutableMap<String, Channel<UByteArray?>> = hashMapOf()
     private val notifyChannelsByAddressServiceAndChar:
-        MutableMap<String, MutableMap<String, MutableMap<String, Channel<UByteArray>>>> = hashMapOf()
+        MutableMap<
+            String,
+            MutableMap<
+                String,
+                MutableMap<String, Pair<Channel<UByteArray>, Channel<Boolean>>>,
+                >,
+            > = hashMapOf()
     private val registrationChannel = Channel<BTDeviceInfo>(Channel.BUFFERED)
 
     private var refCt = 0
     private var dbusConnection: CPointer<GDBusConnection>? = null
-    private var serviceUuid: CPointer<gcharVar>? = null
+    private var tokenServiceUuid: CPointer<gcharVar>? = null
+    private var readerServiceUuid: CPointer<gcharVar>? = null
     private var serviceUuids: CPointer<GPtrArray>? = null
     private var loop: CPointer<GMainLoop>? = null
     private var discoveryError: String? = null
+    private var fidokLibrary: FIDOkLibrary? = null
+
+    private fun isToken(device: CPointer<Device>): Boolean {
+        if (binc_device_get_service(device, FIDO_BLE_SERVICE_UUID) != null) {
+            return true
+        }
+        return false
+    }
 
     fun registerDevice(
         address: String,
         name: String,
         device: CPointer<Device>,
     ) {
-        val obj = LinuxBluetoothDevice(address, name, listingState)
+        val obj =
+            if (isToken(device)) {
+                LinuxBluetoothDevice(address, name, this)
+            } else {
+                LinuxBluetoothReader(address, name, this)
+            }
+
         runBlocking {
             registrationChannel.send(
                 BTDeviceInfo(
@@ -354,22 +408,33 @@ class LinuxBluetoothDeviceListing {
             }
         }
 
-        serviceUuid = g_uuid_string_random()
+        tokenServiceUuid = g_uuid_string_random()
         for (i in FIDO_BLE_SERVICE_UUID.indices) {
-            serviceUuid!![i] = FIDO_BLE_SERVICE_UUID[i].code.toByte()
+            tokenServiceUuid!![i] = FIDO_BLE_SERVICE_UUID[i].code.toByte()
+        }
+
+        readerServiceUuid = g_uuid_string_random()
+        for (i in ACR_BLE_READER_SERVICE_UUID.indices) {
+            readerServiceUuid!![i] = ACR_BLE_READER_SERVICE_UUID[i].code.toByte()
         }
 
         serviceUuids = g_ptr_array_new()
         if (serviceUuids == null) {
             return false
         }
-        g_ptr_array_add(serviceUuids, serviceUuid)
+        g_ptr_array_add(serviceUuids, tokenServiceUuid)
+        g_ptr_array_add(serviceUuids, readerServiceUuid)
 
         return true
     }
 
+    fun getLibrary(): FIDOkLibrary {
+        return fidokLibrary
+            ?: throw IllegalStateException("Tried to get FIDOk library from uninitialized BLE state")
+    }
+
     @OptIn(DelicateCoroutinesApi::class)
-    fun startDiscovery(): Job? {
+    fun startDiscovery(library: FIDOkLibrary): Job? {
         val usedAdapter = adapter
         if (usedAdapter == null || serviceUuids == null) {
             Logger.w { "Discovery failed to start due to missing BLE adapter" }
@@ -381,6 +446,7 @@ class LinuxBluetoothDeviceListing {
             return null
         }
 
+        fidokLibrary = library
         binc_adapter_set_discovery_filter(usedAdapter, -100, serviceUuids, null)
         binc_adapter_set_discovery_cb(usedAdapter, staticCFunction(::onDiscovery))
         binc_adapter_set_discovery_state_cb(usedAdapter, staticCFunction(::onDiscoveryState))
@@ -418,6 +484,7 @@ class LinuxBluetoothDeviceListing {
         binc_device_set_read_char_cb(device, staticCFunction(::onRead))
         binc_device_set_write_char_cb(device, staticCFunction(::onWrite))
         binc_device_set_notify_char_cb(device, staticCFunction(::onNotify))
+        binc_device_set_notify_state_cb(device, staticCFunction(::onNotifyState))
 
         val channel = Channel<Boolean>(1)
         connectionChannelsByAddress[address] = channel
@@ -478,9 +545,14 @@ class LinuxBluetoothDeviceListing {
             serviceUuids = null
         }
 
-        if (serviceUuid != null) {
-            g_free(serviceUuid)
-            serviceUuid = null
+        if (tokenServiceUuid != null) {
+            g_free(tokenServiceUuid)
+            tokenServiceUuid = null
+        }
+
+        if (readerServiceUuid != null) {
+            g_free(readerServiceUuid)
+            readerServiceUuid = null
         }
     }
 
@@ -512,13 +584,33 @@ class LinuxBluetoothDeviceListing {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun getDiscoveredDevices(): List<AuthenticatorDevice> {
-        val ret = arrayListOf<LinuxBluetoothDevice>()
+        val ret = arrayListOf<AuthenticatorDevice>()
         while (!registrationChannel.isEmpty) {
             val device = registrationChannel.receive()
             Logger.i { "Got device $device from registration channel" }
             ret.add(device.logicalDevice)
         }
         return ret
+    }
+
+    private fun logCharacteristics(
+        device: CPointer<Device>,
+        serviceUuid: String,
+    ) {
+        val service = binc_device_get_service(device, serviceUuid)
+        val characteristics =
+            binc_service_get_characteristics(service)
+                ?: throw IllegalStateException("Failed to get characteristics")
+
+        var char = g_list_first(characteristics)
+        while (char != null) {
+            @Suppress("UNCHECKED_CAST")
+            val charData = char.pointed.data as CPointer<Characteristic>
+            val uuid = binc_characteristic_get_uuid(charData)
+            Logger.v { "Got chara ${uuid?.toKString()}" }
+
+            char = char.pointed.next
+        }
     }
 
     fun handleServicesResolved(
@@ -554,7 +646,7 @@ class LinuxBluetoothDeviceListing {
         serviceUuid: String,
         characteristicUuid: String,
         responder: Channel<UByteArray>?,
-    ) {
+    ): Boolean {
         val device =
             binc_adapter_get_device_by_address(adapter, address)
                 ?: throw IllegalStateException("Unknown device with address $address")
@@ -573,16 +665,38 @@ class LinuxBluetoothDeviceListing {
 
         if (responder != null) {
             if (forService.contains(characteristicUuid)) {
-                throw IllegalStateException("Notifier already registered for $address ($serviceUuid-$characteristicUuid)")
+                throw IllegalStateException("Notifier already registered for $address ($serviceUuid $characteristicUuid)")
             }
+
+            val setupChannel = Channel<Boolean>()
+            forService[characteristicUuid] = Pair(responder, setupChannel)
+
             Logger.v { "Enabling notifies on $address ($serviceUuid-$characteristicUuid)" }
-            forService[characteristicUuid] = responder
-            binc_device_start_notify(device, serviceUuid, characteristicUuid)
+            if (binc_device_start_notify(device, serviceUuid, characteristicUuid) != TRUE) {
+                Logger.w { "Starting notifies failed on $address ($serviceUuid $characteristicUuid)" }
+                return false
+            }
+
+            return runBlocking {
+                setupChannel.receive()
+            }
         } else {
-            val removed = forService.remove(characteristicUuid)
-            if (removed != null) {
-                Logger.v { "Stopping notifies on $address ($serviceUuid-$characteristicUuid)" }
-                binc_device_stop_notify(device, serviceUuid, characteristicUuid)
+            Logger.v { "Stopping notifies on $address ($serviceUuid $characteristicUuid)" }
+
+            val pairing = forService[characteristicUuid]
+            if (pairing == null) {
+                Logger.w { "Notifies already stopped on $address ($serviceUuid $characteristicUuid)" }
+                return true
+            }
+
+            val setupChannel = pairing.second
+            if (binc_device_stop_notify(device, serviceUuid, characteristicUuid) != TRUE) {
+                Logger.w { "Stopping notifies failed on $address ($serviceUuid $characteristicUuid)" }
+                return false
+            }
+
+            return runBlocking {
+                !setupChannel.receive()
             }
         }
     }
@@ -619,7 +733,7 @@ class LinuxBluetoothDeviceListing {
                 }
 
             if (!ok) {
-                Logger.e { "Write to $address failed due to binc_write_char result" }
+                Logger.e { "Write to $address ($serviceUuid - $characteristicUuid) failed due to binc_write_char result" }
                 return null
             }
 
@@ -648,9 +762,15 @@ class LinuxBluetoothDeviceListing {
         readChannelsByAddress[address] = channel
 
         try {
-            val ok = binc_device_read_char(device, serviceUuid, characteristicUuid)
+            val ok =
+                binc_device_read_char(
+                    device,
+                    serviceUuid,
+                    characteristicUuid,
+                )
 
             if (ok != TRUE) {
+                Logger.w { "Failed to read from $address ($serviceUuid - $characteristicUuid)" }
                 return null
             }
 
@@ -734,7 +854,7 @@ class LinuxBluetoothDeviceListing {
         }
 
         runBlocking {
-            listener.send(data)
+            listener.first.send(data)
         }
     }
 
@@ -747,12 +867,16 @@ class LinuxBluetoothDeviceListing {
         private var discoveryJob: Job? = null
         private var ran = false
 
+        override fun providedTransports(): List<AuthenticatorTransport> {
+            return listOf(AuthenticatorTransport.BLE)
+        }
+
         fun allowListingAgain() {
             discoveryJob?.cancel()
             discoveryJob = null
         }
 
-        override fun listDevices(): List<AuthenticatorDevice> {
+        override fun listDevices(library: FIDOkLibrary): List<AuthenticatorDevice> {
             if (discoveryJob != null) {
                 Logger.i { "Returning no devices in BLE listing due to previous run" }
                 return listOf()
@@ -768,7 +892,7 @@ class LinuxBluetoothDeviceListing {
 
             try {
                 return runBlocking {
-                    val gottenJob = listingState.startDiscovery()
+                    val gottenJob = listingState.startDiscovery(library)
                     if (gottenJob != null) {
                         discoveryJob = gottenJob
                     }
@@ -813,5 +937,27 @@ class LinuxBluetoothDeviceListing {
         val discoState = binc_adapter_get_discovery_state(usedAdapter)
         return discoState == BINC_DISCOVERY_STARTING || discoState == BINC_DISCOVERY_STARTED ||
             discoState == BINC_DISCOVERY_STOPPED
+    }
+
+    fun handleNotifyState(
+        address: String,
+        service: String,
+        characteristic: String,
+        notifying: Boolean,
+    ) {
+        val forService = notifyChannelsByAddressServiceAndChar.get(address)?.get(service)
+        val cb = forService?.get(characteristic)
+        if (cb != null) {
+            runBlocking {
+                if (notifying) {
+                    cb.second.send(true)
+                } else {
+                    cb.second.send(false)
+                    forService.remove(characteristic)
+                }
+            }
+        } else {
+            Logger.d { "Ignoring notification state change because no listener on $address ($service $characteristic)" }
+        }
     }
 }

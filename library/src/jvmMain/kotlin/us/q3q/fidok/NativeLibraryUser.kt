@@ -4,6 +4,7 @@ import jnr.ffi.LibraryLoader
 import jnr.ffi.LibraryOption
 import jnr.ffi.Pointer
 import jnr.ffi.annotations.In
+import us.q3q.fidok.ctap.FIDOkLibrary
 import java.nio.ByteBuffer
 
 open class NativeLibraryUser(libraryPath: String) {
@@ -126,7 +127,7 @@ interface FIDOkNative {
         keyY: ByteBuffer,
     )
 
-    fun fidok_device_list(): Pointer
+    fun fidok_device_list(library: FIDOkLibrary): Pointer
 
     fun fidok_device_count(listing: Pointer): Int
 

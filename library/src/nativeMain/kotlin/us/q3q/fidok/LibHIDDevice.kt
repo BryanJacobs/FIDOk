@@ -24,6 +24,7 @@ import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.InvalidDeviceException
 import us.q3q.fidok.hid.CTAPHID.Companion.sendAndReceive
 import us.q3q.fidok.hid.CTAPHIDCommand
@@ -40,7 +41,7 @@ class LibHIDDevice(private val path: String, private val packetSize: Int) : Auth
             hid_init()
         }
 
-        override fun listDevices(): List<LibHIDDevice> {
+        override fun listDevices(library: FIDOkLibrary): List<LibHIDDevice> {
             val foundDevices = arrayListOf<LibHIDDevice>()
 
             val enumeratedDevicesHandle = hid_enumerate(0x00u, 0x00u)

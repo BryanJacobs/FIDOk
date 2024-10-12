@@ -9,7 +9,7 @@ interface AuthenticatorListing {
      *
      * @return A list of available Authenticators
      */
-    fun listDevices(): List<AuthenticatorDevice>
+    fun listDevices(library: FIDOkLibrary): List<AuthenticatorDevice>
 
     /**
      * Get the types of [transport][AuthenticatorTransport] for which this listing object can provide Authenticators.

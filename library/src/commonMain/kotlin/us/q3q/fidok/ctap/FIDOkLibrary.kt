@@ -61,19 +61,19 @@ class FIDOkLibrary private constructor(
     fun listDevices(allowedTransports: List<AuthenticatorTransport>? = null): Array<AuthenticatorDevice> {
         val devices = arrayListOf<AuthenticatorDevice>()
         for (accessor in authenticatorAccessors) {
+            val provided = accessor.providedTransports()
+            if (provided.isNotEmpty() && allowedTransports != null &&
+                provided.intersect(allowedTransports).isEmpty()
+            ) {
+                continue
+            }
+
             devices.addAll(
-                accessor.listDevices().filter {
+                accessor.listDevices(this).filter {
                     if (allowedTransports == null) {
                         true
                     } else {
-                        var match = false
-                        for (transport in it.getTransports()) {
-                            if (allowedTransports.contains(transport)) {
-                                match = true
-                                break
-                            }
-                        }
-                        match
+                        it.getTransports().intersect(allowedTransports).isNotEmpty()
                     }
                 },
             )

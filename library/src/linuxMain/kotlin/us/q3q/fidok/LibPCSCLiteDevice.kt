@@ -41,6 +41,7 @@ import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.AuthenticatorTransport
 import us.q3q.fidok.ctap.DeviceCommunicationException
+import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.IncorrectDataException
 import us.q3q.fidok.ctap.OutOfBandErrorResponseException
 import us.q3q.fidok.pcsc.CTAPPCSC.Companion.APPLET_SELECT_BYTES
@@ -209,7 +210,7 @@ class LibPCSCLiteDevice(private val readerName: String, private val useExtendedM
             } != null
         }
 
-        override fun listDevices(): List<LibPCSCLiteDevice> {
+        override fun listDevices(library: FIDOkLibrary): List<LibPCSCLiteDevice> {
             Logger.v("Listing PCSC devices")
             return withContext { ctx ->
                 memScoped {

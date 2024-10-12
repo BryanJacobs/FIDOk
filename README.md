@@ -116,9 +116,12 @@ provided by native implementations specific to each platform.
 | NFC           | Near-field tokens (via an antenna)  | Working       | N (Y via CCID) |   N | N (Y via CCID) | As Native | Y          |     |
 | Bluetooth-HID | Very strange, not found in the wild | Working       | Y              |   N | N              | As Native | N (and *1) |     |
 | Bluetooth LE  | Wireless, battery powered tokens    | Working       | Y              |   N | N              | Y         | *1         |     |
-| BLE PC/SC     | Smart Card Readers (via BLE)        | Unimplemented |                |     |                |           |            |     |
+| BLE PC/SC     | Smart Card Readers (via BLE)        | Partial *2    | Y              |   N | N              | As Native | N          |     |
 | TPM           | Chips built into computers          | Unimplemented |                |     |                |           |            |     |
 | CaBLE         | Authenticators using the Internet!  | Incomplete    |                |     |                |           |            |     |
 
 *1 - Bluetooth LE support for Android is implemented, but for reasons unknown Android restricts the ability to access BLE FIDO
      tokens to "system" applications, so FIDOk can't be used with BLE authenticators over BLE in a normal install
+
+*2 - The only currently-supported reader is the ACR1255U-J1, from Advanced Card Systems, Ltd (ACS). This reader uses a proprietary-but-documented
+     protocol, and FIDOk contains a working implementation of that protocol.

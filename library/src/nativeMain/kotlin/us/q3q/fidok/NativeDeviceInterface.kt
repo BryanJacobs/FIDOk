@@ -14,6 +14,7 @@ import kotlinx.cinterop.set
 import kotlinx.coroutines.runBlocking
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.AuthenticatorListing
+import us.q3q.fidok.ctap.FIDOkLibrary
 import kotlin.experimental.ExperimentalNativeApi
 
 expect fun platformDeviceProviders(): List<AuthenticatorListing>
@@ -24,13 +25,14 @@ data class DeviceListingResult(
 
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_device_list")
-fun listDevices(): COpaquePointer {
+fun listDevices(library: COpaquePointer): COpaquePointer {
+    val fidok = library.asStableRef<FIDOkLibrary>().get()
     val providers = platformDeviceProviders()
 
     val foundDevices = arrayListOf<AuthenticatorDevice>()
     for (provider in providers) {
         runBlocking {
-            foundDevices.addAll(provider.listDevices())
+            foundDevices.addAll(provider.listDevices(fidok))
         }
     }
 
