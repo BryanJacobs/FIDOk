@@ -43,7 +43,7 @@ fun bincTasks(platform: String) {
     task<Exec>("buildBinc$platform") {
         workingDir(buildDir)
         commandLine("cmake", "--build", ".")
-        dependsOn("configureHID$platform")
+        dependsOn("configureBinc$platform")
         inputs.property("platform", platform)
         inputs.files(fileTree(buildDir))
         outputs.files(output)
@@ -229,8 +229,8 @@ fun nativeBuild(
             )
         } else {
             arrayListOf(
-                botanBuild.outputs.files.last().path,
-                "-lstdc++",
+                "-L${botanBuild.outputs.files.last().parent}",
+                "-lbotan-3",
             )
         }
 
