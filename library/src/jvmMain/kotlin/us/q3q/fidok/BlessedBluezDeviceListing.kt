@@ -9,6 +9,7 @@ import com.welie.blessed.ScanResult
 import us.q3q.fidok.ble.FIDO_BLE_SERVICE_UUID
 import us.q3q.fidok.ctap.AuthenticatorListing
 import us.q3q.fidok.ctap.AuthenticatorTransport
+import us.q3q.fidok.ctap.FIDOkLibrary
 import java.util.UUID
 
 /**
@@ -62,7 +63,7 @@ class BlessedBluezDeviceListing {
             central = null
         }
 
-        override suspend fun listDevices(): List<BlessedBluezDevice> {
+        override fun listDevices(library: FIDOkLibrary): List<BlessedBluezDevice> {
             return devices.values.toList()
         }
     }

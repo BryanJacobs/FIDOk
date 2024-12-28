@@ -222,10 +222,17 @@ fun nativeBuild(
         )
     // ... but for an executable, we need to resolve those symbols NOW, so use the dynamic botan instead of static
     val botanLinkerOptsForExecutable =
-        arrayListOf(
-            "-L${botanBuild.outputs.files.last().parent}",
-            "-lbotan-3",
-        )
+        if (platform == "Windows") {
+            arrayListOf(
+                botanBuild.outputs.files.first().path,
+                "/usr/x86_64-w64-mingw32/lib/libstdc++.a",
+            )
+        } else {
+            arrayListOf(
+                botanBuild.outputs.files.last().path,
+                "-lstdc++",
+            )
+        }
 
     val linkerOptsShared = linkerOpts + if (platform == "Windows") botanLinkerOptsForExecutable else botanLinkerOptsForShared
     val linkerOptsExecutable = linkerOpts + botanLinkerOptsForExecutable

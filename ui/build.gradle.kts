@@ -55,13 +55,13 @@ tasks.register<Copy>("copyNativeLibrariesIntoResources") {
     }
     if (Os.isFamily(Os.FAMILY_MAC)) {
         dependsOn(":fidok:linkFidokDebugSharedMacos")
-        from(project(":fidok").layout.buildDirectory.file("bin/macos/fidokDebugShared/libfidok.dylib"))
+        from(project(":fidok").layout.buildDirectory.file("bin/macos/fidokDebugShared/fidok.dylib"))
     } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
         dependsOn(":fidok:linkFidokDebugSharedWindows")
-        from(project(":fidok").layout.buildDirectory.file("bin/windows/fidokDebugShared/libfidok.dll"))
+        from(project(":fidok").layout.buildDirectory.file("bin/windows/fidokDebugShared/fidok.dll"))
     } else {
         dependsOn(":fidok:linkFidokDebugSharedLinux")
-        from(project(":fidok").layout.buildDirectory.file("bin/linux/fidokDebugShared/libfidok.so"))
+        from(project(":fidok").layout.buildDirectory.file("bin/linux/fidokDebugShared/fidok.so"))
     }
 
     into(layout.buildDirectory.dir("natives/common"))
