@@ -94,6 +94,17 @@ data class MakeCredentialResponse(
     val epAtt: Boolean?,
     @ByteString val largeBlobKey: ByteArray?,
 ) {
+    fun withoutAttestation(): MakeCredentialResponse {
+        return MakeCredentialResponse(
+            fmt = AttestationTypes.NONE.value,
+            authData,
+            rawAttStmt,
+            attStmt,
+            epAtt,
+            largeBlobKey,
+        )
+    }
+
     /**
      * Access the Credential itself.
      *
@@ -292,10 +303,6 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
         encoder: Encoder,
         value: MakeCredentialResponse,
     ) {
-        if (value.fmt != "packed") {
-            throw NotImplementedError()
-        }
-
         // webauthn-compatible serialization
         val attDescriptor =
             buildSerialDescriptor("attestationObject", StructureKind.MAP) {
@@ -317,12 +324,24 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
         mapEncoder.encodeSerializableElement(attDescriptor, 3, ByteArraySerializer(), enc.getBytes())
 
         mapEncoder.encodeStringElement(attDescriptor, 4, "attStmt")
-        mapEncoder.encodeSerializableElement(
-            attDescriptor,
-            5,
-            PackedAttestationStatement.serializer(),
-            value.getPackedAttestationStatement(),
-        )
+        when (value.fmt) {
+            AttestationTypes.PACKED.value ->
+                mapEncoder.encodeSerializableElement(
+                    attDescriptor,
+                    5,
+                    PackedAttestationStatement.serializer(),
+                    value.getPackedAttestationStatement(),
+                )
+            AttestationTypes.NONE.value ->
+                mapEncoder.encodeSerializableElement(
+                    attDescriptor,
+                    5,
+                    NoneAttestationStatement.serializer(),
+                    NoneAttestationStatement(),
+                )
+            else ->
+                throw NotImplementedError("Unimplemented attestation type ${value.fmt}")
+        }
         mapEncoder.endStructure(attDescriptor)
     }
 }

@@ -207,12 +207,12 @@ private fun attachWebauthnHandlers(navigator: WebViewNavigator) {
                         return null;
                     }
 
-                    var binaryString = atob(base64);
-                    var bytes = new Uint8Array(binaryString.length);
-                    for (var i = 0; i < binaryString.length; i++) {
-                        bytes[i] = binaryString.charCodeAt(i);
+                    var bs = atob(base64);
+                    var ret = new Uint8Array(bs.length);
+                    for (var i = 0; i < bs.length; i++) {
+                        ret[i] = bs.charCodeAt(i);
                     }
-                    return bytes.buffer;
+                    return ret.buffer;
                 }
 
 
@@ -252,7 +252,7 @@ private fun attachWebauthnHandlers(navigator: WebViewNavigator) {
                                 resolve(wrapped);
                             });
                         } catch (e) {
-                            console.log("rejecting because", e);
+                            console.log("rejecting creation", e);
                             reject(e);
                         }
                     });

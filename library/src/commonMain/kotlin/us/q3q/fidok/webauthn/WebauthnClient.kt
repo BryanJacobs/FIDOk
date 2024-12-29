@@ -286,7 +286,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val attestationObject =
             if (options.publicKey.attestation == AttestationConveyancePreference.NONE.value) {
                 val encoder = CTAPCBOREncoder()
-                encoder.encodeSerializableValue(NoneAttestationStatement.serializer(), NoneAttestationStatement())
+                encoder.encodeSerializableValue(MakeCredentialResponse.serializer(), ret.withoutAttestation())
                 encoder.getBytes()
             } else {
                 val encoder = CTAPCBOREncoder()
