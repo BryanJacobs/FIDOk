@@ -4,8 +4,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.multiplatform.webview.jsbridge.IJsMessageHandler
 import com.multiplatform.webview.jsbridge.JsMessage
@@ -14,8 +17,11 @@ import com.multiplatform.webview.web.WebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.WebViewState
 import com.multiplatform.webview.web.rememberWebViewState
+import dev.datlag.kcef.KCEF
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -42,6 +48,7 @@ import us.q3q.fidok.webauthn.DEFAULT_PUB_KEY_CRED_PARAMS
 import us.q3q.fidok.webauthn.PublicKeyCredentialCreationOptions
 import us.q3q.fidok.webauthn.PublicKeyCredentialRequestOptions
 import us.q3q.fidok.webauthn.UserVerificationRequirement
+import java.io.File
 import java.net.URL
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -405,6 +412,10 @@ private fun attachWebauthnHandlers(navigator: WebViewNavigator) {
 
 @Composable
 fun WebBrowser(library: FIDOkLibrary) {
+    var restartRequired by remember { mutableStateOf(false) }
+    var downloading by remember { mutableStateOf(0F) }
+    var initialized by remember { mutableStateOf(false) }
+
     val webViewState = rememberWebViewState("https://webauthn.lubu.ch/_test/client.html")
     val navigator = rememberWebViewNavigator()
     val jsBridge = rememberWebViewJsBridge(navigator)
@@ -414,17 +425,49 @@ fun WebBrowser(library: FIDOkLibrary) {
         jsBridge.register(WebauthnGetCallback(library, webViewState))
     }
 
-    attachWebauthnHandlers(navigator)
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            KCEF.init(builder = {
+                installDir(File("kcef-bundle"))
 
-    SubmittableText(placeholder = { Text("url") }, initialValue = webViewState.lastLoadedUrl ?: "") {
-        navigator.loadUrl(it)
-        attachWebauthnHandlers(navigator)
+                progress {
+                    onDownloading {
+                        downloading = if (it > 0F) it else 0F
+                    }
+                    onInitialized {
+                        initialized = true
+                    }
+                }
+                settings {
+                    cachePath = File("cache").absolutePath
+                }
+            }, onError = {
+                it?.printStackTrace()
+            }, onRestartRequired = {
+                restartRequired = true
+            })
+        }
     }
 
-    WebView(
-        state = webViewState,
-        navigator = navigator,
-        webViewJsBridge = jsBridge,
-        modifier = Modifier.fillMaxSize(),
-    )
+    attachWebauthnHandlers(navigator)
+
+    if (restartRequired) {
+        Text(text = "Restart required.")
+    } else {
+        if (initialized) {
+            SubmittableText(placeholder = { Text("url") }, initialValue = webViewState.lastLoadedUrl ?: "") {
+                navigator.loadUrl(it)
+                attachWebauthnHandlers(navigator)
+            }
+
+            WebView(
+                state = webViewState,
+                navigator = navigator,
+                webViewJsBridge = jsBridge,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Text(text = "Downloading browser ${Math.round(downloading * 10.0) / 10.0}%")
+        }
+    }
 }

@@ -45,21 +45,12 @@ fun MainView(
                     chosenClient = null
                     onListDevices()
                 }) {
-                    Text(
-                        if (devices == null) {
-                            "List Authenticators"
-                        } else {
-                            "There ${if (devices.size == 1) "is" else "are"} " +
-                                "${devices.size} device${if (devices.size == 1) "" else "s"}"
-                        },
-                    )
+                    Text("List/Manage Authenticators")
                 }
-                if ((devices?.size ?: 0) < 1) {
-                    Button(onClick = {
-                        browserMode = true
-                    }) {
-                        Text("Web Browser")
-                    }
+                Button(onClick = {
+                    browserMode = true
+                }) {
+                    Text("Web Browser")
                 }
             }
             val client = chosenClient
