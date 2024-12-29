@@ -441,14 +441,18 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             extensionResults["hmacGetSecret"] = mp
         }
 
+        val authDataEncoder = CTAPCBOREncoder()
+        authDataEncoder.encodeSerializableValue(AuthenticatorData.serializer(), ret.authData)
+        val authDataBytes = authDataEncoder.getBytes()
+
         return PublicKeyCredential(
-            id = Base64.UrlSafe.encode(ret.credential.id),
+            id = base64Webauthnify(ret.credential.id),
             rawId = ret.credential.id,
             authenticatorAttachment = getAttachment(infoForSelected).value,
             response =
                 AuthenticatorAssertionResponse(
                     clientDataJson,
-                    authenticatorData = assertionBytes,
+                    authenticatorData = authDataBytes,
                     signature = ret.signature,
                     userHandle = ret.user?.id,
                     // TODO: handle CTAP2.2 attested assertions
