@@ -518,9 +518,11 @@ class LinuxBluetoothDeviceListing {
     private fun stop() {
         Logger.v { "Stopping BLE services" }
 
-        val currentState = binc_adapter_get_discovery_state(adapter)
-        if (currentState == BINC_DISCOVERY_STARTING || currentState == BINC_DISCOVERY_STARTED) {
-            binc_adapter_stop_discovery(adapter)
+        if (adapter != null) {
+            val currentState = binc_adapter_get_discovery_state(adapter)
+            if (currentState == BINC_DISCOVERY_STARTING || currentState == BINC_DISCOVERY_STARTED) {
+                binc_adapter_stop_discovery(adapter)
+            }
         }
 
         if (loop != null) {

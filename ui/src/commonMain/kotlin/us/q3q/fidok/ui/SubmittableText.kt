@@ -25,9 +25,10 @@ import androidx.compose.ui.unit.dp
 fun SubmittableText(
     placeholder: @Composable (() -> Unit)? = null,
     buttonContent: @Composable (RowScope.() -> Unit)? = null,
+    initialValue: String = "",
     onSubmit: (text: String) -> Unit,
 ) {
-    var text by remember { mutableStateOf("") }
+    var text by remember { mutableStateOf(initialValue) }
 
     val kbdWrap: KeyboardActionScope.() -> Unit = {
         onSubmit(text)

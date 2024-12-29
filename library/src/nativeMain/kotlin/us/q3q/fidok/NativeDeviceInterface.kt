@@ -25,9 +25,15 @@ data class DeviceListingResult(
 
 @OptIn(ExperimentalForeignApi::class)
 @CName("fidok_device_list")
-fun listDevices(library: COpaquePointer): COpaquePointer {
-    val fidok = library.asStableRef<FIDOkLibrary>().get()
+fun listDevices(): COpaquePointer {
     val providers = platformDeviceProviders()
+
+    // TODO: get real fidok library here
+    val fidok =
+        FIDOkLibrary.init(
+            cryptoProvider = BotanCryptoProvider(),
+            authenticatorAccessors = platformDeviceProviders(),
+        )
 
     val foundDevices = arrayListOf<AuthenticatorDevice>()
     for (provider in providers) {

@@ -11,6 +11,10 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+repositories {
+    maven("https://jogamp.org/deployment/maven")
+}
+
 kotlin {
     // androidTarget()
     jvmToolchain(11)
@@ -25,6 +29,9 @@ kotlin {
                 implementation(compose.foundation)
                 implementation(compose.material)
                 implementation(libs.qrcode.kotlin)
+                implementation(libs.serialization.json)
+
+                api(libs.compose.webview.multiplatform)
             }
         }
         val commonTest by getting {
@@ -61,7 +68,7 @@ tasks.register<Copy>("copyNativeLibrariesIntoResources") {
         from(project(":fidok").layout.buildDirectory.file("bin/windows/fidokDebugShared/fidok.dll"))
     } else {
         dependsOn(":fidok:linkFidokDebugSharedLinux")
-        from(project(":fidok").layout.buildDirectory.file("bin/linux/fidokDebugShared/fidok.so"))
+        from(project(":fidok").layout.buildDirectory.file("bin/linux/fidokDebugShared/libfidok.so"))
     }
 
     into(layout.buildDirectory.dir("natives/common"))
@@ -72,6 +79,13 @@ compose.desktop {
         from(kotlin.targets["desktop"])
 
         mainClass = "us.q3q.fidok.ui.MainKt"
+
+        jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
+        jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED")
+        if (Os.isFamily(Os.FAMILY_MAC)) {
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
+        }
 
         nativeDistributions {
             if (Os.isFamily(Os.FAMILY_MAC)) {

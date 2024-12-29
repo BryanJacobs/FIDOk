@@ -151,7 +151,7 @@ class MainActivity : ComponentActivity() {
                 authenticatorAccessors =
                     listOf(
                         object : AuthenticatorListing {
-                            override fun listDevices(): List<AuthenticatorDevice> {
+                            override fun listDevices(library: FIDOkLibrary): List<AuthenticatorDevice> {
                                 return doListUSB()
                             }
                         },

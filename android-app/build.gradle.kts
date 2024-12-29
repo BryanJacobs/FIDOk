@@ -13,7 +13,7 @@ dependencies {
 
 android {
     namespace = "us.q3q.fidok.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "us.q3q.fidok"
@@ -68,12 +68,12 @@ dependencies {
     implementation(libs.fragment.ktx)
     implementation(platform("androidx.compose:compose-bom:${libs.versions.composebom.get()}"))
     implementation(libs.bundles.compose)
-    implementation("androidx.compose.material3:material3")
+    implementation(libs.androidx.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(platform("androidx.compose:compose-bom:${libs.versions.composebom.get()}"))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
     implementation(libs.androidx.runtime.livedata)

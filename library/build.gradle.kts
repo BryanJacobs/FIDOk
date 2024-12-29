@@ -36,6 +36,8 @@ fun bincTasks(platform: String) {
     task<Exec>("configureBinc$platform") {
         workingDir(buildDir)
         commandLine("cmake", bincDir.asFile.absolutePath)
+        environment("CFLAGS", "-fPIC")
+        environment("CXXFLAGS", "-fPIC")
         inputs.property("platform", platform)
         inputs.files(fileTree(bincDir))
         outputs.files(buildDir.file("Makefile"))

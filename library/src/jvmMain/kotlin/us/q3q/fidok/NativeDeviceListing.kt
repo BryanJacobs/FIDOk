@@ -7,7 +7,7 @@ import us.q3q.fidok.ctap.FIDOkLibrary
 
 class NativeDeviceListing(private val libraryPath: String) : NativeLibraryUser(libraryPath), AuthenticatorListing {
     override fun listDevices(library: FIDOkLibrary): List<AuthenticatorDevice> {
-        val listing = native.fidok_device_list(library)
+        val listing = native.fidok_device_list()
         val numDevices = native.fidok_device_count(listing)
 
         val listingHolder = NativeListingHolder(native, listing, numDevices)

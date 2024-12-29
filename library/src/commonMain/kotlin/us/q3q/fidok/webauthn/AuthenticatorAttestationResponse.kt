@@ -1,8 +1,9 @@
 package us.q3q.fidok.webauthn
 
-data class AuthenticatorAttestationResponse(
+class AuthenticatorAttestationResponse(
     private val _clientDataJSON: ByteArray,
     val attestationObject: ByteArray,
+    val publicKeyAlgorithm: Long,
     val transports: List<String> = listOf(),
 ) : AuthenticatorResponse(_clientDataJSON) {
     override fun equals(other: Any?): Boolean {
