@@ -154,3 +154,45 @@ class COSEKeySerializer : KSerializer<COSEKey> {
         composite.endStructure(descriptor)
     }
 }
+
+@OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
+class COSEKeyWebauthnSerializer : KSerializer<COSEKey> {
+    override val descriptor: SerialDescriptor
+        get() =
+            buildSerialDescriptor("COSEKey", StructureKind.MAP) {
+                element("kty_key", String.serializer().descriptor)
+                element("kty_val", Int.serializer().descriptor)
+                element("alg_key", String.serializer().descriptor)
+                element("alg_val", Int.serializer().descriptor)
+                element("crv_key", String.serializer().descriptor)
+                element("crv_val", Int.serializer().descriptor)
+                element("x_key", String.serializer().descriptor)
+                element("x_val", ByteArraySerializer().descriptor)
+                element("y_key", String.serializer().descriptor, isOptional = true)
+                element("y_val", ByteArraySerializer().descriptor, isOptional = true)
+            }
+
+    override fun deserialize(decoder: Decoder): COSEKey {
+        TODO("Not yet implemented")
+    }
+
+    override fun serialize(
+        encoder: Encoder,
+        value: COSEKey,
+    ) {
+        val composite = encoder.beginCollection(descriptor, if (value.y != null) 5 else 4)
+        composite.encodeStringElement(descriptor, 0, "kty")
+        composite.encodeIntElement(descriptor, 1, value.kty)
+        composite.encodeStringElement(descriptor, 2, "alg")
+        composite.encodeLongElement(descriptor, 3, value.alg)
+        composite.encodeStringElement(descriptor, 4, "crv")
+        composite.encodeIntElement(descriptor, 5, value.crv)
+        composite.encodeStringElement(descriptor, 6, "x")
+        composite.encodeSerializableElement(descriptor, 7, ByteArraySerializer(), value.x)
+        if (value.y != null) {
+            composite.encodeStringElement(descriptor, 8, "y")
+            composite.encodeSerializableElement(descriptor, 9, ByteArraySerializer(), value.y)
+        }
+        composite.endStructure(descriptor)
+    }
+}

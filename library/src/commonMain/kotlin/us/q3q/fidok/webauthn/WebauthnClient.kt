@@ -13,8 +13,11 @@ import us.q3q.fidok.ctap.CTAPResponse
 import us.q3q.fidok.ctap.DeviceCommunicationException
 import us.q3q.fidok.ctap.FIDOkLibrary
 import us.q3q.fidok.ctap.PinUVToken
+import us.q3q.fidok.ctap.commands.AuthenticatorData
 import us.q3q.fidok.ctap.commands.COSEAlgorithmIdentifier
+import us.q3q.fidok.ctap.commands.COSEKeyWebauthnSerializer
 import us.q3q.fidok.ctap.commands.CTAPCBORDecoder
+import us.q3q.fidok.ctap.commands.CTAPCBOREncoder
 import us.q3q.fidok.ctap.commands.CredProtectExtension
 import us.q3q.fidok.ctap.commands.Extension
 import us.q3q.fidok.ctap.commands.ExtensionSetup
@@ -27,9 +30,19 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.time.Duration.Companion.milliseconds
 
+@OptIn(ExperimentalEncodingApi::class)
+private fun base64Webauthnify(bytes: ByteArray): String {
+    var ret = Base64.UrlSafe.encode(bytes)
+    while (ret.endsWith("=")) {
+        ret = ret.substring(0, ret.length - 1)
+    }
+    return ret
+}
+
 /**
  * Provides access to Webauthn, an open standard.
  */
+@OptIn(ExperimentalEncodingApi::class)
 class WebauthnClient(private val library: FIDOkLibrary) {
     private fun isUVCapable(info: GetInfoResponse): Boolean =
         info.options?.get(CTAPOption.CLIENT_PIN.value) == true ||
@@ -53,7 +66,6 @@ class WebauthnClient(private val library: FIDOkLibrary) {
      *
      * @return Newly created [PublicKeyCredential]
      */
-    @OptIn(ExperimentalEncodingApi::class)
     @Throws(
         DeviceCommunicationException::class,
         CTAPError::class,
@@ -66,7 +78,11 @@ class WebauthnClient(private val library: FIDOkLibrary) {
     ): PublicKeyCredential {
         val effectiveOrigin = origin ?: options.publicKey.rp.id
 
-        Logger.d { "Creating a credential for RP '${options.publicKey.rp.name}'" }
+        if (effectiveOrigin == null) {
+            throw IllegalArgumentException("Either an RP ID or an origin must be set - who's the credential for?")
+        }
+
+        Logger.d { "Creating a credential for RP '${options.publicKey.rp.name}' with origin '$effectiveOrigin'" }
 
         val timeout = (options.publicKey.timeout ?: 10_000UL).toLong().milliseconds
 
@@ -222,7 +238,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
 
         val rawResult =
             selectedClient.makeCredentialRaw(
-                rpId = options.publicKey.rp.id!!,
+                rpId = options.publicKey.rp.id ?: effectiveOrigin,
                 rpName = options.publicKey.rp.name,
                 clientDataHash = clientDataHash,
                 userId = options.publicKey.user.id,
@@ -265,16 +281,42 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             }
         }
 
+        val urlSafeId = base64Webauthnify(ret.getCredentialID())
+
+        val attestationObject =
+            if (options.publicKey.attestation == AttestationConveyancePreference.NONE.value) {
+                val encoder = CTAPCBOREncoder()
+                encoder.encodeSerializableValue(NoneAttestationStatement.serializer(), NoneAttestationStatement())
+                encoder.getBytes()
+            } else {
+                val encoder = CTAPCBOREncoder()
+                encoder.encodeSerializableValue(MakeCredentialResponse.serializer(), ret)
+                encoder.getBytes()
+            }
+
+        // TODO: DER encode the public key
+        val pubKeyEncoder = CTAPCBOREncoder()
+        pubKeyEncoder.encodeSerializableValue(COSEKeyWebauthnSerializer(), ret.getCredentialPublicKey())
+        val publicKeyBytes = pubKeyEncoder.getBytes()
+
+        val authDataEncoder = CTAPCBOREncoder()
+        authDataEncoder.encodeSerializableValue(AuthenticatorData.serializer(), ret.authData)
+        val authDataBytes = authDataEncoder.getBytes()
+
         return PublicKeyCredential(
-            id = Base64.UrlSafe.encode(ret.getCredentialID()),
+            id = urlSafeId,
             rawId = ret.getCredentialID(),
+            type = "public-key",
             authenticatorAttachment = getAttachment(infoForSelected).value,
             response =
                 AuthenticatorAttestationResponse(
                     clientDataJson,
-                    attestationObject = rawResult,
+                    attestationObject = attestationObject,
                     transports = filteredTransports,
+                    publicKey = publicKeyBytes,
                     publicKeyAlgorithm = ret.getCredentialPublicKey().alg,
+                    authenticatorData = authDataBytes,
+                    signature = ret.getPackedAttestationStatement().sig,
                 ),
             clientExtensionResults = extensionResults,
         )
@@ -334,7 +376,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         val clientData =
             mutableMapOf(
                 "type" to JsonPrimitive("webauthn.get"),
-                "challenge" to JsonPrimitive(Base64.UrlSafe.encode(options.publicKey.challenge)),
+                "challenge" to JsonPrimitive(base64Webauthnify(options.publicKey.challenge)),
                 "origin" to JsonPrimitive(origin),
                 "crossOrigin" to JsonPrimitive(!sameOriginWithAncestors),
             )

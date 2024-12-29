@@ -1,6 +1,7 @@
 package us.q3q.fidok.ctap.commands
 
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -9,7 +10,9 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.cbor.ByteString
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import us.q3q.fidok.webauthn.NoneAttestationStatement
@@ -284,10 +287,42 @@ class MakeCredentialResponseSerializer : KSerializer<MakeCredentialResponse> {
         )
     }
 
+    @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
     override fun serialize(
         encoder: Encoder,
         value: MakeCredentialResponse,
     ) {
-        throw NotImplementedError()
+        if (value.fmt != "packed") {
+            throw NotImplementedError()
+        }
+
+        // webauthn-compatible serialization
+        val attDescriptor =
+            buildSerialDescriptor("attestationObject", StructureKind.MAP) {
+                element("fmt_key", String.serializer().descriptor)
+                element("fmt_val", String.serializer().descriptor)
+                element("authData_key", String.serializer().descriptor)
+                element("authData_val", ByteArraySerializer().descriptor)
+                element("attStmt_key", String.serializer().descriptor)
+                element("attStmt_val", PackedAttestationStatement.serializer().descriptor)
+            }
+
+        val mapEncoder = encoder.beginCollection(attDescriptor, 3)
+        mapEncoder.encodeStringElement(attDescriptor, 0, "fmt")
+        mapEncoder.encodeStringElement(attDescriptor, 1, value.fmt)
+        mapEncoder.encodeStringElement(attDescriptor, 2, "authData")
+
+        val enc = CTAPCBOREncoder()
+        enc.encodeSerializableValue(AuthenticatorData.serializer(), value.authData)
+        mapEncoder.encodeSerializableElement(attDescriptor, 3, ByteArraySerializer(), enc.getBytes())
+
+        mapEncoder.encodeStringElement(attDescriptor, 4, "attStmt")
+        mapEncoder.encodeSerializableElement(
+            attDescriptor,
+            5,
+            PackedAttestationStatement.serializer(),
+            value.getPackedAttestationStatement(),
+        )
+        mapEncoder.endStructure(attDescriptor)
     }
 }

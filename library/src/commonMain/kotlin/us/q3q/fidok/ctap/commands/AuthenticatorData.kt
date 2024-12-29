@@ -148,28 +148,22 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
         encoder: Encoder,
         value: AuthenticatorData,
     ) {
-        val composite =
-            encoder.beginCollection(
-                ByteArraySerializer().descriptor,
-                32 + 1 + 4,
-            )
         for (i in value.rpIdHash.indices) {
-            composite.encodeByteElement(descriptor, 0, value.rpIdHash[i])
+            encoder.encodeByte(value.rpIdHash[i])
         }
-        composite.encodeIntElement(descriptor, 1, value.flags.toInt())
-        composite.encodeIntElement(descriptor, 2, value.signCount.toInt())
+        encoder.encodeByte(value.flags.toByte())
+        encoder.encodeByte(((value.signCount and 0xFF000000u) shr 24).toByte())
+        encoder.encodeByte(((value.signCount and 0x00FF0000u) shr 16).toByte())
+        encoder.encodeByte(((value.signCount and 0x0000FF00u) shr 8).toByte())
+        encoder.encodeByte((value.signCount and 0x000000FFu).toByte())
         if (value.attestedCredentialData != null) {
-            composite.encodeSerializableElement(
-                descriptor,
-                3,
+            encoder.encodeSerializableValue(
                 AttestedCredentialData.serializer(),
                 value.attestedCredentialData,
             )
         }
         if (value.extensions != null) {
-            composite.encodeSerializableElement(
-                descriptor,
-                4,
+            encoder.encodeSerializableValue(
                 MapSerializer(
                     ExtensionName.serializer(),
                     ExtensionParameters.serializer(),
@@ -177,6 +171,5 @@ class AuthenticatorDataSerializer : KSerializer<AuthenticatorData> {
                 value.extensions,
             )
         }
-        composite.endStructure(ByteArraySerializer().descriptor)
     }
 }
