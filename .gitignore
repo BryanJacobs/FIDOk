@@ -5,6 +5,8 @@ build/
 !**/src/test/**/build/
 /kotlin-js-store
 /.kotlin
+/ui/cache/
+/ui/kcef-bundle/
 
 ### IntelliJ IDEA ###
 /.idea

@@ -23,7 +23,7 @@ import kotlin.time.TimeSource
 class FIDOkLibrary private constructor(
     val cryptoProvider: CryptoProvider,
     private var authenticatorAccessors: List<AuthenticatorListing>,
-    private val callbacks: FIDOkCallbacks? = null,
+    private var callbacks: FIDOkCallbacks? = null,
 ) {
     companion object {
         /**
@@ -49,6 +49,17 @@ class FIDOkLibrary private constructor(
                 authenticatorAccessors,
                 callbacks = callbacks,
             )
+        }
+    }
+
+    fun setCallbacks(callbacks: FIDOkCallbacks?) {
+        this.callbacks = callbacks
+    }
+
+    suspend fun onException(e: Exception) {
+        Logger.e("FIDO onException invoked", e)
+        if (this.callbacks?.exceptionEncountered(e) != true) {
+            throw e
         }
     }
 
@@ -232,6 +243,8 @@ class FIDOkLibrary private constructor(
         device: AuthenticatorDevice,
         collectPin: (suspend (client: CTAPClient?) -> String?)? = null,
     ): CTAPClient {
+        val callbacks = callbacks
+
         val callback =
             collectPin ?: (
                 if (callbacks != null) {

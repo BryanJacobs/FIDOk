@@ -57,21 +57,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             AuthenticatorAttachment.CROSS_PLATFORM
         }
 
-    /**
-     * The Webauthn standard way to create a new Credential.
-     *
-     * @param origin The hostname in which the code is executing
-     * @param options All the Webauthn-standard credential creation options
-     * @param sameOriginWithAncestors A parameter designed for browsers
-     *
-     * @return Newly created [PublicKeyCredential]
-     */
-    @Throws(
-        DeviceCommunicationException::class,
-        CTAPError::class,
-        kotlin.coroutines.cancellation.CancellationException::class,
-    )
-    suspend fun create(
+    private suspend fun createImpl(
         origin: String? = null,
         options: CredentialCreationOptions,
         sameOriginWithAncestors: Boolean = true,
@@ -323,6 +309,33 @@ class WebauthnClient(private val library: FIDOkLibrary) {
     }
 
     /**
+     * The Webauthn standard way to create a new Credential.
+     *
+     * @param origin The hostname in which the code is executing
+     * @param options All the Webauthn-standard credential creation options
+     * @param sameOriginWithAncestors A parameter designed for browsers
+     *
+     * @return Newly created [PublicKeyCredential]
+     */
+    @Throws(
+        DeviceCommunicationException::class,
+        CTAPError::class,
+        kotlin.coroutines.cancellation.CancellationException::class,
+    )
+    suspend fun create(
+        origin: String? = null,
+        options: CredentialCreationOptions,
+        sameOriginWithAncestors: Boolean = true,
+    ): PublicKeyCredential {
+        try {
+            return createImpl(origin, options, sameOriginWithAncestors)
+        } catch (e: Exception) {
+            library.onException(e)
+            throw e
+        }
+    }
+
+    /**
      * Shortcut overload of [create], taking more convenient parameters
      *
      * @param options The various options necessary for making a credential
@@ -338,18 +351,14 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         return create(options = CredentialCreationOptions(options))
     }
 
-    @OptIn(ExperimentalEncodingApi::class)
-    @Throws(
-        DeviceCommunicationException::class,
-        CTAPError::class,
-        kotlin.coroutines.cancellation.CancellationException::class,
-    )
-    suspend fun get(
+    suspend fun getImpl(
         origin: String,
         options: CredentialRequestOptions,
         sameOriginWithAncestors: Boolean = true,
     ): PublicKeyCredential {
-        Logger.d { "Getting a credential for RP ID '${options.publicKey.rpId}'" }
+        val effectiveRpId = options.publicKey.rpId ?: origin
+
+        Logger.d { "Getting a credential for RP ID '$effectiveRpId'" }
 
         val timeout = (options.publicKey.timeout ?: 10_000UL).toLong().milliseconds
 
@@ -369,7 +378,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
             pinUvToken =
                 client.getPinUvTokenUsingAppropriateMethod(
                     desiredPermissions = CTAPPermission.GET_ASSERTION.value,
-                    desiredRpId = options.publicKey.rpId,
+                    desiredRpId = effectiveRpId,
                 )
         }
 
@@ -414,8 +423,7 @@ class WebauthnClient(private val library: FIDOkLibrary) {
 
         val assertionBytes =
             client.getAssertionRaw(
-                // TODO: default origin?
-                rpId = options.publicKey.rpId ?: "",
+                rpId = effectiveRpId,
                 clientDataHash = clientDataHash,
                 allowList = effectiveCredentials,
                 extensions = extensionSetup,
@@ -467,8 +475,29 @@ class WebauthnClient(private val library: FIDOkLibrary) {
         CTAPError::class,
         kotlin.coroutines.cancellation.CancellationException::class,
     )
+    suspend fun get(
+        origin: String,
+        options: CredentialRequestOptions,
+        sameOriginWithAncestors: Boolean = true,
+    ): PublicKeyCredential {
+        try {
+            return getImpl(origin, options, sameOriginWithAncestors)
+        } catch (e: Exception) {
+            library.onException(e)
+            throw e
+        }
+    }
+
+    @Throws(
+        DeviceCommunicationException::class,
+        CTAPError::class,
+        kotlin.coroutines.cancellation.CancellationException::class,
+    )
     suspend fun get(options: PublicKeyCredentialRequestOptions): PublicKeyCredential {
-        return get(origin = options.rpId ?: "", options = CredentialRequestOptions(options))
+        if (options.rpId == null) {
+            throw IllegalArgumentException("Either an rp ID or an origin is necessary for webauthn.get")
+        }
+        return get(origin = options.rpId, options = CredentialRequestOptions(options))
     }
 
     fun preventSilentAccess() {

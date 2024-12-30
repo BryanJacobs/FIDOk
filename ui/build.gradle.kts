@@ -30,6 +30,7 @@ kotlin {
                 implementation(compose.material)
                 implementation(libs.qrcode.kotlin)
                 implementation(libs.serialization.json)
+                implementation(libs.kermit)
 
                 api(libs.compose.webview.multiplatform)
             }
@@ -107,8 +108,6 @@ compose.desktop {
 
             appResourcesRootDir.set(project.layout.buildDirectory.dir("natives"))
         }
-
-        // jvmArgs += ""
     }
 }
 

@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
 
     private var nfcPendingIntent: PendingIntent? = null
     private var deviceListLive = MutableLiveData<List<AuthenticatorDevice>?>(null)
+    private var additionalDiscoveredDevices = MutableLiveData<List<AuthenticatorDevice>?>(null)
     private var usbPermissionIntent: PendingIntent? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -152,7 +153,7 @@ class MainActivity : ComponentActivity() {
                     listOf(
                         object : AuthenticatorListing {
                             override fun listDevices(library: FIDOkLibrary): List<AuthenticatorDevice> {
-                                return doListUSB()
+                                return doListUSB() + (additionalDiscoveredDevices.value ?: listOf())
                             }
                         },
                     ),
@@ -195,7 +196,7 @@ class MainActivity : ComponentActivity() {
                     ) {*/
                 MainView(library = library, devices = deviceListLive.observeAsState().value, onListDevices = {
                     deviceListLive.postValue(library.listDevices().toList())
-                })
+                }, mobileView = true)
                 // }
             }
         }
@@ -235,12 +236,14 @@ class MainActivity : ComponentActivity() {
         Logger.v { "Main activity intent handler called for action ${intent.action}" }
         if (intent.action == "android.hardware.usb.action.USB_DEVICE_ATTACHED") {
             val listing = AndroidUSBHIDListing.listDevices(applicationContext, usbPermissionIntent)
+            additionalDiscoveredDevices.postValue(listing)
             deviceListLive.postValue(listing)
         } else {
             val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
             Logger.i { "Detected tag $tag" }
 
             val device = AndroidNFCDevice(IsoDep.get(tag))
+            additionalDiscoveredDevices.postValue(listOf(device))
             deviceListLive.postValue(listOf(device))
         }
     }

@@ -15,10 +15,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import us.q3q.fidok.FIDOkCallbacks
 import us.q3q.fidok.crypto.NullCryptoProvider
 import us.q3q.fidok.ctap.AuthenticatorDevice
 import us.q3q.fidok.ctap.CTAPClient
@@ -29,6 +32,7 @@ fun MainView(
     library: FIDOkLibrary,
     devices: List<AuthenticatorDevice>? = null,
     onListDevices: () -> Unit = {},
+    mobileView: Boolean = false,
 ) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         val pinResponseChannel by remember { mutableStateOf(Channel<String?>()) }
@@ -36,9 +40,44 @@ fun MainView(
         var chosenClient by remember { mutableStateOf<CTAPClient?>(null) }
         var pinRequested by remember { mutableStateOf(false) }
         var browserMode by remember { mutableStateOf(false) }
+        var exception by remember { mutableStateOf<Exception?>(null) }
+
+        library.setCallbacks(
+            object : FIDOkCallbacks {
+                override suspend fun collectPin(client: CTAPClient?): String? {
+                    pinRequested = true
+                    val pin = pinResponseChannel.receive()
+                    pinRequested = false
+                    return pin
+                }
+
+                override suspend fun exceptionEncountered(ex: Exception): Boolean {
+                    exception = ex
+                    return true
+                }
+            },
+        )
+
+        val gottenException = exception
+        if (gottenException != null) {
+            Text(
+                gottenException.message ?: "Unknown exception ${gottenException.javaClass.name}",
+                color = Color.Red,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        if (pinRequested) {
+            PinEntry {
+                coroutineScope.coroutineContext.ensureActive()
+                coroutineScope.launch {
+                    pinResponseChannel.send(it)
+                }
+            }
+        }
 
         if (browserMode) {
-            WebBrowser(library)
+            WebBrowser(library, mobileView)
         } else {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 Button(onClick = {
@@ -56,13 +95,7 @@ fun MainView(
             val client = chosenClient
             if (devices != null && client == null) {
                 MultipleAuthenticatorDisplay(devices, onSelect = {
-                    chosenClient =
-                        library.ctapClient(it, collectPin = {
-                            pinRequested = true
-                            val pin = pinResponseChannel.receive()
-                            pinRequested = false
-                            pin
-                        })
+                    chosenClient = library.ctapClient(it)
                 })
             }
             if (client != null) {
@@ -74,20 +107,6 @@ fun MainView(
                     pinRequested = false
                 }
             }
-        }
-        if (pinRequested) {
-            /*Dialog(onDismissRequest = {
-                coroutineScope.launch {
-                    pinResponseChannel.send(null)
-                }
-            }) {*/
-            PinEntry {
-                coroutineScope.coroutineContext.ensureActive()
-                coroutineScope.launch {
-                    pinResponseChannel.send(it)
-                }
-            }
-            // }
         }
     }
 }

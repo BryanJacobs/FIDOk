@@ -3,6 +3,7 @@ package us.q3q.fidok.ui
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import co.touchlab.kermit.Logger
 import com.multiplatform.webview.jsbridge.IJsMessageHandler
 import com.multiplatform.webview.jsbridge.JsMessage
 import com.multiplatform.webview.jsbridge.rememberWebViewJsBridge
@@ -20,6 +22,7 @@ import com.multiplatform.webview.web.rememberWebViewState
 import dev.datlag.kcef.KCEF
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -62,7 +65,7 @@ class WebauthnCreateCallback(private val library: FIDOkLibrary, private val stat
     ) {
         val paramsString = message.params
 
-        println("Creation handler called with $paramsString!")
+        Logger.v("Creation handler called with $paramsString!")
 
         val decoded = Json.decodeFromString<JsonObject>(paramsString)
         val rp = decoded["rp"]?.jsonObject
@@ -70,7 +73,7 @@ class WebauthnCreateCallback(private val library: FIDOkLibrary, private val stat
         val pkParams = decoded["pubKeyCredParams"]?.jsonArray
         val aSel = decoded["authenticatorSelection"]?.jsonObject
 
-        println("Creation handler decoded $decoded")
+        Logger.v("Creation handler decoded $decoded")
 
         val credentialCreationOptions =
             CredentialCreationOptions(
@@ -128,66 +131,68 @@ class WebauthnCreateCallback(private val library: FIDOkLibrary, private val stat
             )
 
         runBlocking {
-            val url = URL(state.lastLoadedUrl)
-            val protocol = url.protocol
+            launch(Dispatchers.IO) {
+                val url = URL(state.lastLoadedUrl)
+                val protocol = url.protocol
 
-            if (protocol != "https") {
-                throw IllegalStateException("Should not perform FIDO auth on non-HTTPS URLs")
-            }
+                if (protocol != "https") {
+                    throw IllegalStateException("Should not perform FIDO auth on non-HTTPS URLs")
+                }
 
-            val res =
-                library.webauthn().create(
-                    origin = url.protocol + "://" + url.host,
-                    options = credentialCreationOptions,
-                )
+                val res =
+                    library.webauthn().create(
+                        origin = url.protocol + "://" + url.host,
+                        options = credentialCreationOptions,
+                    )
 
-            println("Credential creation result $res")
+                Logger.d("Credential creation result $res")
 
-            val att = res.response as AuthenticatorAttestationResponse
+                val att = res.response as AuthenticatorAttestationResponse
 
-            val gottenAttestationObject = att.attestationObject
-            val gottenPublicKey = att.publicKey
-            val gottenSignature = att.signature
+                val gottenAttestationObject = att.attestationObject
+                val gottenPublicKey = att.publicKey
+                val gottenSignature = att.signature
 
-            callback(
-                Json.encodeToString(
-                    JsonObject.serializer(),
-                    JsonObject(
-                        mapOf(
-                            "id" to JsonPrimitive(res.id),
-                            "rawId" to JsonPrimitive(Base64.encode(res.rawId)),
-                            "type" to JsonPrimitive(res.type),
-                            "authenticatorAttachment" to JsonPrimitive(res.authenticatorAttachment),
-                            "response" to
-                                JsonObject(
-                                    mapOf(
-                                        "clientDataJSON" to JsonPrimitive(Base64.encode(att.clientDataJSON)),
-                                        "transports" to JsonArray(att.transports.map { JsonPrimitive(it) }),
-                                        "publicKey" to
-                                            if (gottenPublicKey != null) {
-                                                JsonPrimitive(Base64.encode(gottenPublicKey))
-                                            } else {
-                                                JsonNull
-                                            },
-                                        "publicKeyAlgorithm" to JsonPrimitive(att.publicKeyAlgorithm),
-                                        "attestationObject" to
-                                            if (gottenAttestationObject != null) {
-                                                JsonPrimitive(Base64.encode(gottenAttestationObject))
-                                            } else {
-                                                JsonNull
-                                            },
-                                        "signature" to
-                                            if (gottenSignature != null) {
-                                                JsonPrimitive(Base64.encode(gottenSignature))
-                                            } else {
-                                                JsonNull
-                                            },
+                callback(
+                    Json.encodeToString(
+                        JsonObject.serializer(),
+                        JsonObject(
+                            mapOf(
+                                "id" to JsonPrimitive(res.id),
+                                "rawId" to JsonPrimitive(Base64.encode(res.rawId)),
+                                "type" to JsonPrimitive(res.type),
+                                "authenticatorAttachment" to JsonPrimitive(res.authenticatorAttachment),
+                                "response" to
+                                    JsonObject(
+                                        mapOf(
+                                            "clientDataJSON" to JsonPrimitive(Base64.encode(att.clientDataJSON)),
+                                            "transports" to JsonArray(att.transports.map { JsonPrimitive(it) }),
+                                            "publicKey" to
+                                                if (gottenPublicKey != null) {
+                                                    JsonPrimitive(Base64.encode(gottenPublicKey))
+                                                } else {
+                                                    JsonNull
+                                                },
+                                            "publicKeyAlgorithm" to JsonPrimitive(att.publicKeyAlgorithm),
+                                            "attestationObject" to
+                                                if (gottenAttestationObject != null) {
+                                                    JsonPrimitive(Base64.encode(gottenAttestationObject))
+                                                } else {
+                                                    JsonNull
+                                                },
+                                            "signature" to
+                                                if (gottenSignature != null) {
+                                                    JsonPrimitive(Base64.encode(gottenSignature))
+                                                } else {
+                                                    JsonNull
+                                                },
+                                        ),
                                     ),
-                                ),
+                            ),
                         ),
                     ),
-                ),
-            )
+                )
+            }
         }
     }
 
@@ -203,17 +208,17 @@ class WebauthnGetCallback(private val library: FIDOkLibrary, private val state: 
     ) {
         val paramsString = message.params
 
-        println("Assertion handler called with $paramsString!")
+        Logger.v("Assertion handler called with $paramsString!")
 
         val decoded = Json.decodeFromString<JsonObject>(paramsString)
 
-        println("Assertion handler decoded $decoded")
+        Logger.v("Assertion handler decoded $decoded")
 
         val credentialRequestOptions =
             CredentialRequestOptions(
                 publicKey =
                     PublicKeyCredentialRequestOptions(
-                        rpId = decoded["rpId"]!!.jsonPrimitive.content,
+                        rpId = decoded["rpId"]?.jsonPrimitive?.content,
                         challenge = Base64.decode(decoded["challenge"]!!.jsonPrimitive.content.toByteArray()),
                         timeout = decoded["timeout"]?.jsonPrimitive?.long?.toULong(),
                         allowCredentials =
@@ -237,71 +242,88 @@ class WebauthnGetCallback(private val library: FIDOkLibrary, private val state: 
             )
 
         runBlocking {
-            val url = URL(state.lastLoadedUrl)
-            val protocol = url.protocol
+            launch(Dispatchers.IO) {
+                val url = URL(state.lastLoadedUrl)
+                val protocol = url.protocol
 
-            if (protocol != "https") {
-                throw IllegalStateException("Should not perform FIDO auth on non-HTTPS URLs")
-            }
+                if (protocol != "https") {
+                    throw IllegalStateException("Should not perform FIDO auth on non-HTTPS URLs")
+                }
 
-            val res =
-                library.webauthn().get(
-                    origin = url.protocol + "://" + url.host,
-                    options = credentialRequestOptions,
-                )
+                val res =
+                    library.webauthn().get(
+                        origin = url.protocol + "://" + url.host,
+                        options = credentialRequestOptions,
+                    )
 
-            println("Credential assertion result $res")
+                Logger.d("Credential assertion result $res")
 
-            val att = res.response as AuthenticatorAssertionResponse
+                val att = res.response as AuthenticatorAssertionResponse
 
-            val gottenAttestationObject = att.attestationObject
-            val gottenUserHandle = att.userHandle
-            val gottenSignature = att.signature
+                val gottenAttestationObject = att.attestationObject
+                val gottenUserHandle = att.userHandle
+                val gottenSignature = att.signature
 
-            callback(
-                Json.encodeToString(
-                    JsonObject.serializer(),
-                    JsonObject(
-                        mapOf(
-                            "id" to JsonPrimitive(res.id),
-                            "rawId" to JsonPrimitive(Base64.encode(res.rawId)),
-                            "type" to JsonPrimitive(res.type),
-                            "authenticatorAttachment" to JsonPrimitive(res.authenticatorAttachment),
-                            "response" to
-                                JsonObject(
-                                    mapOf(
-                                        "clientDataJSON" to JsonPrimitive(Base64.encode(att.clientDataJSON)),
-                                        "attestationObject" to
-                                            if (gottenAttestationObject != null) {
-                                                JsonPrimitive(Base64.encode(gottenAttestationObject))
-                                            } else {
-                                                JsonNull
-                                            },
-                                        "signature" to JsonPrimitive(Base64.encode(gottenSignature)),
-                                        "userHandle" to
-                                            if (gottenUserHandle != null) {
-                                                JsonPrimitive(Base64.encode(gottenUserHandle))
-                                            } else {
-                                                JsonNull
-                                            },
-                                        "authenticatorData" to JsonPrimitive(Base64.encode(att.authenticatorData)),
+                callback(
+                    Json.encodeToString(
+                        JsonObject.serializer(),
+                        JsonObject(
+                            mapOf(
+                                "id" to JsonPrimitive(res.id),
+                                "rawId" to JsonPrimitive(Base64.encode(res.rawId)),
+                                "type" to JsonPrimitive(res.type),
+                                "authenticatorAttachment" to JsonPrimitive(res.authenticatorAttachment),
+                                "response" to
+                                    JsonObject(
+                                        mapOf(
+                                            "clientDataJSON" to JsonPrimitive(Base64.encode(att.clientDataJSON)),
+                                            "attestationObject" to
+                                                if (gottenAttestationObject != null) {
+                                                    JsonPrimitive(Base64.encode(gottenAttestationObject))
+                                                } else {
+                                                    JsonNull
+                                                },
+                                            "signature" to JsonPrimitive(Base64.encode(gottenSignature)),
+                                            "userHandle" to
+                                                if (gottenUserHandle != null) {
+                                                    JsonPrimitive(Base64.encode(gottenUserHandle))
+                                                } else {
+                                                    JsonNull
+                                                },
+                                            "authenticatorData" to JsonPrimitive(Base64.encode(att.authenticatorData)),
+                                        ),
                                     ),
-                                ),
+                            ),
                         ),
                     ),
-                ),
-            )
+                )
+            }
         }
     }
 
     override fun methodName(): String = "WebauthnGet"
 }
 
+class WebauthnErrorCallback(private val addErrorCallback: (String) -> Unit) : IJsMessageHandler {
+    override fun handle(
+        message: JsMessage,
+        navigator: WebViewNavigator?,
+        callback: (String) -> Unit,
+    ) {
+        addErrorCallback(message.params)
+    }
+
+    override fun methodName() = "SendError"
+}
+
 @Composable
 private fun rememberWebViewNavigator(coroutineScope: CoroutineScope = rememberCoroutineScope()): WebViewNavigator =
     remember(coroutineScope) { WebViewNavigator(coroutineScope) }
 
-private fun attachWebauthnHandlers(navigator: WebViewNavigator) {
+private fun attachWebauthnHandlers(
+    navigator: WebViewNavigator,
+    callback: (String) -> Unit,
+) {
     navigator.evaluateJavaScript(
         """
                 function _barrToB64(barr) {
@@ -322,7 +344,9 @@ private fun attachWebauthnHandlers(navigator: WebViewNavigator) {
                 }
 
 
-                navigator.credentials = {};
+                if (!navigator.credentials) {
+                    navigator.credentials = {};
+                }
                 navigator.credentials.create = function(options) {
                     const pk = options.publicKey;
 
@@ -362,6 +386,9 @@ private fun attachWebauthnHandlers(navigator: WebViewNavigator) {
                             });
                         } catch (e) {
                             console.log("rejecting creation", e);
+                            window.kmpJsBridge.callNative(
+                                "SendError", JSON.stringify({"message": e.message}), () => {}
+                            );
                             reject(e);
                         }
                     });
@@ -402,62 +429,106 @@ private fun attachWebauthnHandlers(navigator: WebViewNavigator) {
                             });
                         } catch (e) {
                             console.log("rejecting assertion", e);
+                            window.kmpJsBridge.callNative(
+                                "SendError", JSON.stringify({"message": e.message}), () => {}
+                            );
                             reject(e);
                         }
                     });
                 }
             """,
+        callback,
     )
 }
 
 @Composable
-fun WebBrowser(library: FIDOkLibrary) {
+fun WebBrowser(
+    library: FIDOkLibrary,
+    mobileView: Boolean = false,
+) {
     var restartRequired by remember { mutableStateOf(false) }
     var downloading by remember { mutableStateOf(0F) }
     var initialized by remember { mutableStateOf(false) }
+    var attaching by remember { mutableStateOf(true) }
 
     val webViewState = rememberWebViewState("https://webauthn.lubu.ch/_test/client.html")
     val navigator = rememberWebViewNavigator()
     val jsBridge = rememberWebViewJsBridge(navigator)
 
+    DisposableEffect(Unit) {
+        webViewState.webSettings.apply {
+            androidWebSettings.apply {
+                domStorageEnabled = true
+                allowProtectedMedia = true
+            }
+        }
+        onDispose { }
+    }
+
     LaunchedEffect(jsBridge) {
         jsBridge.register(WebauthnCreateCallback(library, webViewState))
         jsBridge.register(WebauthnGetCallback(library, webViewState))
+        jsBridge.register(
+            WebauthnErrorCallback {
+                runBlocking {
+                    library.onException(Exception(it))
+                }
+            },
+        )
     }
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            KCEF.init(builder = {
-                installDir(File("kcef-bundle"))
+    if (!mobileView) {
+        LaunchedEffect(Unit) {
+            withContext(Dispatchers.IO) {
+                KCEF.init(builder = {
+                    installDir(File("kcef-bundle"))
 
-                progress {
-                    onDownloading {
-                        downloading = if (it > 0F) it else 0F
+                    progress {
+                        onDownloading {
+                            downloading = if (it > 0F) it else 0F
+                        }
+                        onInitialized {
+                            initialized = true
+                        }
                     }
-                    onInitialized {
-                        initialized = true
+                    settings {
+                        cachePath = File("cache").absolutePath
                     }
-                }
-                settings {
-                    cachePath = File("cache").absolutePath
-                }
-            }, onError = {
-                it?.printStackTrace()
-            }, onRestartRequired = {
-                restartRequired = true
-            })
+                }, onError = {
+                    it?.printStackTrace()
+                }, onRestartRequired = {
+                    restartRequired = true
+                })
+            }
         }
+    } else {
+        initialized = true
     }
-
-    attachWebauthnHandlers(navigator)
 
     if (restartRequired) {
         Text(text = "Restart required.")
     } else {
         if (initialized) {
+            attachWebauthnHandlers(navigator) {
+                attaching = false
+            }
+
+            if (attaching) {
+                Text(text = "Still getting things ready for web browsing...")
+            }
+
             SubmittableText(placeholder = { Text("url") }, initialValue = webViewState.lastLoadedUrl ?: "") {
-                navigator.loadUrl(it)
-                attachWebauthnHandlers(navigator)
+                attaching = true
+
+                if (it.startsWith("https:") || it.startsWith("http:")) {
+                    navigator.loadUrl(it)
+                } else {
+                    navigator.loadUrl("https://$it")
+                }
+
+                attachWebauthnHandlers(navigator) {
+                    attaching = false
+                }
             }
 
             WebView(

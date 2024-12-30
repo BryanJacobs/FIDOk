@@ -44,4 +44,12 @@ interface FIDOkCallbacks {
      * @param client [CTAPClient] object connected to the pending Authenticator
      */
     suspend fun authenticatorWaitingForSelection(client: CTAPClient) {}
+
+    /**
+     * Called when the library encounters a problem of any sort
+     *
+     * @param ex The exception that happened
+     * @return true if the exception should be suppressed/marked as handled
+     */
+    suspend fun exceptionEncountered(ex: Exception): Boolean = false
 }
