@@ -89,7 +89,8 @@ provided by native implementations specific to each platform.
 | Webauthn Layer                    | Working          |
 | Easy Task-Specific APIs           | Incomplete       |
 | Command Line                      | Working          |
-| Graphical User Interface          | Incomplete       |
+| Graphical User Interface          | Ugly             |
+| Built-in Webauthn web browser     | Working          |
 | Authenticator Proxying            | Working from HID |
 
 ## Platforms
